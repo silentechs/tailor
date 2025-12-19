@@ -1,0 +1,731 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  password             String
+  name                 String
+  phone                String?
+  businessName         String?
+  businessAddress      String?
+  region               Region?
+  city                 String?
+  profileImage         String?
+  bio                  String?
+  role                 UserRole              @default(TAILOR)
+  status               UserStatus            @default(PENDING)
+  emailVerified        DateTime?
+  notifyEmail          Boolean               @default(true)
+  notifySms            Boolean               @default(true)
+  showcaseEnabled      Boolean               @default(true)
+  showcaseUsername     String?               @unique
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  appointments         Appointment[]
+  auditLogs            AuditLog[]
+  clients              Client[]
+  equipment            Equipment[]
+  inventoryItems       InventoryItem[]
+  inventoryMovements   InventoryMovement[]
+  invoices             Invoice[]
+  maintenanceRecords   MaintenanceRecord[]
+  measurementTemplates MeasurementTemplate[]
+  notifications        Notification[]
+  orders               Order[]
+  orderCollections     OrderCollection[]
+  sentMessages         OrderMessage[]        @relation("SentMessages")
+  payments             Payment[]
+  orderTasks           OrderTask[]
+  portfolioItems       PortfolioItem[]
+  quickNotes           QuickNote[]
+  sessions             Session[]
+  voiceLogs            VoiceLog[]
+
+  @@index([email])
+  @@index([status])
+  @@index([role])
+  @@index([showcaseUsername])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Client {
+  id                 String                @id @default(cuid())
+  tailorId           String
+  name               String
+  phone              String
+  email              String?
+  address            String?
+  region             Region?
+  city               String?
+  notes              String?
+  profileImage       String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  appointments       Appointment[]
+  tailor             User                  @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  clientMeasurements ClientMeasurement[]
+  trackingTokens     ClientTrackingToken[]
+  invoices           Invoice[]
+  orders             Order[]
+  payments           Payment[]
+  socialConsents     SocialMediaConsent[]
+
+  @@unique([tailorId, phone])
+  @@index([tailorId])
+  @@index([phone])
+  @@index([name])
+}
+
+model ClientTrackingToken {
+  id         String          @id @default(cuid())
+  clientId   String
+  token      String          @unique
+  isActive   Boolean         @default(true)
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime        @default(now())
+  sessions   ClientSession[]
+  client     Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([clientId])
+}
+
+model ClientSession {
+  id              String              @id @default(cuid())
+  trackingTokenId String
+  sessionToken    String              @unique
+  phone           String
+  verified        Boolean             @default(false)
+  expiresAt       DateTime
+  createdAt       DateTime            @default(now())
+  trackingToken   ClientTrackingToken @relation(fields: [trackingTokenId], references: [id], onDelete: Cascade)
+
+  @@index([sessionToken])
+  @@index([trackingTokenId])
+}
+
+model Order {
+  id                 String              @id @default(cuid())
+  orderNumber        String              @unique
+  tailorId           String
+  clientId           String
+  collectionId       String?
+  garmentType        GarmentType
+  garmentDescription String?
+  styleReference     String?
+  styleNotes         String?
+  quantity           Int                 @default(1)
+  materialSource     MaterialSourceType  @default(CLIENT_PROVIDED)
+  materialDetails    String?
+  materialCost       Decimal?            @db.Decimal(10, 2)
+  laborCost          Decimal             @db.Decimal(10, 2)
+  totalAmount        Decimal             @db.Decimal(10, 2)
+  paidAmount         Decimal             @default(0) @db.Decimal(10, 2)
+  status             OrderStatus         @default(PENDING)
+  deadline           DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  deliveredAt        DateTime?
+  progressPhotos     String[]            @default([])
+  progressNotes      String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  measurementId      String?
+  appointments       Appointment[]
+  inventoryMovements InventoryMovement[]
+  invoices           Invoice[]
+  client             Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  collection         OrderCollection?    @relation(fields: [collectionId], references: [id])
+  measurement        ClientMeasurement?  @relation(fields: [measurementId], references: [id])
+  tailor             User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  messages           OrderMessage[]
+  ratings            OrderRating[]
+  payments           Payment[]
+  tasks              OrderTask[]
+
+  @@index([tailorId])
+  @@index([clientId])
+  @@index([collectionId])
+  @@index([status])
+  @@index([orderNumber])
+}
+
+model OrderTask {
+  id          String    @id @default(cuid())
+  orderId     String
+  tailorId    String
+  title       String
+  description String?
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  priority    String    @default("MEDIUM")
+  assignedTo  String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tailor      User      @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([tailorId])
+}
+
+model OrderCollection {
+  id              String    @id @default(cuid())
+  tailorId        String
+  name            String
+  description     String?
+  totalOrders     Int       @default(0)
+  completedOrders Int       @default(0)
+  deadline        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  orders          Order[]
+  tailor          User      @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([tailorId])
+}
+
+model BulkOrderDraft {
+  id        String   @id @default(cuid())
+  tailorId  String
+  data      Json
+  step      Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tailorId])
+}
+
+model OrderMessage {
+  id         String    @id @default(cuid())
+  orderId    String
+  senderId   String?
+  senderType String
+  message    String
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender     User?     @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([orderId])
+  @@index([senderId])
+}
+
+model OrderRating {
+  id        String   @id @default(cuid())
+  orderId   String
+  rating    Int
+  review    String?
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  paymentNumber String        @unique
+  tailorId      String
+  clientId      String
+  orderId       String?
+  invoiceId     String?
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(COMPLETED)
+  mobileNumber  String?
+  transactionId String?
+  bankName      String?
+  accountNumber String?
+  notes         String?
+  receiptUrl    String?
+  paidAt        DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoice       Invoice?      @relation(fields: [invoiceId], references: [id])
+  order         Order?        @relation(fields: [orderId], references: [id])
+  tailor        User          @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([tailorId])
+  @@index([clientId])
+  @@index([orderId])
+  @@index([paymentNumber])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  tailorId        String
+  clientId        String
+  orderId         String?
+  items           Json
+  subtotal        Decimal       @db.Decimal(10, 2)
+  vatAmount       Decimal       @db.Decimal(10, 2)
+  nhilAmount      Decimal       @db.Decimal(10, 2)
+  getfundAmount   Decimal       @db.Decimal(10, 2)
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  paidAmount      Decimal       @default(0) @db.Decimal(10, 2)
+  template        String        @default("modern")
+  notes           String?
+  termsConditions String?
+  status          InvoiceStatus @default(DRAFT)
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  paidAt          DateTime?
+  dueDate         DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  order           Order?        @relation(fields: [orderId], references: [id])
+  tailor          User          @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  payments        Payment[]
+
+  @@index([tailorId])
+  @@index([clientId])
+  @@index([invoiceNumber])
+  @@index([status])
+}
+
+model PortfolioItem {
+  id          String          @id @default(cuid())
+  tailorId    String
+  title       String
+  description String?
+  category    GarmentType
+  images      String[]
+  tags        String[]        @default([])
+  viewCount   Int             @default(0)
+  likeCount   Int             @default(0)
+  isPublic    Boolean         @default(true)
+  isFeatured  Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  tailor      User            @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  likes       PortfolioLike[]
+
+  @@index([tailorId])
+  @@index([category])
+  @@index([isPublic])
+}
+
+model PortfolioLike {
+  visitorId       String
+  portfolioItemId String
+  createdAt       DateTime      @default(now())
+  portfolioItem   PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+
+  @@id([visitorId, portfolioItemId])
+  @@index([portfolioItemId])
+}
+
+model SocialMediaConsent {
+  id          String    @id @default(cuid())
+  clientId    String
+  orderId     String?
+  consented   Boolean   @default(false)
+  platforms   String[]  @default([])
+  consentedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  type      NotificationType
+  priority  NotificationPriority @default(MEDIUM)
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean              @default(false)
+  readAt    DateTime?
+  emailSent Boolean              @default(false)
+  smsSent   Boolean              @default(false)
+  createdAt DateTime             @default(now())
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+}
+
+model QuickNote {
+  id        String   @id @default(cuid())
+  tailorId  String
+  content   String
+  tags      String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tailor    User     @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([tailorId])
+}
+
+model SmsNotification {
+  id           String    @id @default(cuid())
+  provider     String
+  recipient    String
+  message      String
+  status       String
+  messageId    String?
+  errorMessage String?
+  cost         Decimal?  @db.Decimal(10, 4)
+  sentAt       DateTime  @default(now())
+  deliveredAt  DateTime?
+
+  @@index([recipient])
+  @@index([status])
+}
+
+model EmailNotification {
+  id           String    @id @default(cuid())
+  recipient    String
+  subject      String
+  template     String
+  status       String
+  messageId    String?
+  errorMessage String?
+  sentAt       DateTime  @default(now())
+  openedAt     DateTime?
+
+  @@index([recipient])
+  @@index([status])
+}
+
+model MeasurementTemplate {
+  id                 String              @id @default(cuid())
+  tailorId           String
+  name               String
+  garmentType        GarmentType
+  fields             Json
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  clientMeasurements ClientMeasurement[]
+  tailor             User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@unique([tailorId, name])
+  @@index([tailorId])
+}
+
+model ClientMeasurement {
+  id         String               @id @default(cuid())
+  clientId   String
+  templateId String?
+  values     Json
+  sketch     String?              @db.Text
+  notes      String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  client     Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  template   MeasurementTemplate? @relation(fields: [templateId], references: [id])
+  orders     Order[]
+
+  @@index([clientId])
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  tailorId  String
+  clientId  String
+  orderId   String?
+  type      AppointmentType   @default(CONSULTATION)
+  status    AppointmentStatus @default(SCHEDULED)
+  startTime DateTime
+  endTime   DateTime
+  notes     String?
+  location  String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  client    Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  order     Order?            @relation(fields: [orderId], references: [id])
+  tailor    User              @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([tailorId])
+  @@index([clientId])
+  @@index([startTime])
+}
+
+model InventoryItem {
+  id            String              @id @default(cuid())
+  tailorId      String
+  sku           String?
+  name          String
+  description   String?
+  category      String?
+  unitOfMeasure String              @default("YARDS")
+  quantity      Decimal             @default(0) @db.Decimal(10, 2)
+  minStock      Decimal             @default(0) @db.Decimal(10, 2)
+  unitCost      Decimal?            @db.Decimal(10, 2)
+  imageUrl      String?
+  isActive      Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  tailor        User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  movements     InventoryMovement[]
+
+  @@unique([tailorId, sku])
+  @@index([tailorId])
+  @@index([category])
+}
+
+model InventoryMovement {
+  id        String                @id @default(cuid())
+  tailorId  String
+  itemId    String
+  orderId   String?
+  type      InventoryMovementType
+  quantity  Decimal               @db.Decimal(10, 2)
+  reason    String?
+  createdAt DateTime              @default(now())
+  item      InventoryItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  order     Order?                @relation(fields: [orderId], references: [id])
+  tailor    User                  @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([tailorId])
+  @@index([itemId])
+  @@index([orderId])
+}
+
+model Equipment {
+  id           String              @id @default(cuid())
+  tailorId     String
+  name         String
+  brand        String?
+  model        String?
+  serialNumber String?
+  purchaseDate DateTime?
+  status       String              @default("ACTIVE")
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  tailor       User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  maintenance  MaintenanceRecord[]
+
+  @@index([tailorId])
+}
+
+model MaintenanceRecord {
+  id            String            @id @default(cuid())
+  tailorId      String
+  equipmentId   String
+  type          MaintenanceType   @default(ROUTINE)
+  status        MaintenanceStatus @default(COMPLETED)
+  scheduledDate DateTime?
+  completedDate DateTime          @default(now())
+  description   String
+  cost          Decimal?          @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  tailor        User              @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([tailorId])
+  @@index([equipmentId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+}
+
+model VoiceLog {
+  id         String   @id @default(cuid())
+  tailorId   String
+  audioUrl   String
+  transcript String?
+  intent     String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  tailor     User     @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+
+  @@index([tailorId])
+}
+
+enum UserRole {
+  ADMIN
+  TAILOR
+  SEAMSTRESS
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  READY_FOR_FITTING
+  FITTING_DONE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY_MTN
+  MOBILE_MONEY_VODAFONE
+  MOBILE_MONEY_AIRTELTIGO
+  BANK_TRANSFER
+  PAYSTACK
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum MaterialSourceType {
+  CLIENT_PROVIDED
+  TAILOR_PROVIDED
+  SPLIT
+}
+
+enum GarmentType {
+  KABA_AND_SLIT
+  DASHIKI
+  SMOCK_BATAKARI
+  KAFTAN
+  AGBADA
+  COMPLET
+  KENTE_CLOTH
+  BOUBOU
+  SUIT
+  DRESS
+  SHIRT
+  TROUSERS
+  SKIRT
+  BLOUSE
+  OTHER
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  PAYMENT_RECEIVED
+  PAYMENT_REMINDER
+  INVOICE_SENT
+  INVOICE_VIEWED
+  NEW_MESSAGE
+  NEW_CLIENT
+  SYSTEM
+  APPOINTMENT_REMINDER
+  EQUIPMENT_MAINTENANCE
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum Region {
+  GREATER_ACCRA
+  ASHANTI
+  WESTERN
+  CENTRAL
+  EASTERN
+  VOLTA
+  NORTHERN
+  UPPER_EAST
+  UPPER_WEST
+  BRONG_AHAFO
+  BONO_EAST
+  AHAFO
+  WESTERN_NORTH
+  OTI
+  NORTH_EAST
+  SAVANNAH
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentType {
+  CONSULTATION
+  MEASUREMENT
+  FITTING
+  COLLECTION
+  REPAIR
+}
+
+enum InventoryMovementType {
+  RECEIPT
+  ISSUE
+  ADJUSTMENT
+  TRANSFER
+  RETURN
+  DAMAGED
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceType {
+  ROUTINE
+  REPAIR
+  OVERHAUL
+  CALIBRATION
+}

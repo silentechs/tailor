@@ -1,0 +1,23 @@
+{
+  "name": "StitchCraft Ghana",
+  "short_name": "StitchCraft",
+  "description": "Professional Tailoring Management System for Ghanaian Fashion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#006B3F",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}

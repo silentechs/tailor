@@ -1,0 +1,489 @@
+'use client';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Eye, Image as ImageIcon, Loader2, Plus, Trash2, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { GARMENT_TYPE_LABELS } from '@/lib/utils';
+
+// API Functions
+async function getPortfolio() {
+  const res = await fetch('/api/portfolio');
+  if (!res.ok) throw new Error('Failed to fetch portfolio');
+  const data = await res.json();
+  return data.data;
+}
+
+async function createPortfolioItem(data: any) {
+  const res = await fetch('/api/portfolio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to create item');
+  }
+  return res.json();
+}
+
+async function deletePortfolioItem(id: string) {
+  const res = await fetch(`/api/portfolio/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete item');
+  return res.json();
+}
+
+export default function PortfolioPage() {
+  const queryClient = useQueryClient();
+  const [_activeTab, setActiveTab] = useState('gallery');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newItem, setNewItem] = useState({
+    title: '',
+    category: '',
+    description: '',
+    images: ['/placeholder.jpg'], // Mock image upload for now
+  });
+
+  const {
+    data: portfolio,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['portfolio'],
+    queryFn: getPortfolio,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createPortfolioItem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      setIsAddOpen(false);
+      setNewItem({ title: '', category: '', description: '', images: ['/placeholder.jpg'] });
+      toast.success('Project added to portfolio');
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deletePortfolioItem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      toast.success('Project removed from portfolio');
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File is too large. Max 5MB.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const loadingToast = toast.loading('Uploading image...');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      const data = await res.json();
+
+      setNewItem((prev) => ({
+        ...prev,
+        images: [...prev.images.filter((img) => img !== '/placeholder.jpg'), data.url],
+      }));
+
+      toast.dismiss(loadingToast);
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error('Failed to upload image');
+      console.error(error);
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setNewItem((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove),
+    }));
+  };
+
+  const handleSave = () => {
+    if (!newItem.title || !newItem.category) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    // Remove placeholder if still present (though logic above handles it, just in case)
+    const cleanImages = newItem.images.filter((img) => img !== '/placeholder.jpg');
+
+    if (cleanImages.length === 0) {
+      toast.error('Please upload at least one image');
+      return;
+    }
+
+    createMutation.mutate({
+      ...newItem,
+      images: cleanImages,
+    });
+  };
+
+  // Analytics Calculations
+  const totalViews = portfolio
+    ? portfolio.reduce((acc: number, item: any) => acc + (item.viewCount || 0), 0)
+    : 0;
+  const totalLikes = portfolio
+    ? portfolio.reduce((acc: number, item: any) => acc + (item.likeCount || 0), 0)
+    : 0;
+  const totalProjects = portfolio ? portfolio.length : 0;
+
+  // Group by category
+  const categoryStats = portfolio
+    ? portfolio.reduce((acc: any, item: any) => {
+      const cat = item.category;
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {})
+    : {};
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-heading text-primary">Portfolio</h1>
+          <p className="text-muted-foreground">Showcase your best work to potential clients.</p>
+        </div>
+        <Button onClick={() => setIsAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Project
+        </Button>
+      </div>
+
+      <Tabs defaultValue="gallery" className="w-full" onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="gallery">Gallery</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="gallery" className="mt-6">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-500">
+              Error loading portfolio. Please try again.
+            </div>
+          ) : !portfolio || portfolio.length === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed rounded-lg">
+              <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">Your portfolio is empty</h3>
+              <p className="text-muted-foreground mb-4">
+                Start adding photos of your work to attract clients.
+              </p>
+              <Button onClick={() => setIsAddOpen(true)}>Add First Project</Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {portfolio.map((item: any) => (
+                <Card key={item.id} className="overflow-hidden group">
+                  <div className="aspect-square bg-muted relative">
+                    {/* Real implementation would use item.images[0] */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-secondary/10 text-muted-foreground">
+                      {item.images && item.images.length > 0 ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.images[0]}
+                          alt={item.title}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <ImageIcon className="h-10 w-10" />
+                      )}
+                    </div>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="secondary" size="sm">
+                            <Eye className="h-4 w-4 mr-2" /> View
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[700px]">
+                          <DialogHeader>
+                            <DialogTitle>{item.title}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                              {item.images && item.images.length > 0 ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={item.images[0]}
+                                  alt={item.title}
+                                  className="object-contain w-full h-full"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <ImageIcon className="h-20 w-20 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            {item.images && item.images.length > 1 && (
+                              <div className="flex gap-2 overflow-x-auto py-2">
+                                {item.images.map((img: string, idx: number) => (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    key={idx}
+                                    src={img}
+                                    alt={`${item.title} ${idx + 1}`}
+                                    className="h-16 w-16 object-cover rounded-md border"
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">
+                                {GARMENT_TYPE_LABELS[item.category as keyof typeof GARMENT_TYPE_LABELS] ||
+                                  item.category}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">
+                                {item.viewCount} views • {item.likeCount} likes
+                              </span>
+                            </div>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground">{item.description}</p>
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to remove this project?')) {
+                            deleteMutation.mutate(item.id);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-2" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg truncate pr-2">{item.title}</CardTitle>
+                      <Badge variant="outline" className="shrink-0">
+                        {GARMENT_TYPE_LABELS[item.category as keyof typeof GARMENT_TYPE_LABELS] ||
+                          item.category}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex gap-4 text-sm text-muted-foreground mt-2">
+                      <span>{item.viewCount} views</span>
+                      <span>{item.likeCount} likes</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-6">
+          <div className="grid gap-6 md:grid-cols-3 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Projects
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalProjects}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Views
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalViews}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Likes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalLikes}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Projects by Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.entries(categoryStats).map(([cat, count]: [string, any]) => (
+                  <div key={cat} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">
+                        {GARMENT_TYPE_LABELS[cat as keyof typeof GARMENT_TYPE_LABELS] || cat}
+                      </Badge>
+                    </div>
+                    <span className="font-medium">{count}</span>
+                  </div>
+                ))}
+                {Object.keys(categoryStats).length === 0 && (
+                  <p className="text-muted-foreground text-sm">No data available yet.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Project Dialog */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Project</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Project Title</Label>
+              <Input
+                id="title"
+                placeholder="e.g. Wedding Kente"
+                value={newItem.title}
+                onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                onValueChange={(val) => setNewItem({ ...newItem, category: val })}
+                value={newItem.category}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(GARMENT_TYPE_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                placeholder="Describe the materials, techniques used..."
+                value={newItem.description}
+                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Photos</Label>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {newItem.images
+                  .filter((img) => img !== '/placeholder.jpg')
+                  .map((img, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-square rounded-md overflow-hidden border group"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt="Preview" className="object-cover w-full h-full" />
+                      <button
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 bg-destructive text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        type="button"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                <label className="border-2 border-dashed rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                  <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                  <span className="text-xs text-muted-foreground">Upload</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={createMutation.isPending}>
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                </>
+              ) : (
+                'Save Project'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

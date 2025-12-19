@@ -1,26 +1,290 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-dm-sans);
+  --font-sans: var(--font-dm-sans);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-ghana-red: #CE1126;
+  --color-ghana-gold: #FCD116;
+  --color-ghana-green: #006B3F;
+  --color-ghana-black: #000000;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+
+    to {
+      height: 0;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+
+  @media (min-width: 640px) {
+    max-width: none;
+  }
+
+  @media (width >=1400px) {
+    max-width: 1400px;
+  }
+}
+
+/*
+  Based on StitchCraft Ghana Design System
+  src/lib/design-system.ts
+*/
+:root {
+  /* Ghana Colors (Hex for reference, but we use HSL for variables) 
+     Red: #CE1126, Gold: #FCD116, Green: #006B3F
+  */
+
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
+
+  /* Ghana Green as Primary */
+  --primary: 142 76% 22%;
+  --primary-foreground: 0 0% 98%;
+
+  /* Ghana Gold as Secondary */
+  --secondary: 45 93% 54%;
+  --secondary-foreground: 0 0% 9%;
+
+  /* Ghana Red as Accent/Destructive */
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+
+  /* Using Ghana Red for Accent in some contexts, but standard accent is usually subtle */
+  --accent: 45 93% 90%;
+  /* Light gold for accent hover */
+  --accent-foreground: 0 0% 9%;
+
+  --destructive: 356 90% 44%;
+  /* Ghana Red */
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 142 76% 22%;
+  /* Ghana Green */
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 0 0% 7%;
+  --foreground: 0 0% 95%;
+
+  --card: 0 0% 10%;
+  --card-foreground: 0 0% 95%;
+
+  --popover: 0 0% 10%;
+  --popover-foreground: 0 0% 95%;
+
+  /* Ghana Green (Lighter for dark mode) */
+  --primary: 142 76% 36%;
+  --primary-foreground: 0 0% 98%;
+
+  /* Ghana Gold */
+  --secondary: 45 93% 58%;
+  --secondary-foreground: 0 0% 9%;
+
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+
+  --accent: 45 93% 15%;
+  /* Dark gold for accent */
+  --accent-foreground: 0 0% 98%;
+
+  --destructive: 356 90% 55%;
+  /* Lighter Ghana Red */
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 45 93% 54%;
+  /* Gold ring for dark mode visibility */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+}
+
+/* ============================================
+   Print Styles
+   Hide navigation and UI elements when printing
+   ============================================ */
+@media print {
+
+  /* Hide navigation elements */
+  nav,
+  aside,
+  header,
+  footer,
+  .no-print,
+  [data-sidebar],
+  [data-topbar],
+  [data-mobile-nav],
+  .mobile-nav,
+  .sidebar,
+  .topbar,
+  .fab,
+  .command-menu,
+  button:not(.print-button),
+  .fixed {
+    display: none !important;
+  }
+
+  /* Reset page layout for printing */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Make main content full width */
+  main,
+  .main-content,
+  [data-main-content] {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Print content styling */
+  .print-content {
+    display: block !important;
+    width: 100% !important;
+    padding: 20px !important;
+  }
+
+  /* Hide non-essential elements */
+  .animate-in,
+  .fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Ensure tables print nicely */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd !important;
+    padding: 8px !important;
+    text-align: left !important;
+  }
+
+  th {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid !important;
+  }
+
+  /* Links - show URL */
+  a[href]:after {
+    content: none !important;
+  }
+
+  /* Cards for print */
+  .card,
+  [class*="Card"] {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    break-inside: avoid !important;
+  }
+
+  /* Badge styling for print */
+  .badge,
+  [class*="Badge"] {
+    border: 1px solid #999 !important;
+    background: #f5f5f5 !important;
+    color: #333 !important;
+  }
 }
