@@ -14,8 +14,8 @@ interface FeatureCardProps {
 export function FeatureCard({ title, description, icon: Icon, color }: FeatureCardProps) {
   const colorMap = {
     primary: 'bg-primary/10 text-primary',
-    gold: 'bg-[var(--color-ghana-gold)]/10 text-[var(--color-ghana-gold)]',
-    red: 'bg-[var(--color-ghana-red)]/10 text-[var(--color-ghana-red)]',
+    gold: 'bg-ghana-gold/10 text-ghana-gold',
+    red: 'bg-ghana-red/10 text-ghana-red',
   };
 
   return (

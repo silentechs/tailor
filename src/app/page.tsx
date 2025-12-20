@@ -125,7 +125,7 @@ export default function LandingPage() {
                   className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border hidden md:block"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-[var(--color-ghana-gold)] rounded-full flex items-center justify-center">
+                    <div className="h-12 w-12 bg-ghana-gold rounded-full flex items-center justify-center">
                       <TrendingUp className="h-6 w-6 text-white" />
                     </div>
                     <div>
@@ -316,7 +316,7 @@ export default function LandingPage() {
               <div className="relative z-10 space-y-8 max-w-2xl mx-auto">
                 <h2 className="text-4xl md:text-6xl font-bold font-heading text-white">
                   Join the Future of{' '}
-                  <span className="text-[var(--color-ghana-gold)]">Ghanaian Fashion</span>
+                  <span className="text-ghana-gold">Ghanaian Fashion</span>
                 </h2>
                 <p className="text-xl text-primary-foreground/90">
                   Stop managing your business with paper and move into the digital age today. Free
@@ -412,9 +412,9 @@ export default function LandingPage() {
             </p>
             <div className="flex gap-6">
               <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground uppercase tracking-tighter">
-                <div className="w-4 h-3 bg-[var(--color-ghana-red)]" />
-                <div className="w-4 h-3 bg-[var(--color-ghana-gold)]" />
-                <div className="w-4 h-3 bg-[var(--color-ghana-green)]" />
+                <div className="w-4 h-3 bg-ghana-red" />
+                <div className="w-4 h-3 bg-ghana-gold" />
+                <div className="w-4 h-3 bg-ghana-green" />
                 <span className="ml-2">Made in Ghana</span>
               </div>
             </div>

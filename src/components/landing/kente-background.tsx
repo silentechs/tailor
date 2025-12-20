@@ -23,7 +23,7 @@ export function KenteBackground() {
           y: [0, 60, 0],
         }}
         transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-        className="absolute top-[20%] -right-[5%] w-[35%] h-[35%] rounded-full blur-[100px] bg-[var(--color-ghana-gold)]/15"
+        className="absolute top-[20%] -right-[5%] w-[35%] h-[35%] rounded-full blur-[100px] bg-ghana-gold/15"
       />
       <motion.div
         animate={{
@@ -32,7 +32,7 @@ export function KenteBackground() {
           y: [0, -50, 0],
         }}
         transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-        className="absolute -bottom-[10%] left-[20%] w-[45%] h-[45%] rounded-full blur-[130px] bg-[var(--color-ghana-red)]/10"
+        className="absolute -bottom-[10%] left-[20%] w-[45%] h-[45%] rounded-full blur-[130px] bg-ghana-red/10"
       />
 
       {/* Subtle Kente Pattern Overlay */}

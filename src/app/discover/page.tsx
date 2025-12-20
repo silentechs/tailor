@@ -228,10 +228,10 @@ export default function DiscoverPage() {
 
             <footer className="py-20 border-t bg-muted/20">
                 <div className="container mx-auto px-4 text-center space-y-4">
-                    <div className="flex justify-center gap-1 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-                        <div className="w-8 h-6 bg-[var(--color-ghana-red)]" />
-                        <div className="w-8 h-6 bg-[var(--color-ghana-gold)]" />
-                        <div className="w-8 h-6 bg-[var(--color-ghana-green)]" />
+                    <div className="flex justify-center gap-1 transition-all duration-500 hover:scale-105">
+                        <div className="w-8 h-6 bg-ghana-red" />
+                        <div className="w-8 h-6 bg-ghana-gold" />
+                        <div className="w-8 h-6 bg-ghana-green" />
                     </div>
                     <p className="text-muted-foreground text-sm font-medium">
                         Elevating Ghana's Fashion Ecosystem. © {new Date().getFullYear()} StitchCraft.

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
@@ -20,6 +21,27 @@ async function main() {
 
   // 1. Create a Tailors
   const password = await hash('password123', 12);
+
+  // 0. Create Admin User
+  const adminEmail = 'silentechs@gmail.com';
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      role: 'ADMIN',
+      status: 'ACTIVE',
+    },
+    create: {
+      email: adminEmail,
+      name: 'System Admin',
+      password,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      notifyEmail: true,
+      notifySms: true,
+      showcaseEnabled: false,
+    },
+  });
+  console.log(`- Upserted admin: ${adminEmail}`);
 
   const tailorsData = [
     {
