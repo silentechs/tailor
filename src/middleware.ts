@@ -24,6 +24,8 @@ const publicRoutes = [
   '/api/auth/login',
   '/api/auth/register',
   '/api/health',
+  '/api/discover',
+  '/api/gallery',
 ];
 
 // Routes that start with these prefixes are public
@@ -33,6 +35,7 @@ const publicPrefixes = [
   '/invoice-preview/',
   '/api/track/',
   '/api/showcase/public',
+  '/api/portfolio/public',
 ];
 
 // Admin-only routes

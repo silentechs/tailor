@@ -15,7 +15,13 @@ import {
   Scissors,
   Share2,
   Shield,
+  Star,
+  ThumbsUp,
+  Instagram,
+  Facebook,
+  Check,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -46,6 +52,9 @@ async function getTrackingData(token: string) {
 export default function TrackingPage() {
   const { token } = useParams();
   const [selectedOrderTab, setSelectedOrderTab] = useState(0);
+  const [rating, setRating] = useState(0);
+  const [consent, setConsent] = useState(false);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['tracking', token],
@@ -98,7 +107,7 @@ export default function TrackingPage() {
           text: `Tracking status for my orders at ${tailor.businessName}`,
           url: trackingUrl,
         })
-        .catch(() => {});
+        .catch(() => { });
     } else {
       navigator.clipboard.writeText(trackingUrl);
       toast.success('Tracking link copied to clipboard');
@@ -149,15 +158,19 @@ export default function TrackingPage() {
               {orders.length} {orders.length === 1 ? 'Order' : 'Orders'}
             </Badge>
           </div>
-          {/* Ghana Pattern Overlay */}
-          <div className="absolute top-0 right-0 w-32 h-32 opacity-10 pointer-events-none transform translate-x-8 -translate-y-8">
-            <Image
-              src="/pattern-kente.png"
-              alt=""
-              width={128}
-              height={128}
-              className="object-contain"
-            />
+          {/* Ghana Pattern Overlay - SVG */}
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-20 pointer-events-none transform translate-x-8 -translate-y-8">
+            <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="128" height="128" fill="url(#kente_tracking)" />
+              <defs>
+                <pattern id="kente_tracking" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <rect width="5" height="20" fill="#CE1126" />
+                  <rect x="5" width="5" height="20" fill="#FCD116" />
+                  <rect x="10" width="5" height="20" fill="#006B3F" />
+                  <rect x="15" width="5" height="20" fill="#000000" />
+                </pattern>
+              </defs>
+            </svg>
           </div>
         </div>
 
@@ -337,20 +350,131 @@ export default function TrackingPage() {
           </div>
         </div>
 
-        {/* Save Link QR */}
-        <div className="bg-slate-100/50 rounded-2xl p-6 text-center space-y-4">
-          <div className="mx-auto w-24 h-24 bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-center">
-            {qrCode ? (
-              <img src={qrCode} alt="Portal QR Code" className="w-full h-full" />
-            ) : (
-              <QrCode className="h-8 w-8 text-slate-200" />
+        {/* Rating & Feedback */}
+        <Card className="rounded-2xl border-none shadow-xl bg-white overflow-hidden">
+          <CardHeader className="pt-8 pb-4 text-center">
+            <div className="mx-auto w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center mb-4">
+              <ThumbsUp className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle className="text-xl font-heading font-bold">How is your experience?</CardTitle>
+            <p className="text-sm text-muted-foreground">Your feedback helps {tailor.businessName} grow.</p>
+          </CardHeader>
+          <CardContent className="space-y-6 pb-8">
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <motion.button
+                  key={star}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setRating(star)}
+                  className="p-1"
+                >
+                  <Star
+                    className={cn(
+                      "h-10 w-10 transition-colors",
+                      star <= rating ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
+                    )}
+                  />
+                </motion.button>
+              ))}
+            </div>
+
+            {rating > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-start gap-3">
+                  <div className="pt-0.5">
+                    <input
+                      type="checkbox"
+                      id="consent"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                      className="h-5 w-5 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                  </div>
+                  <label htmlFor="consent" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+                    I give permission to {tailor.businessName} to share photos/videos of my garment on social media for showcasing purposes.
+                  </label>
+                </div>
+                <Button
+                  className="w-full h-12 rounded-xl font-bold transition-all"
+                  onClick={async () => {
+                    setIsSubmittingRating(true);
+                    try {
+                      const res = await fetch(`/api/track/${token}/feedback`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          orderId: activeOrder.id,
+                          rating,
+                          consent,
+                        }),
+                      });
+
+                      if (!res.ok) throw new Error('Failed to submit');
+
+                      toast.success('Thank you for your feedback!');
+                      setRating(0);
+                    } catch (err) {
+                      toast.error('Failed to submit feedback. Please try again.');
+                    } finally {
+                      setIsSubmittingRating(false);
+                    }
+                  }}
+                  disabled={isSubmittingRating}
+                >
+                  {isSubmittingRating ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit Feedback"}
+                </Button>
+              </motion.div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Enhanced Save Link QR & Social */}
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-[2rem] p-8 text-center space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="relative z-10 space-y-6">
+            <div className="mx-auto w-32 h-32 bg-white p-3 rounded-3xl flex items-center justify-center transform hover:rotate-3 transition-transform cursor-pointer">
+              {qrCode ? (
+                <img src={qrCode} alt="Portal QR Code" className="w-full h-full" />
+              ) : (
+                <QrCode className="h-12 w-12 text-slate-200" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <p className="text-lg font-bold font-heading">Save Your Portal</p>
+              <p className="text-xs text-slate-400 max-w-[200px] mx-auto">
+                Scan to instantly save this tracking page to your home screen.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-4 pt-2">
+              <Button variant="outline" size="icon" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10">
+                <Instagram className="h-5 w-5" />
+              </Button>
+              <Button variant="outline" size="icon" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10">
+                <Facebook className="h-5 w-5" />
+              </Button>
+              <Button variant="outline" size="icon" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10">
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
-          <div className="space-y-1">
-            <p className="text-xs font-bold text-slate-600">Scan to save this portal</p>
-            <p className="text-[10px] text-muted-foreground">
-              Keep this link safe to track updates anytime.
-            </p>
+
+          {/* Kente Pattern Overlay - SVG */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+            <svg width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="100%" height="100%" fill="url(#kente_bottom)" />
+              <defs>
+                <pattern id="kente_bottom" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+                  <rect width="15" height="60" fill="#CE1126" />
+                  <rect x="15" width="15" height="60" fill="#FCD116" />
+                  <rect x="30" width="15" height="60" fill="#006B3F" />
+                  <rect x="45" width="15" height="60" fill="#000000" />
+                </pattern>
+              </defs>
+            </svg>
           </div>
         </div>
 

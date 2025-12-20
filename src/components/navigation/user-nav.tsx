@@ -50,10 +50,10 @@ export function UserNav() {
 
   const initials = user.name
     ? user.name
-        .split(' ')
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
     : 'U';
 
   return (
@@ -64,7 +64,7 @@ export function UserNav() {
           className="relative h-10 w-10 rounded-full border border-border hover:bg-muted focus-visible:ring-primary"
         >
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.image} alt={user.name} />
+            <AvatarImage src={user.profileImage} alt={user.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-bold">
               {initials}
             </AvatarFallback>

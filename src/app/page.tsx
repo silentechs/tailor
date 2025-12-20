@@ -1,17 +1,24 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Scissors, Smartphone, TrendingUp, Zap } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronRight, Scissors, Smartphone, TrendingUp, Users, Zap, MessageCircle, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FeatureCard } from '@/components/landing/feature-card';
 import { KenteBackground } from '@/components/landing/kente-background';
 import { Navbar } from '@/components/landing/navbar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { ANIMATIONS } from '@/lib/design-system';
+import { useGlobalGallery, useDiscover } from '@/hooks/use-portfolio-cache';
 
 export default function LandingPage() {
+  const { data: galleryItems, isLoading: galleryLoading } = useGlobalGallery();
+  const { data: tailors, isLoading: tailorsLoading } = useDiscover();
+
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20">
       <Navbar />
@@ -73,7 +80,7 @@ export default function LandingPage() {
                     className="text-lg px-8 h-14 bg-background/50 backdrop-blur-sm"
                     asChild
                   >
-                    <Link href="#features">See Features</Link>
+                    <Link href="/gallery">Explore the Gallery</Link>
                   </Button>
                 </motion.div>
 
@@ -174,70 +181,124 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How it Works */}
-        <section id="how-it-works" className="py-24">
-          <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="space-y-12">
-                <h2 className="text-3xl md:text-5xl font-bold font-heading">
-                  Seamless Workflow, <span className="text-primary italic">Better Results</span>
+        {/* Featured Gallery Preview */}
+        <section className="py-24 bg-slate-900 text-white overflow-hidden relative">
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-16">
+              <div className="max-w-2xl space-y-4">
+                <Badge className="bg-primary/20 text-primary border-primary/30 uppercase tracking-widest px-4 py-1">The Public Collection</Badge>
+                <h2 className="text-4xl md:text-6xl font-bold font-heading">
+                  Live from the <br />
+                  <span className="text-primary italic text-ghana-gold">Design Gallery</span>
                 </h2>
-
-                <div className="space-y-8">
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                      1
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-2">Capture the Vision</h4>
-                      <p className="text-muted-foreground text-lg">
-                        Input client details and measurements using our intuitive mobile interface.
-                        Attach photos of fabric and inspirational designs.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                      2
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-2">Manage Production</h4>
-                      <p className="text-muted-foreground text-lg">
-                        Assign tasks to your team, set deadlines, and track progress using the
-                        digital Kanban board.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                      3
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-2">Deliver & Get Paid</h4>
-                      <p className="text-muted-foreground text-lg">
-                        Notify clients automatically when garments are ready. Record payments and
-                        generate digital receipts instantly.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-slate-400 text-lg">
+                  Every garment tells a story. Browse the latest masterpieces crafted by artisans using the StitchCraft platform.
+                </p>
               </div>
+              <Button size="lg" className="bg-primary hover:bg-primary/90 h-14 px-8 rounded-2xl group" asChild>
+                <Link href="/gallery">
+                  View Full Gallery <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </div>
 
-              <div className="bg-primary/5 rounded-3xl p-8 border-2 border-primary/10">
-                <div className="aspect-video relative rounded-2xl overflow-hidden shadow-2xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-[var(--color-ghana-gold)]/20 animate-pulse" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <div className="h-20 w-20 bg-primary rounded-full flex items-center justify-center mx-auto shadow-xl shadow-primary/30">
-                        <Zap className="h-10 w-10 text-white fill-current" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {galleryLoading ? (
+                Array(4).fill(0).map((_, i) => (
+                  <div key={i} className="aspect-[3/4] rounded-3xl bg-white/5 animate-pulse" />
+                ))
+              ) : galleryItems?.slice(0, 4).map((item: any, i: number) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="group cursor-pointer"
+                >
+                  <Link href={`/showcase/${item.tailorUsername || '#'}`}>
+                    <div className="relative aspect-[3/4] rounded-3xl overflow-hidden mb-4 border border-white/10 shadow-2xl">
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
+                        <p className="font-bold text-shadow">{item.title}</p>
+                        <p className="text-xs text-white/60">by {item.tailor}</p>
                       </div>
-                      <p className="text-primary font-bold text-lg font-heading tracking-widest uppercase">
-                        Live Demo Preview
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/5 -skew-x-12 transform translate-x-1/2" />
+        </section>
+
+        {/* Featured Artisans */}
+        <section className="py-24 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+              <h2 className="text-3xl md:text-5xl font-bold font-heading italic">Meet Our Master Tailors</h2>
+              <p className="text-xl text-muted-foreground">
+                Connect directly with certified artisans verified for their excellence, professionalism, and craftsmanship.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {tailorsLoading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <Card key={i} className="h-64 rounded-[2.5rem] bg-white animate-pulse" />
+                ))
+              ) : tailors?.filter((t: any) => t.showcaseEnabled).slice(0, 3).map((tailor: any, i: number) => (
+                <Card key={tailor.id} className="rounded-[2.5rem] p-8 bg-white border-transparent hover:border-primary/20 hover:shadow-2xl transition-all duration-500 group">
+                  <div className="flex flex-col items-center text-center space-y-6">
+                    <div className="relative">
+                      <Avatar className="h-24 w-24 ring-4 ring-primary/5 group-hover:scale-105 transition-transform">
+                        <AvatarImage src={tailor.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tailor.name}`} />
+                        <AvatarFallback className="bg-primary/5 text-primary">
+                          <Scissors className="h-8 w-8" />
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="min-h-[80px]">
+                      <h4 className="text-2xl font-bold font-heading line-clamp-1">{tailor.businessName || tailor.name}</h4>
+                      <p className="text-xs uppercase tracking-widest text-primary font-black mt-1">
+                        {String(tailor.region || 'ACCRA').replace(/_/g, ' ')}
                       </p>
                     </div>
+                    <p className="text-muted-foreground text-sm line-clamp-3 min-h-[60px]">{tailor.bio || 'Professional artisan dedicated to high-quality garment construction and bespoke Ghanaian fashion.'}</p>
+                    <div className="flex flex-col gap-3 w-full">
+                      {tailor.phone ? (
+                        <Button className="h-12 px-6 rounded-2xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold" asChild>
+                          <a href={`https://wa.me/${tailor.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                            <MessageCircle className="h-5 w-5 mr-2" />
+                            Message on WhatsApp
+                          </a>
+                        </Button>
+                      ) : (
+                        <div className="text-[10px] text-muted-foreground bg-muted/50 py-2 rounded-xl">Contact info unavailable</div>
+                      )}
+                      <Button variant="outline" className="h-12 px-6 rounded-2xl border-2 font-bold" asChild>
+                        <Link href={`/showcase/${tailor.showcaseUsername || tailor.id}`}>
+                          <Users className="h-5 w-5 mr-2" />
+                          View Portfolio
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </Card>
+              ))}
+            </div>
+
+            <div className="mt-16 text-center">
+              <Button variant="ghost" className="text-lg font-bold hover:bg-transparent hover:text-primary group" asChild>
+                <Link href="/discover">
+                  Browse All Artisans in Ghana <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
             </div>
           </div>
         </section>
@@ -303,43 +364,43 @@ export default function LandingPage() {
               <h4 className="font-bold mb-4 uppercase text-xs tracking-widest text-primary">
                 Platform
               </h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-3 text-sm text-slate-500 font-bold">
                 <li>
-                  <Link href="#features" className="hover:text-primary">
-                    Features
+                  <Link href="/gallery" className="hover:text-primary transition-colors">
+                    The Gallery
                   </Link>
                 </li>
                 <li>
-                  <button onClick={() => toast.info('Coming soon!')} className="hover:text-primary text-left">
-                    Measurement Engine
-                  </button>
+                  <Link href="/discover" className="hover:text-primary transition-colors">
+                    Find a Tailor
+                  </Link>
                 </li>
                 <li>
-                  <button onClick={() => toast.info('Coming soon!')} className="hover:text-primary text-left">
-                    Workshop Queue
-                  </button>
+                  <Link href="/auth/register" className="hover:text-primary transition-colors">
+                    Join as Artisan
+                  </Link>
                 </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4 uppercase text-xs tracking-widest text-primary">
-                Company
+                Legal & Safety
               </h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-3 text-sm text-slate-500 font-bold">
                 <li>
-                  <button onClick={() => toast.info('Coming soon!')} className="hover:text-primary text-left">
-                    About Us
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => toast.info('Coming soon!')} className="hover:text-primary text-left">
+                  <Link href="/privacy" className="hover:text-primary transition-colors">
                     Privacy Policy
-                  </button>
+                  </Link>
                 </li>
                 <li>
-                  <button onClick={() => toast.info('Coming soon!')} className="hover:text-primary text-left">
-                    Service Terms
-                  </button>
+                  <Link href="/terms" className="hover:text-primary transition-colors">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/safety" className="hover:text-primary transition-colors">
+                    Artisan Safety
+                  </Link>
                 </li>
               </ul>
             </div>

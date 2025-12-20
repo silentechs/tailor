@@ -137,7 +137,7 @@ export default function PaymentsPage() {
           Error loading payments. Please try again.
         </div>
       ) : (
-        <DataTable columns={columns} data={payments} searchKey="paymentNumber" />
+        <DataTable columns={columns} data={payments} searchKey="clientName" />
       )}
     </div>
   );

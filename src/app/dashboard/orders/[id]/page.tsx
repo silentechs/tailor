@@ -112,6 +112,46 @@ export default function OrderDetailsPage() {
     },
   });
 
+  const createInvoiceMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        clientId: orderData.clientId,
+        orderId: orderData.id,
+        items: [
+          {
+            description: `${orderData.garmentType.replace(/_/g, ' ')} - Custom Tailoring`,
+            quantity: 1,
+            unitPrice: Number(orderData.totalAmount),
+            amount: Number(orderData.totalAmount),
+          },
+        ],
+        template: 'modern',
+        dueDate: orderData.deadline,
+        notes: `Invoice for order ${orderData.orderNumber}`,
+      };
+
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to create invoice');
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Professional invoice created in the database');
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-12 h-[50vh] items-center">
@@ -183,8 +223,29 @@ export default function OrderDetailsPage() {
             }}
           >
             <Printer className="h-4 w-4 mr-2" />
-            Download Invoice
+            Print Quick PDF
           </Button>
+          {orderData.invoices && orderData.invoices.length > 0 ? (
+            <Button variant="default" asChild>
+              <Link href={`/dashboard/invoices/${orderData.invoices[0].id}`}>
+                <FileText className="h-4 w-4 mr-2" />
+                View Invoice
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              onClick={() => createInvoiceMutation.mutate()}
+              disabled={createInvoiceMutation.isPending}
+            >
+              {createInvoiceMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4 mr-2" />
+              )}
+              Generate Official Invoice
+            </Button>
+          )}
           <Select
             defaultValue={orderData.status}
             onValueChange={(value) => statusMutation.mutate(value)}

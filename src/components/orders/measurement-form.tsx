@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Plus, X } from 'lucide-react';
+import { History, Loader2, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,10 @@ import {
 } from '@/components/ui/dialog';
 import { FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { offlineDb, type OfflineMeasurement } from '@/lib/offline-db';
+import { useEffect } from 'react';
 
 interface MeasurementTemplate {
   id?: string;
@@ -52,6 +55,15 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
     enabled: !!clientId,
   });
 
+  const { data: localDraft, refetch: refetchDraft } = useQuery({
+    queryKey: ['local-measurement-draft', clientId],
+    queryFn: async () => {
+      if (!clientId) return null;
+      return await offlineDb.getDraftForClient(clientId);
+    },
+    enabled: !!clientId,
+  });
+
   // Find template for current garment type
   const template = templates?.data.find((t) => t.garmentType === garmentType);
   const fields = template ? template.fields : [];
@@ -68,6 +80,15 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
     }
   };
 
+  const loadDraft = () => {
+    if (localDraft?.values) {
+      Object.entries(localDraft.values).forEach(([key, value]) => {
+        setValue(`measurements.${key}`, value);
+      });
+      toast.info('Local draft loaded');
+    }
+  };
+
   const handleAddField = () => {
     if (newFieldName.trim()) {
       const formatted = newFieldName.trim().toLowerCase().replace(/\s+/g, '_');
@@ -80,7 +101,7 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
   };
 
   const removeCustomField = (field: string) => {
-    setCustomFields(customFields.filter((f) => f !== field));
+    setCustomFields(customFields.filter((f: string) => f !== field));
     setValue(`measurements.${field}`, undefined);
   };
 
@@ -111,6 +132,20 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
               Load Last ({new Date(lastMeasurement.createdAt).toLocaleDateString()})
             </Button>
           )}
+          {localDraft ? (
+            !localDraft.isSynced && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={loadDraft}
+                className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+              >
+                <History className="h-4 w-4 mr-2" />
+                Load Unsaved Draft
+              </Button>
+            )
+          ) : null}
           <Button type="button" variant="outline" size="sm" onClick={() => setIsAddOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Custom
@@ -161,16 +196,18 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
         })}
       </div>
 
-      {allFields.length === 0 && !isLoadingTemplates && (
-        <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
-          <p className="text-sm text-muted-foreground">
-            No measurement fields defined for this garment type.
-          </p>
-          <Button type="button" variant="link" onClick={() => setIsAddOpen(true)}>
-            Add your first field
-          </Button>
-        </div>
-      )}
+      {
+        allFields.length === 0 && !isLoadingTemplates && (
+          <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
+            <p className="text-sm text-muted-foreground">
+              No measurement fields defined for this garment type.
+            </p>
+            <Button type="button" variant="link" onClick={() => setIsAddOpen(true)}>
+              Add your first field
+            </Button>
+          </div>
+        )
+      }
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent>
@@ -182,8 +219,8 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
             <Input
               placeholder="e.g. Neck Size, Thigh"
               value={newFieldName}
-              onChange={(e) => setNewFieldName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddField())}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFieldName(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && (e.preventDefault(), handleAddField())}
             />
             <p className="text-xs text-muted-foreground mt-2">
               Common fields include: Neck, Wrist, Ankle, Under Bust, etc.
@@ -197,6 +234,6 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

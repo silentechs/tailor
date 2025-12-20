@@ -88,10 +88,10 @@ export default function BusinessDashboardPage() {
         <MetricCard
           title="Monthly Revenue"
           value={formatCurrency(stats?.revenue?.thisMonth || 0)}
-          subtext="Target: GHS 15,000"
+          subtext={`Target: ${formatCurrency(stats?.revenue?.revenueTarget || 5000)}`}
           icon={<CreditCard className="h-4 w-4" />}
           color="gold"
-          trend="+12% vs last month"
+          trend={`${stats?.revenue?.revenueGrowth || '+0%'} vs last month`}
         />
         <MetricCard
           title="Active Orders"
@@ -103,14 +103,14 @@ export default function BusinessDashboardPage() {
         <MetricCard
           title="Total Clients"
           value={stats?.overview?.totalClients || 0}
-          subtext="+3 new this week"
+          subtext={`${stats?.overview?.clientGrowth || '+0%'} growth`}
           icon={<Users className="h-4 w-4" />}
           color="red"
         />
         <MetricCard
           title="Avg. Order Value"
           value={formatCurrency(stats?.revenue?.averageOrderValue || 0)}
-          subtext="Up from GHS 450"
+          subtext="Per completed project"
           icon={<TrendingUp className="h-4 w-4" />}
           color="black"
         />

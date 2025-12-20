@@ -5,8 +5,12 @@ import { FAB } from '@/components/navigation/fab';
 import { MobileNav } from '@/components/navigation/mobile-nav';
 import { Sidebar } from '@/components/navigation/sidebar';
 import { Topbar } from '@/components/navigation/topbar';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // Initialize background sync
+  useOfflineSync();
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop Sidebar */}

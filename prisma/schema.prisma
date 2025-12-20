@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -17,6 +18,7 @@ model User {
   region               Region?
   city                 String?
   profileImage         String?
+  tinNumber            String?
   bio                  String?
   role                 UserRole              @default(TAILOR)
   status               UserStatus            @default(PENDING)
@@ -46,6 +48,8 @@ model User {
   quickNotes           QuickNote[]
   sessions             Session[]
   voiceLogs            VoiceLog[]
+  profileViewCount     Int                   @default(0)
+  leads                Lead[]                @relation("TailorLeads")
 
   @@index([email])
   @@index([status])
@@ -183,11 +187,17 @@ model OrderTask {
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  materialId  String?
+  materialQty Decimal?  @db.Decimal(10, 2)
+  consumedAt  DateTime?
+
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   tailor      User      @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  material    InventoryItem? @relation(fields: [materialId], references: [id])
 
   @@index([orderId])
   @@index([tailorId])
+  @@index([materialId])
 }
 
 model OrderCollection {
@@ -324,6 +334,7 @@ model PortfolioItem {
   updatedAt   DateTime        @updatedAt
   tailor      User            @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   likes       PortfolioLike[]
+  leads       Lead[]
 
   @@index([tailorId])
   @@index([category])
@@ -438,11 +449,13 @@ model ClientMeasurement {
   templateId String?
   values     Json
   sketch     String?              @db.Text
-  notes      String?
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
-  client     Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  template   MeasurementTemplate? @relation(fields: [templateId], references: [id])
+  notes        String?
+  clientSideId String?              @unique
+  isSynced     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  client       Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  template     MeasurementTemplate? @relation(fields: [templateId], references: [id])
   orders     Order[]
 
   @@index([clientId])
@@ -487,6 +500,7 @@ model InventoryItem {
   updatedAt     DateTime            @updatedAt
   tailor        User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   movements     InventoryMovement[]
+  orderTasks    OrderTask[]
 
   @@unique([tailorId, sku])
   @@index([tailorId])
@@ -608,6 +622,23 @@ enum PaymentStatus {
   COMPLETED
   REFUNDED
   FAILED
+}
+
+model Lead {
+  id              String   @id @default(cuid())
+  tailorId        String
+  portfolioItemId String?
+  source          String   // 'gallery', 'showcase', 'discover', 'direct', 'share'
+  channel         String   // 'whatsapp', 'phone', 'inquiry_form'
+  visitorId       String?  // anonymous fingerprint
+  referrer        String?
+  createdAt       DateTime @default(now())
+
+  tailor          User     @relation("TailorLeads", fields: [tailorId], references: [id], onDelete: Cascade)
+  portfolioItem   PortfolioItem? @relation(fields: [portfolioItemId], references: [id])
+
+  @@index([tailorId])
+  @@index([portfolioItemId])
 }
 
 enum PaymentMethod {

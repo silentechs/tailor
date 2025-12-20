@@ -7,6 +7,8 @@ const createTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'),
+  materialId: z.string().nullable().optional(),
+  materialQty: z.number().nullable().optional(),
 });
 
 const _updateTaskSchema = z.object({
@@ -15,6 +17,8 @@ const _updateTaskSchema = z.object({
   description: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
   assignedTo: z.string().optional(),
+  materialId: z.string().nullable().optional(),
+  materialQty: z.number().nullable().optional(),
 });
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -29,6 +33,14 @@ export async function GET(_request: Request, { params }: RouteParams) {
       where: {
         orderId,
         tailorId: user.id,
+      },
+      include: {
+        material: {
+          select: {
+            name: true,
+            unitOfMeasure: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });

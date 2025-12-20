@@ -188,6 +188,49 @@ export async function GET() {
       },
     });
 
+    // Calculate growth percentages
+    const prevMonthStart = new Date(startOfMonth);
+    prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
+    const prevMonthEnd = new Date(startOfMonth);
+    prevMonthEnd.setDate(0);
+
+    const [prevMonthRevenue, prevMonthClients] = await Promise.all([
+      prisma.payment.aggregate({
+        where: {
+          tailorId: user.id,
+          status: 'COMPLETED',
+          paidAt: { gte: prevMonthStart, lte: prevMonthEnd },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.client.count({
+        where: {
+          tailorId: user.id,
+          createdAt: { gte: prevMonthStart, lte: prevMonthEnd },
+        },
+      }),
+    ]);
+
+    // Additional workshop stats
+    const readyForFittingOrders = await prisma.order.count({
+      where: {
+        tailorId: user.id,
+        status: 'READY_FOR_FITTING',
+      },
+    });
+
+    const revGrowth = prevMonthRevenue._sum.amount
+      ? Math.round(
+        ((Number(monthlyRevenue._sum.amount || 0) - Number(prevMonthRevenue._sum.amount)) /
+          Number(prevMonthRevenue._sum.amount)) *
+        100
+      )
+      : 100;
+
+    const clientGrowth = prevMonthClients
+      ? Math.round(((totalClients - prevMonthClients) / prevMonthClients) * 100)
+      : totalClients * 100;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -197,6 +240,8 @@ export async function GET() {
           pendingOrders,
           completedOrdersThisMonth: completedOrders,
           unreadNotifications,
+          clientGrowth: clientGrowth > 0 ? `+${clientGrowth}%` : `${clientGrowth}%`,
+          readyForFittingOrders,
         },
         revenue: {
           today: todayRevenue._sum.amount ? Number(todayRevenue._sum.amount) : 0,
@@ -205,6 +250,8 @@ export async function GET() {
           averageOrderValue: avgOrderValue._avg.totalAmount
             ? Number(avgOrderValue._avg.totalAmount)
             : 0,
+          revenueGrowth: revGrowth > 0 ? `+${revGrowth}%` : `${revGrowth}%`,
+          revenueTarget: 5000, // Dynamic target based on scale could go here
         },
         ordersByStatus: ordersByStatus.map((item) => ({
           status: item.status,

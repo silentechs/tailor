@@ -1,13 +1,28 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Circle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Circle, Loader2, Package, Plus, Settings2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface Task {
@@ -17,6 +32,13 @@ interface Task {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   createdAt: string;
+  materialId?: string;
+  materialQty?: number;
+  consumedAt?: string;
+  material?: {
+    name: string;
+    unitOfMeasure: string;
+  };
 }
 
 interface OrderTaskBoardProps {
@@ -26,6 +48,13 @@ interface OrderTaskBoardProps {
 export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
   const queryClient = useQueryClient();
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+  // Temporary state for editing/creation
+  const [tempMaterialId, setTempMaterialId] = useState<string | null>(null);
+  const [tempMaterialQty, setTempMaterialQty] = useState<string>('');
 
   const { data: tasksData, isLoading } = useQuery({
     queryKey: ['order-tasks', orderId],
@@ -38,11 +67,11 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: async (title: string) => {
+    mutationFn: async ({ title, materialId, materialQty }: { title: string; materialId?: string | null; materialQty?: number | null }) => {
       const res = await fetch(`/api/orders/${orderId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title, materialId, materialQty }),
       });
       if (!res.ok) throw new Error('Failed to create task');
       return res.json();
@@ -50,22 +79,49 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order-tasks', orderId] });
       setNewTaskTitle('');
+      setTempMaterialId(null);
+      setTempMaterialQty('');
+      setIsCreateDialogOpen(false);
       toast.success('Task added to workshop');
     },
   });
 
+  const { data: inventory } = useQuery({
+    queryKey: ['inventory-list'],
+    queryFn: async () => {
+      const res = await fetch('/api/inventory');
+      if (!res.ok) throw new Error('Failed to load inventory');
+      const data = await res.json();
+      return data.data;
+    },
+    enabled: isEditDialogOpen || isCreateDialogOpen,
+  });
+
   const updateTaskMutation = useMutation({
-    mutationFn: async ({ taskId, status }: { taskId: string; status: string }) => {
+    mutationFn: async ({
+      taskId,
+      status,
+      materialId,
+      materialQty
+    }: {
+      taskId: string;
+      status?: string;
+      materialId?: string | null;
+      materialQty?: number | null;
+    }) => {
       const res = await fetch(`/api/orders/${orderId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, materialId, materialQty }),
       });
       if (!res.ok) throw new Error('Failed to update task');
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order-tasks', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      setIsEditDialogOpen(false);
+      setEditingTask(null);
     },
   });
 
@@ -83,10 +139,36 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
     },
   });
 
+  const handleOpenEdit = (task: Task) => {
+    setEditingTask(task);
+    setTempMaterialId(task.materialId || null);
+    setTempMaterialQty(task.materialQty?.toString() || '');
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingTask) return;
+    updateTaskMutation.mutate({
+      taskId: editingTask.id,
+      materialId: tempMaterialId,
+      materialQty: tempMaterialQty ? Number(tempMaterialQty) : null,
+    });
+  };
+
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    createTaskMutation.mutate(newTaskTitle);
+    createTaskMutation.mutate({
+      title: newTaskTitle,
+      materialId: tempMaterialId,
+      materialQty: tempMaterialQty ? Number(tempMaterialQty) : null
+    });
+  };
+
+  const handleOpenCreate = () => {
+    setTempMaterialId(null);
+    setTempMaterialQty('');
+    setIsCreateDialogOpen(true);
   };
 
   const tasks = tasksData || [];
@@ -125,6 +207,15 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
             onChange={(e) => setNewTaskTitle(e.target.value)}
             className="bg-white border-slate-200"
           />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleOpenCreate}
+            className="shrink-0 bg-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Options
+          </Button>
           <Button
             type="submit"
             disabled={createTaskMutation.isPending || !newTaskTitle.trim()}
@@ -179,9 +270,24 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
                   >
                     {task.title}
                   </p>
+                  {task.material && (
+                    <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
+                      <Package className="h-3 w-3" />
+                      <span>{task.material.name} ({task.materialQty} {task.material.unitOfMeasure})</span>
+                      {task.consumedAt && <Badge variant="outline" className="text-[8px] h-3 px-1 ml-1 bg-emerald-50 text-emerald-600 border-emerald-100">Consumed</Badge>}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => handleOpenEdit(task)}
+                    className="text-slate-400 hover:text-primary p-1"
+                    title="Task Settings"
+                    disabled={task.status === 'COMPLETED'}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={() => deleteTaskMutation.mutate(task.id)}
                     className="text-slate-400 hover:text-red-500 p-1"
@@ -202,6 +308,122 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
             </div>
           )}
         </div>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Task Details: {editingTask?.title}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Link Material from Inventory</Label>
+                <Select
+                  value={tempMaterialId || "none"}
+                  onValueChange={(val) => setTempMaterialId(val === "none" ? null : val)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a material..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No material linked</SelectItem>
+                    {inventory?.map((inv: any) => (
+                      <SelectItem key={inv.id} value={inv.id}>
+                        {inv.name} ({Number(inv.quantity)} {inv.unitOfMeasure} available)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Quantity to Deduct ({inventory?.find((i: any) => i.id === tempMaterialId)?.unitOfMeasure || 'units'})
+                </Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={tempMaterialQty}
+                  onChange={(e) => setTempMaterialQty(e.target.value)}
+                  placeholder="e.g. 2.5"
+                  disabled={!tempMaterialId}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Stock will be auto-deducted when this task is marked as COMPLETED.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={updateTaskMutation.isPending}
+              >
+                {updateTaskMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>New Task Details</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Task Title</Label>
+                <Input
+                  placeholder="e.g. Cutting fabric"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Link Material from Inventory</Label>
+                <Select
+                  value={tempMaterialId || "none"}
+                  onValueChange={(val) => setTempMaterialId(val === "none" ? null : val)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a material..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No material linked</SelectItem>
+                    {inventory?.map((inv: any) => (
+                      <SelectItem key={inv.id} value={inv.id}>
+                        {inv.name} ({Number(inv.quantity)} {inv.unitOfMeasure} available)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Quantity to Deduct ({inventory?.find((i: any) => i.id === tempMaterialId)?.unitOfMeasure || 'units'})
+                </Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={tempMaterialQty}
+                  onChange={(e) => setTempMaterialQty(e.target.value)}
+                  placeholder="e.g. 2.5"
+                  disabled={!tempMaterialId}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleAddTask}
+                disabled={createTaskMutation.isPending}
+              >
+                {createTaskMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Task
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

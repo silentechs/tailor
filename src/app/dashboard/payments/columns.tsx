@@ -64,7 +64,8 @@ export const columns: ColumnDef<Payment>[] = [
     ),
   },
   {
-    accessorKey: 'client.name',
+    id: 'clientName',
+    accessorFn: (row) => row.client?.name || 'Unknown',
     header: 'Client',
   },
   {

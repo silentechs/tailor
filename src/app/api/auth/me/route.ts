@@ -46,6 +46,7 @@ export async function PUT(request: Request) {
       businessName,
       phone,
       bio,
+      profileImage,
       notifyEmail,
       notifySms,
       showcaseEnabled,
@@ -61,6 +62,7 @@ export async function PUT(request: Request) {
     if (businessName) updateData.businessName = businessName;
     if (phone) updateData.phone = phone;
     if (bio !== undefined) updateData.bio = bio;
+    if (profileImage) updateData.profileImage = profileImage;
     if (notifyEmail !== undefined)
       updateData.notifyEmail = notifyEmail === true || notifyEmail === 'on';
     if (notifySms !== undefined) updateData.notifySms = notifySms === true || notifySms === 'on';

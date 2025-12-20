@@ -89,14 +89,15 @@ export const columns: ColumnDef<Invoice>[] = [
     ),
   },
   {
-    accessorKey: 'client.name',
+    id: 'clientName',
+    accessorFn: (row) => row.client?.name || 'Unknown',
     header: 'Client',
     cell: ({ row }) => (
       <Link
-        href={`/dashboard/clients/${row.original.client.id}`}
+        href={`/dashboard/clients/${row.original.client?.id}`}
         className="hover:underline"
       >
-        {row.original.client.name}
+        {row.original.client?.name || 'Unknown'}
       </Link>
     ),
   },

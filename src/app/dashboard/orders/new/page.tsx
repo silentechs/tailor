@@ -21,6 +21,8 @@ import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { MeasurementForm } from '@/components/orders/measurement-form';
+import { useMeasurementDraft } from '@/hooks/use-measurement-draft';
+import { offlineDb } from '@/lib/offline-db';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -99,6 +101,9 @@ export default function NewOrderPage() {
   // For now, we try to find it in the current list.
   const selectedClient = clients?.find((c: any) => c.id === watchedClientId);
 
+  // Auto-save measurement draft
+  useMeasurementDraft(watchedClientId, form.control);
+
   async function onSubmit(values: z.infer<typeof orderSchema>) {
     setIsSubmitting(true);
     try {
@@ -125,6 +130,11 @@ export default function NewOrderPage() {
       toast.success('Order Created', {
         description: `Order #${data.data.orderNumber} has been created successfully.`,
       });
+
+      // Clear local draft on success
+      if (values.clientId) {
+        await offlineDb.clearClientDrafts(values.clientId);
+      }
 
       router.push('/dashboard/orders');
     } catch (error: any) {
@@ -501,7 +511,7 @@ export default function NewOrderPage() {
                       <span>
                         {
                           GARMENT_TYPE_LABELS[
-                            form.getValues('garmentType') as keyof typeof GARMENT_TYPE_LABELS
+                          form.getValues('garmentType') as keyof typeof GARMENT_TYPE_LABELS
                           ]
                         }
                       </span>

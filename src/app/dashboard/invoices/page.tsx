@@ -138,7 +138,7 @@ export default function InvoicesPage() {
           Error loading invoices. Please try again.
         </div>
       ) : (
-        <DataTable columns={columns} data={invoices} searchKey="invoiceNumber" />
+        <DataTable columns={columns} data={invoices} searchKey="clientName" />
       )}
     </div>
   );

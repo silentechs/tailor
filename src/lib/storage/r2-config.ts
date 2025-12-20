@@ -50,7 +50,7 @@ export function loadR2Config(): R2Config {
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
     accountId,
     region: 'auto', // R2 uses 'auto' as region
-    publicUrl: process.env.R2_PUBLIC_URL, // Optional public URL
+    publicUrl: process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_DOMAIN, // Optional public URL
   };
 }
 

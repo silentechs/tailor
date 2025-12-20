@@ -9,6 +9,8 @@ const updateTaskSchema = z.object({
   description: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
   assignedTo: z.string().optional(),
+  materialId: z.string().nullable().optional(),
+  materialQty: z.number().nullable().optional(),
 });
 
 type RouteParams = { params: Promise<{ id: string; taskId: string }> };
@@ -37,19 +39,55 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     const data: any = { ...validation.data };
+
+    // Status transitions
     if (data.status === 'IN_PROGRESS' && !existingTask.startedAt) {
       data.startedAt = new Date();
     }
-    if (data.status === 'COMPLETED' && !existingTask.completedAt) {
-      data.completedAt = new Date();
-    }
 
-    const task = await prisma.orderTask.update({
-      where: { id: taskId },
-      data,
+    const result = await prisma.$transaction(async (tx) => {
+      // Inventory Deduction Logic
+      if (data.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
+        data.completedAt = new Date();
+
+        const matId = data.materialId !== undefined ? data.materialId : existingTask.materialId;
+        const matQty = data.materialQty !== undefined ? data.materialQty : existingTask.materialQty;
+
+        if (matId && matQty && !existingTask.consumedAt) {
+          // 1. Create inventory movement
+          await tx.inventoryMovement.create({
+            data: {
+              tailorId: user.id,
+              itemId: matId,
+              orderId: existingTask.orderId,
+              type: 'ISSUE',
+              quantity: Number(matQty),
+              reason: `Auto-consumed: Task "${data.title || existingTask.title}" completed`,
+            },
+          });
+
+          // 2. Decrement inventory item quantity
+          await tx.inventoryItem.update({
+            where: { id: matId },
+            data: {
+              quantity: {
+                decrement: Number(matQty),
+              },
+            },
+          });
+
+          data.consumedAt = new Date();
+        }
+      }
+
+      // Final task update
+      return await tx.orderTask.update({
+        where: { id: taskId },
+        data,
+      });
     });
 
-    return NextResponse.json({ success: true, data: task });
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     console.error('Update task error:', error);
     return NextResponse.json({ success: false, error: 'Failed to update task' }, { status: 500 });

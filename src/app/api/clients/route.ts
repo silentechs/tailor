@@ -16,7 +16,10 @@ const createClientSchema = z.object({
   region: z.string().optional().nullable(),
   city: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  measurements: z.record(z.string(), z.any()).optional(),
+  measurements: z.object({
+    values: z.record(z.string(), z.any()),
+    clientSideId: z.string().optional(),
+  }).optional(),
   generateTrackingToken: z.boolean().optional().default(false),
 });
 
@@ -155,12 +158,14 @@ export async function POST(request: Request) {
       });
 
       // 2. Create measurement record if provided
-      if (data.measurements && Object.keys(data.measurements).length > 0) {
-        await tx.clientMeasurement.create({
+      if (data.measurements?.values && Object.keys(data.measurements.values).length > 0) {
+        await (tx.clientMeasurement.create as any)({
           data: {
             clientId: newClient.id,
-            values: data.measurements,
+            values: data.measurements.values,
+            clientSideId: data.measurements.clientSideId,
             notes: 'Initial measurements',
+            isSynced: true,
           },
         });
       }

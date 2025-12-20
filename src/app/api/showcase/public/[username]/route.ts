@@ -22,6 +22,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         city: true,
         profileImage: true,
         bio: true,
+        phone: true,
         portfolioItems: {
           where: { isPublic: true },
           orderBy: { createdAt: 'desc' },
