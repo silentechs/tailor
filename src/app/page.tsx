@@ -333,7 +333,7 @@ export default function LandingPage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="text-lg px-8 h-14 border-white text-white hover:bg-white/10"
+                    className="text-lg px-8 h-14 bg-transparent border-white text-white hover:bg-white/10"
                     asChild
                   >
                     <Link href="#">Contact Support</Link>
