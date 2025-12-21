@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 const inventoryItemSchema = z.object({
@@ -18,14 +18,19 @@ const inventoryItemSchema = z.object({
 // GET /api/inventory - List inventory items
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+
+    // Fetch organization to get ownerId for broader compatibility if needed (optional optimization)
+    // For now, filtering by organizationId is the correct rigorous approach.
+    // If legacy data handling is needed, we would need the ownerId.
+
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const search = searchParams.get('search') || '';
 
     const items = await prisma.inventoryItem.findMany({
       where: {
-        tailorId: user.id,
+        organizationId, // Scope to organization
         isActive: true,
         ...(category && { category }),
         ...(search && {
@@ -44,6 +49,11 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Get inventory error:', error);
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Failed to fetch inventory' },
       { status: 500 }
@@ -54,7 +64,7 @@ export async function GET(request: Request) {
 // POST /api/inventory - Add new inventory item
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
     const body = await request.json();
 
     const validation = inventoryItemSchema.safeParse(body);
@@ -65,11 +75,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // We need the organization owner ID for the required 'tailorId' field
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { ownerId: true }
+    });
+
+    if (!organization) {
+      return NextResponse.json({ success: false, error: 'Organization not found' }, { status: 404 });
+    }
+
     const item = await prisma.$transaction(async (tx) => {
       const newItem = await tx.inventoryItem.create({
         data: {
           ...validation.data,
-          tailorId: user.id,
+          organizationId,
+          tailorId: organization.ownerId, // Set owner correctly
           quantity: validation.data.quantity,
           minStock: validation.data.minStock,
         },
@@ -78,7 +99,7 @@ export async function POST(request: Request) {
       if (validation.data.quantity > 0) {
         await tx.inventoryMovement.create({
           data: {
-            tailorId: user.id,
+            tailorId: user.id, // The specific user who made the adjustment
             itemId: newItem.id,
             type: 'ADJUSTMENT',
             quantity: validation.data.quantity,
@@ -99,6 +120,11 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error('Create inventory error:', error);
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Failed to create inventory item' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireActiveTailor } from '@/lib/direct-current-user';
+import { notifyAppointmentCreated } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 
 const appointmentSchema = z.object({
@@ -29,11 +30,11 @@ export async function GET(request: Request) {
         tailorId: user.id,
         ...(start && end
           ? {
-              startTime: {
-                gte: new Date(start),
-                lte: new Date(end),
-              },
-            }
+            startTime: {
+              gte: new Date(start),
+              lte: new Date(end),
+            },
+          }
           : {}),
       },
       include: {
@@ -97,6 +98,18 @@ export async function POST(request: Request) {
         order: true,
       },
     });
+
+    // Send notification (Email/SMS)
+    await notifyAppointmentCreated(
+      user.id,
+      appointment.client.phone,
+      appointment.client.email || null,
+      appointment.client.name,
+      appointment.type,
+      appointment.startTime,
+      appointment.location || undefined,
+      appointment.notes || undefined
+    );
 
     return NextResponse.json(
       {

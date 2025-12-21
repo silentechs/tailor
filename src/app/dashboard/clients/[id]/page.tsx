@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { CreditCard, Edit, Loader2, Mail, MapPin, Phone, Ruler, Scissors } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -103,13 +104,17 @@ export default function ClientProfilePage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Profile
+          <Button variant="outline" asChild>
+            <Link href={`/dashboard/clients/${clientData.id}/edit`}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Link>
           </Button>
-          <Button>
-            <Scissors className="h-4 w-4 mr-2" />
-            New Order
+          <Button asChild>
+            <Link href={`/dashboard/orders/new?clientId=${clientData.id}`}>
+              <Scissors className="h-4 w-4 mr-2" />
+              New Order
+            </Link>
           </Button>
         </div>
       </div>

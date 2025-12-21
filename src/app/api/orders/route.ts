@@ -1,7 +1,7 @@
 import type { OrderStatus, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireOrganization } from '@/lib/require-permission';
 import { generateOrderNumber } from '@/lib/invoice-numbering-system';
 import prisma from '@/lib/prisma';
 
@@ -40,10 +40,10 @@ const createOrderSchema = z.object({
   measurements: z.record(z.string(), z.any()).optional(),
 });
 
-// GET /api/orders - List all orders for the current tailor
+// GET /api/orders - List all orders for the current organization
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
     // Build where clause
     const where: Prisma.OrderWhereInput = {
-      tailorId: user.id,
+      organizationId,
       ...(status && { status: status as OrderStatus }),
       ...(clientId && { clientId }),
       ...(search && {
@@ -132,7 +132,7 @@ export async function GET(request: Request) {
 // POST /api/orders - Create a new order
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
     const body = await request.json();
 
     // Validate input
@@ -150,11 +150,11 @@ export async function POST(request: Request) {
 
     const data = validationResult.data;
 
-    // Verify client belongs to this tailor
+    // Verify client belongs to this organization
     const client = await prisma.client.findFirst({
       where: {
         id: data.clientId,
-        tailorId: user.id,
+        organizationId,
       },
     });
 
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
       const collection = await prisma.orderCollection.findFirst({
         where: {
           id: data.collectionId,
-          tailorId: user.id,
+          organizationId,
         },
       });
 
@@ -205,7 +205,8 @@ export async function POST(request: Request) {
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
-          tailorId: user.id,
+          tailorId: user.id, // Keep as owner for primary relation if needed, but scoping is by org
+          organizationId,
           clientId: data.clientId,
           collectionId: data.collectionId,
           garmentType: data.garmentType,

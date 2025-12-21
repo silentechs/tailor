@@ -72,6 +72,23 @@ export async function getSession() {
           showcaseEnabled: true,
           showcaseUsername: true,
           createdAt: true,
+          memberships: {
+            select: {
+              id: true,
+              role: true,
+              permissions: true,
+              organization: {
+                select: { id: true, name: true, slug: true }
+              }
+            }
+          },
+          ownedOrganizations: {
+            select: { id: true, name: true, slug: true }
+          },
+          linkedClientId: true,
+          linkedClient: {
+            select: { id: true, name: true }
+          },
         },
       },
     },
@@ -159,9 +176,10 @@ export async function registerUser(data: {
   name: string;
   phone?: string;
   businessName?: string;
-  role: 'TAILOR' | 'SEAMSTRESS';
+  role: 'TAILOR' | 'SEAMSTRESS' | 'CLIENT';
   region?: string;
   city?: string;
+  trackingToken?: string;
 }) {
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({
@@ -170,6 +188,29 @@ export async function registerUser(data: {
 
   if (existingUser) {
     return { success: false, error: 'Email already registered' };
+  }
+
+  // Handle client linkage if token provided
+  let linkedClientId: string | undefined;
+  if (data.role === 'CLIENT' && data.trackingToken) {
+    const tracking = await prisma.clientTrackingToken.findUnique({
+      where: { token: data.trackingToken },
+      include: {
+        client: {
+          include: { user: { select: { id: true } } }
+        }
+      }
+    });
+
+    if (!tracking || !tracking.isActive) {
+      return { success: false, error: 'Invalid or expired tracking token' };
+    }
+
+    if (tracking.client.user) {
+      return { success: false, error: 'This client record is already linked to an account' };
+    }
+
+    linkedClientId = tracking.clientId;
   }
 
   // Hash password
@@ -181,14 +222,12 @@ export async function registerUser(data: {
       email: data.email.toLowerCase(),
       password: hashedPassword,
       name: data.name,
-      phone: data.phone,
-      businessName: data.businessName,
-      role: data.role,
-      region: data.region as Region | undefined,
-      city: data.city,
-      status: 'PENDING',
+      role: data.role as any,
+      status: 'ACTIVE',
+      linkedClientId,
     },
   });
+
 
   return { success: true, user };
 }

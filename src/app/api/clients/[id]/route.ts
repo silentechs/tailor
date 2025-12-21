@@ -83,6 +83,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        clientMeasurements: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
       },
     });
 
@@ -117,8 +121,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
         },
         activeTrackingToken: client.trackingTokens[0] || null,
         latestConsent: client.socialConsents[0] || null,
+        measurements: client.clientMeasurements[0]?.values || {},
         trackingTokens: undefined,
         socialConsents: undefined,
+        clientMeasurements: undefined,
       },
     });
   } catch (error) {

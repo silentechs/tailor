@@ -26,6 +26,8 @@ const publicRoutes = [
   '/api/health',
   '/api/discover',
   '/api/gallery',
+  '/auth/accept-invitation',
+  '/api/invitations/accept',
 ];
 
 // Routes that start with these prefixes are public

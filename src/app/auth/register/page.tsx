@@ -47,12 +47,17 @@ const registerSchema = z
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const trackingToken = searchParams?.get('token');
+  const isClientRegistration = !!trackingToken;
+
+  const emailParam = searchParams?.get('email');
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: '',
-      email: '',
+      email: emailParam || '',
       phone: '',
       password: '',
       confirmPassword: '',
@@ -72,22 +77,46 @@ export default function RegisterPage() {
           password: values.password,
           name: values.name,
           phone: values.phone,
-          role: 'TAILOR', // Default role for now
+          role: isClientRegistration ? 'CLIENT' : 'TAILOR',
+          trackingToken: trackingToken || undefined,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.details) {
+          Object.entries(data.details).forEach(([key, messages]) => {
+            form.setError(key as any, {
+              type: 'server',
+              message: (messages as string[]).join(', ')
+            });
+          });
+          throw new Error('Please check the form for errors');
+        }
         throw new Error(data.error || 'Registration failed');
       }
 
-      toast.success('Account Created!', {
-        description: 'Your account is pending approval. Please check your email.',
-      });
+      if (isClientRegistration) {
+        toast.success('Registration Successful!', {
+          description: 'Your account is linked and ready. Please sign in to access your Studio.',
+        });
+      } else {
+        toast.success('Account Created!', {
+          description: 'Your account is pending approval. Please check your email.',
+        });
+      }
 
-      // Optionally redirect to login or a pending page
-      router.push('/auth/login');
+      // Redirect to Login page to authenticate
+      // Pass the callbackUrl so they are returned to the correct place (e.g. Accept Invitation) after logging in
+      const callbackParam = searchParams?.get('callbackUrl');
+      const loginUrl = new URL('/auth/login', window.location.href);
+      if (callbackParam) {
+        loginUrl.searchParams.set('callbackUrl', callbackParam);
+      }
+      loginUrl.searchParams.set('email', values.email); // Pre-fill email on login page too
+
+      router.push(loginUrl.pathname + loginUrl.search);
     } catch (error: any) {
       console.error(error);
       toast.error('Registration Failed', {
@@ -109,9 +138,11 @@ export default function RegisterPage() {
         <div className="h-2 w-full bg-gradient-to-r from-[var(--color-ghana-green)] via-[var(--color-ghana-gold)] to-[var(--color-ghana-red)]" />
         <CardHeader className="space-y-1 text-center pt-8">
           <CardTitle className="text-3xl font-heading font-bold text-primary">
-            Join StitchCraft
+            {isClientRegistration ? 'Join the Studio' : 'Join StitchCraft'}
           </CardTitle>
-          <CardDescription>Create your tailor profile</CardDescription>
+          <CardDescription>
+            {isClientRegistration ? 'Access your private tailoring portal' : 'Create your tailor profile'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

@@ -8,7 +8,9 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { cn } from '@/lib/utils';
 import { Sidebar } from './sidebar';
 
-export function MobileNav() {
+import { CurrentUser } from '@/lib/direct-current-user';
+
+export function MobileNav({ user }: { user?: CurrentUser }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -52,7 +54,7 @@ export function MobileNav() {
             <span className="sr-only">
               <SheetTitle>Navigation Menu</SheetTitle>
             </span>
-            <Sidebar className="border-none w-full block h-full" />
+            <Sidebar className="border-none w-full block h-full" user={user} />
           </SheetContent>
         </Sheet>
       </div>

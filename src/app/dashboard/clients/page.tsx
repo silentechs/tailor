@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import * as React from 'react';
 import { Loader2, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -8,24 +9,38 @@ import { DataTable } from '@/components/ui/data-table';
 import { ExportDropdown } from '@/components/ui/export-dropdown';
 import { columns } from './columns';
 
-async function getClients() {
-  const res = await fetch('/api/clients');
+const PAGINATION_STATE_DEFAULT = {
+  pageIndex: 0,
+  pageSize: 10,
+};
+
+async function getClients({ pageIndex, pageSize }: { pageIndex: number; pageSize: number }) {
+  const params = new URLSearchParams({
+    page: (pageIndex + 1).toString(),
+    pageSize: pageSize.toString(),
+  });
+  const res = await fetch(`/api/clients?${params.toString()}`);
   if (!res.ok) {
     throw new Error('Failed to fetch clients');
   }
-  const data = await res.json();
-  return data.data;
+  return res.json();
 }
 
 export default function ClientsPage() {
+  const [pagination, setPagination] = React.useState(PAGINATION_STATE_DEFAULT);
+
   const {
-    data: clients,
+    data: response,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['clients'],
-    queryFn: getClients,
+    queryKey: ['clients', pagination],
+    queryFn: () => getClients(pagination),
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching
   });
+
+  const clients = response?.data || [];
+  const pageCount = response?.pagination?.totalPages || -1;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -45,7 +60,7 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading && !response ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -54,7 +69,14 @@ export default function ClientsPage() {
           Error loading clients. Please try again.
         </div>
       ) : (
-        <DataTable columns={columns} data={clients || []} searchKey="name" />
+        <DataTable
+          columns={columns}
+          data={clients}
+          searchKey="name"
+          pagination={pagination}
+          pageCount={pageCount}
+          onPaginationChange={setPagination}
+        />
       )}
     </div>
   );

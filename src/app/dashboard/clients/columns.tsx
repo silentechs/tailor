@@ -21,13 +21,13 @@ import { formatPhoneDisplay } from '@/lib/utils';
 export type Client = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string;
-  region: string;
-  lastOrder: string;
-  totalOrders: number;
-  status: 'active' | 'inactive';
+  region: string | null;
+  orderCount: number;
+  paymentCount: number;
   trackingToken: string | null;
+  createdAt: string;
 };
 
 export const columns: ColumnDef<Client>[] = [
@@ -92,13 +92,14 @@ export const columns: ColumnDef<Client>[] = [
     ),
   },
   {
-    accessorKey: 'totalOrders',
+    accessorKey: 'orderCount',
     header: 'Orders',
-    cell: ({ row }) => <div className="text-center">{row.getValue('totalOrders')}</div>,
+    cell: ({ row }) => <div className="text-center">{row.getValue('orderCount')}</div>,
   },
   {
-    accessorKey: 'lastOrder',
-    header: 'Last Activity',
+    accessorKey: 'createdAt',
+    header: 'Joined',
+    cell: ({ row }) => <div className="text-sm text-muted-foreground">{new Date(row.getValue('createdAt')).toLocaleDateString()}</div>,
   },
   {
     id: 'actions',

@@ -226,6 +226,17 @@ export async function submitOrderRating(
   rating: number,
   review?: string
 ): Promise<void> {
+  // Get order details first to ensure we have tailorId and clientId
+  // (OrderRating requires them for relation integrity)
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { tailorId: true, clientId: true }
+  });
+
+  if (!order) {
+    throw new Error('Order not found');
+  }
+
   // Check if rating already exists
   const existingRating = await prisma.orderRating.findFirst({
     where: { orderId },
@@ -242,6 +253,8 @@ export async function submitOrderRating(
         orderId,
         rating,
         review,
+        tailorId: order.tailorId,
+        clientId: order.clientId,
       },
     });
   }
@@ -298,6 +311,7 @@ const ORDER_FLOW = [
   { status: 'READY_FOR_FITTING', label: 'Ready for Fitting' },
   { status: 'FITTING_DONE', label: 'Fitting Complete' },
   { status: 'COMPLETED', label: 'Completed' },
+  { status: 'DELIVERED', label: 'Delivered' },
 ];
 
 export function generateOrderTimeline(order: {
@@ -315,6 +329,18 @@ export function generateOrderTimeline(order: {
     if (step.status === 'PENDING') date = order.createdAt;
     if (step.status === 'IN_PROGRESS' && order.startedAt) date = order.startedAt;
     if (step.status === 'COMPLETED' && order.completedAt) date = order.completedAt;
+    if (step.status === 'DELIVERED' && order.deliveredAt) date = order.deliveredAt;
+
+    // Handle Cancelled case gracefully
+    if (order.status === 'CANCELLED') {
+      return {
+        status: step.status,
+        label: step.label,
+        date,
+        completed: false,
+        current: false,
+      };
+    }
 
     return {
       status: step.status,

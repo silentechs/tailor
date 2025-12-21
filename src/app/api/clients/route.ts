@@ -1,8 +1,8 @@
-import type { Region } from '@prisma/client';
+import { UserRole, type Region } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createTrackingToken } from '@/lib/client-tracking-service';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireOrganization } from '@/lib/require-permission';
 import { notifyNewClient } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { formatGhanaPhone, isValidGhanaPhone } from '@/lib/utils';
@@ -23,10 +23,10 @@ const createClientSchema = z.object({
   generateTrackingToken: z.boolean().optional().default(false),
 });
 
-// GET /api/clients - List all clients for the current tailor
+// GET /api/clients - List all clients for the current organization
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
     // Build where clause
     const where = {
-      tailorId: user.id,
+      organizationId,
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
 // POST /api/clients - Create a new client
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
     const body = await request.json();
 
     // Validate input
@@ -141,30 +141,55 @@ export async function POST(request: Request) {
       );
     }
 
+    // NEW: Check if there is a Global User with this phone number
+    const globalUser = await prisma.user.findFirst({
+      where: {
+        // We might want to be careful with formatting here, but assuming stored phone is formatted
+        phone: formattedPhone,
+        role: 'CLIENT' as UserRole // Cast to avoid stale enum issues
+      }
+    });
+
+    const globalUserWithMeasurements = globalUser as any; // Cast to access new optional measurements field
+
     // Create client with measurement if provided in a transaction
     const client = await prisma.$transaction(async (tx) => {
       // 1. Create client
+      // Use UncheckedCreateInput (scalars) to avoid ambiguous type union errors
       const newClient = await tx.client.create({
         data: {
           tailorId: user.id,
-          name: data.name,
+          organizationId: organizationId,
+          name: globalUser?.name || data.name,
           phone: formattedPhone,
-          email: data.email,
+          email: globalUser?.email || data.email,
           address: data.address,
           region: data.region as Region | undefined,
           city: data.city,
           notes: data.notes,
-        },
+          userId: globalUser?.id, // Link to Global User
+          profileImage: globalUser?.profileImage || undefined,
+        } as any, // Cast to any to bypass strict union validation that fails on organizationId
       });
 
-      // 2. Create measurement record if provided
-      if (data.measurements?.values && Object.keys(data.measurements.values).length > 0) {
+      // 2. Create measurement record
+      // Logic: If tailor provided measurements, use them.
+      // If NOT provided, but Global User has "Master Measurements", use those.
+      let measurementValues = data.measurements?.values;
+      let measurementNotes = 'Initial measurements';
+
+      if ((!measurementValues || Object.keys(measurementValues).length === 0) && globalUserWithMeasurements?.measurements) {
+        measurementValues = globalUserWithMeasurements.measurements as Record<string, any>;
+        measurementNotes = 'Imported from Client Profile';
+      }
+
+      if (measurementValues && Object.keys(measurementValues).length > 0) {
         await (tx.clientMeasurement.create as any)({
           data: {
             clientId: newClient.id,
-            values: data.measurements.values,
-            clientSideId: data.measurements.clientSideId,
-            notes: 'Initial measurements',
+            values: measurementValues,
+            clientSideId: data.measurements?.clientSideId,
+            notes: measurementNotes,
             isSynced: true,
           },
         });

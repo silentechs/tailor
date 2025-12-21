@@ -24,9 +24,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
+import { CurrentUser } from '@/lib/direct-current-user';
+import { ROLE_PERMISSIONS, Permission } from '@/lib/permissions';
 
-export function Sidebar({ className, ...props }: SidebarProps) {
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+  user?: CurrentUser;
+}
+
+export function Sidebar({ className, user, ...props }: SidebarProps) {
   const pathname = usePathname();
 
   const { data: notificationData } = useQuery({
@@ -36,52 +41,75 @@ export function Sidebar({ className, ...props }: SidebarProps) {
       if (!res.ok) return { meta: { unreadCount: 0 } };
       return res.json();
     },
+    enabled: !!user,
   });
 
   const unreadCount = notificationData?.meta?.unreadCount || 0;
 
-  const sidebarItems = [
+  const hasPermission = (permission: Permission) => {
+    if (!user) return false;
+    if (user.role === 'ADMIN' || user.role === 'TAILOR' || user.role === 'SEAMSTRESS') return true;
+    if (user.role === 'WORKER') {
+      const membership = user.memberships?.[0];
+      if (!membership) return false;
+      const rolePerms = ROLE_PERMISSIONS[membership.role] || [];
+      const customPerms = (membership.permissions as Permission[]) || [];
+      return rolePerms.includes(permission) || customPerms.includes(permission);
+    }
+    return false;
+  };
+
+  const allItems = [
     {
       title: 'Business',
       items: [
-        { name: 'Overview', href: '/dashboard/business', icon: LayoutDashboard },
-        { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart },
+        { name: 'Overview', href: '/dashboard/business', icon: LayoutDashboard, required: ['payments:read'] },
+        { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart, required: ['orders:read'] }, // Approx
       ],
     },
     {
       title: 'Operations',
       items: [
-        { name: 'Clients', href: '/dashboard/clients', icon: Users },
-        { name: 'Orders', href: '/dashboard/orders', icon: FileText },
-        { name: 'Workshop', href: '/dashboard/workshop', icon: Scissors },
-        { name: 'Appointments', href: '/dashboard/appointments', icon: Calendar },
-        { name: 'Inventory', href: '/dashboard/inventory', icon: Layers },
-        { name: 'Equipment', href: '/dashboard/equipment', icon: Wrench },
+        { name: 'Clients', href: '/dashboard/clients', icon: Users, required: ['clients:read'] },
+        { name: 'Orders', href: '/dashboard/orders', icon: FileText, required: ['orders:read'] },
+        { name: 'Workshop', href: '/dashboard/workshop', icon: Scissors, required: ['tasks:read'] },
+        { name: 'Appointments', href: '/dashboard/appointments', icon: Calendar, required: ['clients:read'] },
+        { name: 'Inventory', href: '/dashboard/inventory', icon: Layers, required: ['inventory:read'] },
+        { name: 'Equipment', href: '/dashboard/equipment', icon: Wrench, required: ['inventory:read'] },
       ],
     },
     {
       title: 'Finance',
       items: [
-        { name: 'Payments', href: '/dashboard/payments', icon: CreditCard },
-        { name: 'Invoices', href: '/dashboard/invoices', icon: FileText },
+        { name: 'Payments', href: '/dashboard/payments', icon: CreditCard, required: ['payments:read'] },
+        { name: 'Invoices', href: '/dashboard/invoices', icon: FileText, required: ['invoices:read'] },
       ],
     },
     {
       title: 'Showcase',
       items: [
-        { name: 'Portfolio', href: '/dashboard/portfolio', icon: ImageIcon },
-        { name: 'Public Profile', href: '/dashboard/showcase', icon: Globe },
+        { name: 'Portfolio', href: '/dashboard/portfolio', icon: ImageIcon, required: ['settings:write'] }, // Restricted
+        { name: 'Public Profile', href: '/dashboard/showcase', icon: Globe, required: ['settings:write'] },
       ],
     },
     {
       title: 'System',
       items: [
-        { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-        { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-        { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+        { name: 'Team', href: '/dashboard/team', icon: Users, required: ['workers:manage'] },
+        { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare, required: [] }, // Everyone
+        { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, required: [] },
+        { name: 'Settings', href: '/dashboard/settings', icon: Settings, required: ['settings:read'] },
       ],
     },
   ];
+
+  const sidebarItems = allItems.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      if (!item.required || item.required.length === 0) return true;
+      return item.required.every(p => hasPermission(p as Permission));
+    })
+  })).filter(group => group.items.length > 0);
 
   return (
     <div

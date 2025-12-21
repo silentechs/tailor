@@ -1,35 +1,19 @@
-'use client';
-
 import type * as React from 'react';
-import { FAB } from '@/components/navigation/fab';
-import { MobileNav } from '@/components/navigation/mobile-nav';
-import { Sidebar } from '@/components/navigation/sidebar';
-import { Topbar } from '@/components/navigation/topbar';
-import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/direct-current-user';
+import { DashboardClientContent } from './DashboardClientContent';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // Initialize background sync
-  useOfflineSync();
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser();
 
-  return (
-    <div className="flex min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:block w-64 fixed inset-y-0 z-50 shadow-sm" />
+  if (!user) {
+    redirect('/auth/login?callbackUrl=/dashboard');
+  }
 
-      {/* Main Content */}
-      <div className="flex-1 md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0 transition-all duration-300 ease-in-out">
-        <Topbar />
+  // Security: Prevent CLIENT users from accessing the staff dashboard
+  if (user.role === 'CLIENT') {
+    redirect('/studio');
+  }
 
-        <main className="flex-1 p-4 md:p-8 overflow-x-hidden w-full max-w-[1600px] mx-auto">
-          {children}
-        </main>
-      </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav />
-
-      {/* Floating Action Button */}
-      <FAB />
-    </div>
-  );
+  return <DashboardClientContent user={user}>{children}</DashboardClientContent>;
 }

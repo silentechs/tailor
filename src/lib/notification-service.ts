@@ -1,5 +1,12 @@
 import type { NotificationPriority, NotificationType } from '@prisma/client';
-import { sendEmail, sendOrderStatusEmail } from './email-service';
+import {
+  sendAppointmentConfirmationEmail,
+  sendAppointmentReminderEmail,
+  sendEmail,
+  sendInvoiceEmail,
+  sendOrderStatusEmail,
+  sendReceiptEmail,
+} from './email-service';
 import prisma from './prisma';
 import { SMS_TEMPLATES, sendSMS } from './sms-service';
 
@@ -246,6 +253,24 @@ export async function notifyPaymentReceived(
   if (notifySms && clientPhone) {
     await sendSMS(clientPhone, SMS_TEMPLATES.paymentReceived(amount, clientName));
   }
+
+  // Send Receipt Email
+  if (notifyEmail && clientEmail) {
+    // Generate a temporary receipt URL (in real app, this would be a signed URL or PDF link)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const receiptUrl = `${baseUrl}/studio/payments`;
+
+    // We don't have payment number here easily, so we might need to adjust signature or fetch it
+    // For now, using a placeholder or we can pass it in 'data'
+    // Better yet, let's update the signature of this function in a separate step or just use "VIEW"
+    await sendReceiptEmail(
+      clientEmail,
+      clientName,
+      'VIEW',
+      amount,
+      receiptUrl
+    );
+  }
 }
 
 export async function notifyNewClient(tailorId: string, clientName: string): Promise<void> {
@@ -298,7 +323,8 @@ export async function notifyAppointmentReminder(
   clientPhone: string,
   clientName: string,
   appointmentType: string,
-  startTime: Date
+  startTime: Date,
+  clientEmail?: string | null
 ): Promise<void> {
   const timeStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const _dateStr = startTime.toLocaleDateString();
@@ -316,6 +342,90 @@ export async function notifyAppointmentReminder(
   // SMS to Client
   const smsMessage = `Hi ${clientName}! Just a reminder of your ${appointmentType.toLowerCase()} appointment with StitchCraft today at ${timeStr}. We look forward to seeing you!`;
   await sendSMS(clientPhone, smsMessage);
+
+  // Email to Client
+  if (clientEmail) {
+    await sendAppointmentReminderEmail(
+      clientEmail,
+      clientName,
+      appointmentType,
+      timeStr
+    );
+  }
+}
+
+export async function notifyAppointmentCreated(
+  tailorId: string,
+  clientPhone: string | null,
+  clientEmail: string | null,
+  clientName: string,
+  appointmentType: string,
+  startTime: Date,
+  location?: string,
+  notes?: string
+): Promise<void> {
+  const dateStr = startTime.toLocaleDateString();
+  const timeStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // In-app notification for Tailor
+  await createNotification({
+    userId: tailorId,
+    type: 'SYSTEM',
+    priority: 'MEDIUM',
+    title: 'New Appointment',
+    message: `Appointment scheduled with ${clientName} for ${appointmentType} on ${dateStr} at ${timeStr}.`,
+    data: { clientName, appointmentType, dateStr, timeStr },
+  });
+
+  // SMS to Client
+  if (clientPhone) {
+    const smsMessage = `Hi ${clientName}, your ${appointmentType} appointment with StitchCraft is confirmed for ${dateStr} at ${timeStr}. See you then!`;
+    await sendSMS(clientPhone, smsMessage);
+  }
+
+  // Email to Client
+  if (clientEmail) {
+    await sendAppointmentConfirmationEmail(
+      clientEmail,
+      clientName,
+      appointmentType,
+      dateStr,
+      timeStr,
+      location,
+      notes
+    );
+  }
+}
+
+export async function notifyInvoiceSent(
+  tailorId: string,
+  clientPhone: string | null,
+  clientEmail: string | null,
+  clientName: string,
+  invoiceNumber: string,
+  amount: string
+): Promise<void> {
+  // In-app notification (audit trail)
+  await createNotification({
+    userId: tailorId,
+    type: 'SYSTEM', // Or a new type INVOICE_SENT
+    title: 'Invoice Sent',
+    message: `Invoice ${invoiceNumber} sent to ${clientName} (${amount})`,
+    data: { invoiceNumber, clientName, amount },
+  });
+
+  // SMS
+  if (clientPhone) {
+    const smsMessage = `Hi ${clientName}, invoice ${invoiceNumber} for ${amount} has been sent. Please check your email or portal. Thanks, StitchCraft.`;
+    await sendSMS(clientPhone, smsMessage);
+  }
+
+  // Email
+  if (clientEmail) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const invoiceUrl = `${baseUrl}/studio/invoices`; // Or specific link
+    await sendInvoiceEmail(clientEmail, clientName, invoiceNumber, amount, invoiceUrl);
+  }
 }
 
 export async function notifyLowInventory(

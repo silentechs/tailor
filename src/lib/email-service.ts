@@ -7,7 +7,7 @@ import prisma from './prisma';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@stitchcraft.gh';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 const APP_NAME = 'StitchCraft Ghana';
 
 export interface EmailResult {
@@ -42,8 +42,15 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
   }
 
   try {
+    // Check if FROM_EMAIL already has a Name <email> format to avoid double wrapping
+    const fromAddress = FROM_EMAIL.includes('<')
+      ? FROM_EMAIL
+      : `${APP_NAME} <${FROM_EMAIL}>`;
+
+    console.log(`[EMAIL DEBUG] Sending from: ${fromAddress} to: ${options.to}`);
+
     const result = await resend.emails.send({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
+      from: fromAddress,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -52,13 +59,16 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
     });
 
     if (result.error) {
+      console.error('[EMAIL ERROR] Resend returned error:', result.error);
       await logEmailAttempt(options.to, options.subject, 'failed', undefined, result.error.message);
       return { success: false, error: result.error.message };
     }
 
+    console.log('[EMAIL SENT] Message ID:', result.data?.id);
     await logEmailAttempt(options.to, options.subject, 'sent', result.data?.id);
     return { success: true, messageId: result.data?.id };
   } catch (error) {
+    console.error('[EMAIL EXCEPTION]', error);
     const errorMessage = error instanceof Error ? error.message : 'Email send failed';
     await logEmailAttempt(options.to, options.subject, 'failed', undefined, errorMessage);
     return { success: false, error: errorMessage };
@@ -406,5 +416,188 @@ export async function sendOrderStatusEmail(
     subject: `Order Update: ${orderNumber} is now ${status.replace(/_/g, ' ')}`,
     html,
     text: `Dear ${clientName}, Your order ${orderNumber} is now ${status.replace(/_/g, ' ')}. ${details}`,
+  });
+}
+export async function sendInvitationEmail(
+  to: string,
+  inviterName: string,
+  organizationName: string,
+  role: string,
+  inviteUrl: string
+): Promise<EmailResult> {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #006B3F, #FCD116); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header h1 { color: white; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .btn { display: inline-block; background: #006B3F; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🤝 Team Invitation</h1>
+        </div>
+        <div class="content">
+          <p>Hello,</p>
+          <p>You have been invited by <strong>${inviterName}</strong> to join <strong>${organizationName}</strong> as a <strong>${role}</strong> on StitchCraft Ghana.</p>
+          <p>Click the button below to accept your invitation and join the team:</p>
+          <a href="${inviteUrl}" class="btn">Accept Invitation</a>
+          <p style="margin-top: 20px;">If you already have an account, you'll be added to the organization. If not, you'll be guided through the registration process.</p>
+          <p>Best regards,<br>The StitchCraft Ghana Team</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} StitchCraft Ghana. Proudly Made in Ghana.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Join ${organizationName} on StitchCraft Ghana`,
+    html,
+    text: `You have been invited by ${inviterName} to join ${organizationName} as a ${role}. Accept here: ${inviteUrl}`,
+  });
+}
+
+export async function sendAppointmentConfirmationEmail(
+  to: string,
+  clientName: string,
+  appointmentType: string,
+  date: string,
+  time: string,
+  location?: string,
+  notes?: string
+): Promise<EmailResult> {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #006B3F, #FCD116); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header h1 { color: white; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .details-box { background: white; border-left: 4px solid #006B3F; padding: 15px; margin: 20px 0; border-radius: 0 4px 4px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .detail-row { display: flex; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .detail-label { font-weight: bold; width: 100px; color: #555; }
+        .detail-value { flex: 1; color: #333; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📅 Appointment Confirmed</h1>
+        </div>
+        <div class="content">
+          <p>Dear ${clientName},</p>
+          <p>Your appointment has been successfully scheduled. We look forward to seeing you!</p>
+          
+          <div class="details-box">
+            <div class="detail-row">
+              <div class="detail-label">Type:</div>
+              <div class="detail-value">${appointmentType}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Date:</div>
+              <div class="detail-value">${date}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Time:</div>
+              <div class="detail-value">${time}</div>
+            </div>
+            ${location ? `
+            <div class="detail-row">
+              <div class="detail-label">Location:</div>
+              <div class="detail-value">${location}</div>
+            </div>` : ''}
+            ${notes ? `
+            <div class="detail-row" style="border-bottom: none;">
+              <div class="detail-label">Notes:</div>
+              <div class="detail-value">${notes}</div>
+            </div>` : ''}
+          </div>
+          
+          <p>If you need to reschedule or cancel, please contact us as soon as possible.</p>
+          <p>Best regards,<br>The StitchCraft Ghana Team</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} StitchCraft Ghana. Proudly Made in Ghana.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Appointment Confirmed: ${appointmentType} on ${date}`,
+    html,
+    text: `Dear ${clientName}, your ${appointmentType} appointment is confirmed for ${date} at ${time}. ${location ? `Location: ${location}` : ''}`,
+  });
+}
+
+export async function sendAppointmentReminderEmail(
+  to: string,
+  clientName: string,
+  appointmentType: string,
+  time: string,
+  location?: string
+): Promise<EmailResult> {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #006B3F; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header h1 { color: white; margin: 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .time-badge { display: inline-block; background: #FCD116; color: #006B3F; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 18px; margin: 10px 0; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>⏰ Appointment Reminder</h1>
+        </div>
+        <div class="content">
+          <p>Dear ${clientName},</p>
+          <p>This is a quick reminder about your upcoming appointment with StitchCraft Ghana today.</p>
+          
+          <div style="text-align: center; margin: 20px 0;">
+            <p style="margin-bottom: 5px;"><strong>${appointmentType}</strong></p>
+            <div class="time-badge">Today at ${time}</div>
+            ${location ? `<p style="margin-top: 5px; color: #666;">📍 ${location}</p>` : ''}
+          </div>
+          
+          <p>We're ready for you! If you're running late, please let us know.</p>
+          <p>See you soon!</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} StitchCraft Ghana. Proudly Made in Ghana.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Reminder: Appointment Today at ${time}`,
+    html,
+    text: `Dear ${clientName}, quick reminder for your ${appointmentType} appointment today at ${time}. See you soon!`,
   });
 }

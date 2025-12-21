@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -50,11 +49,109 @@ model User {
   voiceLogs            VoiceLog[]
   profileViewCount     Int                   @default(0)
   leads                Lead[]                @relation("TailorLeads")
+  ratings              OrderRating[]
+
+  // NEW: Organization relations
+  ownedOrganizations   Organization[]       @relation("OrganizationOwner")
+  memberships          OrganizationMember[]
+  sentInvitations      Invitation[]         @relation("InvitedBy")
+  
+  linkedClientId       String?               @unique // Deprecated: Migration in progress
+  linkedClient         Client?              @relation("UserClientLegacy", fields: [linkedClientId], references: [id]) // Renamed for migration
+  clientProfiles       Client[]             @relation("UserClientProfile") // NEW: One User -> Many Tailor Clients
+  measurements         Json?                // NEW: Master measurements
+  isPublicProfile      Boolean              @default(false)
+
+  wishlistItems        WishlistItem[]
+  portfolioLikes       PortfolioLike[]      @relation("UserLikes")
 
   @@index([email])
   @@index([status])
   @@index([role])
   @@index([showcaseUsername])
+}
+
+model Organization {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  address         String?
+  region          Region?
+  city            String?
+  logo            String?
+  coverImage      String?
+  ownerId         String
+  subscriptionTier String  @default("FREE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  owner           User     @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  members         OrganizationMember[]
+  invitations     Invitation[]
+  clients         Client[]
+  orders          Order[]
+  orderTasks      OrderTask[]
+  appointments    Appointment[]
+  invoices        Invoice[]
+  payments        Payment[]
+  inventoryItems  InventoryItem[]
+  measurementTemplates MeasurementTemplate[]
+  portfolioItems  PortfolioItem[]
+  orderCollections OrderCollection[]
+  
+  @@index([ownerId])
+  @@index([slug])
+}
+
+model OrganizationMember {
+  id              String       @id @default(cuid())
+  organizationId  String
+  userId          String
+  role            WorkerRole   @default(WORKER)
+  permissions     String[]     @default([])
+  joinedAt        DateTime     @default(now())
+  
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Invitation {
+  id              String           @id @default(cuid())
+  organizationId  String
+  email           String
+  role            WorkerRole       @default(WORKER)
+  token           String           @unique @default(cuid())
+  status          InvitationStatus @default(PENDING)
+  expiresAt       DateTime
+  invitedById     String
+  acceptedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now()) @updatedAt
+  
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy       User             @relation("InvitedBy", fields: [invitedById], references: [id])
+  
+  @@index([email])
+  @@index([token])
+  @@index([organizationId])
+}
+
+enum WorkerRole {
+  MANAGER
+  SENIOR
+  WORKER
+  APPRENTICE
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
 }
 
 model Session {
@@ -73,6 +170,7 @@ model Session {
 
 model Client {
   id                 String                @id @default(cuid())
+  organizationId     String?
   tailorId           String
   name               String
   phone              String
@@ -84,17 +182,24 @@ model Client {
   profileImage       String?
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
+  organization       Organization?         @relation(fields: [organizationId], references: [id])
   appointments       Appointment[]
   tailor             User                  @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  linkedUserLegacy   User?                 @relation("UserClientLegacy") // Renamed for migration
+  
+  userId             String?               // NEW: Link to global User
+  user               User?                 @relation("UserClientProfile", fields: [userId], references: [id]) // NEW relation
   clientMeasurements ClientMeasurement[]
   trackingTokens     ClientTrackingToken[]
   invoices           Invoice[]
   orders             Order[]
   payments           Payment[]
   socialConsents     SocialMediaConsent[]
+  ratings            OrderRating[]
 
   @@unique([tailorId, phone])
   @@index([tailorId])
+  @@index([organizationId])
   @@index([phone])
   @@index([name])
 }
@@ -131,6 +236,7 @@ model ClientSession {
 model Order {
   id                 String              @id @default(cuid())
   orderNumber        String              @unique
+  organizationId     String?
   tailorId           String
   clientId           String
   collectionId       String?
@@ -155,6 +261,7 @@ model Order {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   measurementId      String?
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
   appointments       Appointment[]
   inventoryMovements InventoryMovement[]
   invoices           Invoice[]
@@ -168,6 +275,7 @@ model Order {
   tasks              OrderTask[]
 
   @@index([tailorId])
+  @@index([organizationId])
   @@index([clientId])
   @@index([collectionId])
   @@index([status])
@@ -177,6 +285,7 @@ model Order {
 model OrderTask {
   id          String    @id @default(cuid())
   orderId     String
+  organizationId String?
   tailorId    String
   title       String
   description String?
@@ -192,16 +301,19 @@ model OrderTask {
   consumedAt  DateTime?
 
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id])
   tailor      User      @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   material    InventoryItem? @relation(fields: [materialId], references: [id])
 
   @@index([orderId])
+  @@index([organizationId])
   @@index([tailorId])
   @@index([materialId])
 }
 
 model OrderCollection {
   id              String    @id @default(cuid())
+  organizationId  String?
   tailorId        String
   name            String
   description     String?
@@ -210,10 +322,12 @@ model OrderCollection {
   deadline        DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  organization    Organization? @relation(fields: [organizationId], references: [id])
   orders          Order[]
   tailor          User      @relation(fields: [tailorId], references: [id], onDelete: Cascade)
 
   @@index([tailorId])
+  @@index([organizationId])
 }
 
 model BulkOrderDraft {
@@ -245,18 +359,28 @@ model OrderMessage {
 
 model OrderRating {
   id        String   @id @default(cuid())
-  orderId   String
-  rating    Int
+  orderId   String   @unique
+  tailorId  String
+  clientId  String
+  rating    Int      @default(5)
   review    String?
+  images    String[] @default([])
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tailor    User     @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+  @@index([tailorId])
+  @@index([clientId])
 }
 
 model Payment {
   id            String        @id @default(cuid())
   paymentNumber String        @unique
+  organizationId String?
   tailorId      String
   clientId      String
   orderId       String?
@@ -273,12 +397,14 @@ model Payment {
   paidAt        DateTime      @default(now())
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  organization  Organization? @relation(fields: [organizationId], references: [id])
   client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   invoice       Invoice?      @relation(fields: [invoiceId], references: [id])
   order         Order?        @relation(fields: [orderId], references: [id])
   tailor        User          @relation(fields: [tailorId], references: [id], onDelete: Cascade)
 
   @@index([tailorId])
+  @@index([organizationId])
   @@index([clientId])
   @@index([orderId])
   @@index([paymentNumber])
@@ -287,6 +413,7 @@ model Payment {
 model Invoice {
   id              String        @id @default(cuid())
   invoiceNumber   String        @unique
+  organizationId  String?
   tailorId        String
   clientId        String
   orderId         String?
@@ -307,12 +434,14 @@ model Invoice {
   dueDate         DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  organization    Organization? @relation(fields: [organizationId], references: [id])
   client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   order           Order?        @relation(fields: [orderId], references: [id])
   tailor          User          @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   payments        Payment[]
 
   @@index([tailorId])
+  @@index([organizationId])
   @@index([clientId])
   @@index([invoiceNumber])
   @@index([status])
@@ -320,6 +449,7 @@ model Invoice {
 
 model PortfolioItem {
   id          String          @id @default(cuid())
+  organizationId String?
   tailorId    String
   title       String
   description String?
@@ -332,23 +462,45 @@ model PortfolioItem {
   isFeatured  Boolean         @default(false)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  organization Organization?  @relation(fields: [organizationId], references: [id])
   tailor      User            @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   likes       PortfolioLike[]
+  wishlistItems WishlistItem[]
   leads       Lead[]
 
   @@index([tailorId])
+  @@index([organizationId])
   @@index([category])
   @@index([isPublic])
 }
 
 model PortfolioLike {
-  visitorId       String
+  id              String        @id @default(cuid())
+  visitorId       String?
+  userId          String?
   portfolioItemId String
   createdAt       DateTime      @default(now())
   portfolioItem   PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+  user            User?         @relation("UserLikes", fields: [userId], references: [id])
 
-  @@id([visitorId, portfolioItemId])
+  @@unique([visitorId, portfolioItemId])
+  @@unique([userId, portfolioItemId])
   @@index([portfolioItemId])
+}
+
+
+model WishlistItem {
+  id              String        @id @default(cuid())
+  userId          String
+  portfolioItemId String
+  note            String?
+  createdAt       DateTime      @default(now())
+  
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolioItem   PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, portfolioItemId])
+  @@index([userId])
 }
 
 model SocialMediaConsent {
@@ -430,17 +582,20 @@ model EmailNotification {
 
 model MeasurementTemplate {
   id                 String              @id @default(cuid())
+  organizationId     String?
   tailorId           String
   name               String
   garmentType        GarmentType
   fields             Json
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
   clientMeasurements ClientMeasurement[]
   tailor             User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
 
   @@unique([tailorId, name])
   @@index([tailorId])
+  @@index([organizationId])
 }
 
 model ClientMeasurement {
@@ -463,6 +618,7 @@ model ClientMeasurement {
 
 model Appointment {
   id        String            @id @default(cuid())
+  organizationId String?
   tailorId  String
   clientId  String
   orderId   String?
@@ -474,17 +630,20 @@ model Appointment {
   location  String?
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+  organization Organization?  @relation(fields: [organizationId], references: [id])
   client    Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   order     Order?            @relation(fields: [orderId], references: [id])
   tailor    User              @relation(fields: [tailorId], references: [id], onDelete: Cascade)
 
   @@index([tailorId])
+  @@index([organizationId])
   @@index([clientId])
   @@index([startTime])
 }
 
 model InventoryItem {
   id            String              @id @default(cuid())
+  organizationId String?
   tailorId      String
   sku           String?
   name          String
@@ -498,12 +657,14 @@ model InventoryItem {
   isActive      Boolean             @default(true)
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
+  organization  Organization?       @relation(fields: [organizationId], references: [id])
   tailor        User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   movements     InventoryMovement[]
   orderTasks    OrderTask[]
 
   @@unique([tailorId, sku])
   @@index([tailorId])
+  @@index([organizationId])
   @@index([category])
 }
 
@@ -596,6 +757,8 @@ enum UserRole {
   ADMIN
   TAILOR
   SEAMSTRESS
+  WORKER      // Organization member
+  CLIENT      // Authenticated client
 }
 
 enum UserStatus {
@@ -613,6 +776,7 @@ enum OrderStatus {
   READY_FOR_FITTING
   FITTING_DONE
   COMPLETED
+  DELIVERED
   CANCELLED
 }
 
@@ -760,3 +924,5 @@ enum MaintenanceType {
   OVERHAUL
   CALIBRATION
 }
+
+

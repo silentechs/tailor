@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { requireActiveTailor } from '@/lib/direct-current-user';
 import { calculateInvoice, type InvoiceLineItem } from '@/lib/ghana-invoice-calculations';
 import prisma from '@/lib/prisma';
+import { notifyInvoiceSent } from '@/lib/notification-service';
+import { formatCurrency } from '@/lib/utils';
 
 // Validation schema for updating an invoice
 const updateInvoiceSchema = z.object({
@@ -190,6 +192,18 @@ export async function PUT(
                 },
             },
         });
+
+        // If status changed to SENT, trigger notification
+        if (data.status === 'SENT' && existingInvoice.status !== 'SENT') {
+            await notifyInvoiceSent(
+                user.id,
+                invoice.client.phone,
+                invoice.client.email || null,
+                invoice.client.name,
+                invoice.invoiceNumber,
+                formatCurrency(Number(invoice.totalAmount))
+            );
+        }
 
         return NextResponse.json({
             success: true,

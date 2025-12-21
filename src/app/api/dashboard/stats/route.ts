@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 // GET /api/dashboard/stats - Get dashboard statistics
 export async function GET() {
   try {
-    const user = await requireActiveTailor();
+    const { user } = await requirePermission('payments:read');
 
     // Get date ranges
     const now = new Date();
