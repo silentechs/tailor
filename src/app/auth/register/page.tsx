@@ -215,12 +215,20 @@ export default function RegisterPage() {
                   </FormItem>
                 )}
               />
+              {!isClientRegistration && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                  <p className="text-amber-800 font-medium">🚧 Registration Coming Soon</p>
+                  <p className="text-amber-600 text-sm mt-1">
+                    We&apos;re currently in private beta. Join our waitlist to get early access!
+                  </p>
+                </div>
+              )}
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-white font-semibold mt-2"
-                disabled={isLoading}
+                disabled={isLoading || !isClientRegistration}
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? 'Creating Account...' : isClientRegistration ? 'Create Account' : 'Coming Soon'}
               </Button>
             </form>
           </Form>
