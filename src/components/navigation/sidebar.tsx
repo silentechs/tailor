@@ -27,6 +27,8 @@ import { cn } from '@/lib/utils';
 import { CurrentUser } from '@/lib/direct-current-user';
 import { ROLE_PERMISSIONS, Permission } from '@/lib/permissions';
 
+type WorkerRole = keyof typeof ROLE_PERMISSIONS;
+
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   user?: CurrentUser;
 }
@@ -52,7 +54,8 @@ export function Sidebar({ className, user, ...props }: SidebarProps) {
     if (user.role === 'WORKER') {
       const membership = user.memberships?.[0];
       if (!membership) return false;
-      const rolePerms = ROLE_PERMISSIONS[membership.role] || [];
+      const workerRole = membership.role as WorkerRole;
+      const rolePerms = ROLE_PERMISSIONS[workerRole] || [];
       const customPerms = (membership.permissions as Permission[]) || [];
       return rolePerms.includes(permission) || customPerms.includes(permission);
     }
