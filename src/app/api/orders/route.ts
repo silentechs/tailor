@@ -1,7 +1,8 @@
 import type { OrderStatus, Prisma } from '@prisma/client';
+import { MaterialSourceType } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireOrganization } from '@/lib/require-permission';
+import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import { generateOrderNumber } from '@/lib/invoice-numbering-system';
 import prisma from '@/lib/prisma';
 
@@ -35,15 +36,34 @@ const createOrderSchema = z.object({
   materialDetails: z.string().optional().nullable(),
   materialCost: z.number().nonnegative().optional().nullable(),
   laborCost: z.number().nonnegative(),
+  totalAmount: z.number().nonnegative().optional(),
   deadline: z.string().optional().nullable(),
   collectionId: z.string().optional().nullable(),
   measurements: z.record(z.string(), z.any()).optional(),
-});
+}).refine(
+  (data) => {
+    if (data.totalAmount !== undefined) {
+      const materialCost = data.materialCost || 0;
+      const calculatedTotal = data.laborCost + materialCost;
+      // Use small epsilon for decimal comparison if needed, though these are likely coming as floats
+      return Math.abs(data.totalAmount - calculatedTotal) < 0.01;
+    }
+    return true;
+  },
+  {
+    message: 'totalAmount must equal laborCost + materialCost',
+    path: ['totalAmount'],
+  }
+);
 
 // GET /api/orders - List all orders for the current organization
 export async function GET(request: Request) {
   try {
+    // 1. Get context and ID (ensures user has access to *an* organization)
     const { user, organizationId } = await requireOrganization();
+
+    // 2. Enforce granular permission for viewing orders
+    await requirePermission('orders:read', organizationId);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -132,7 +152,11 @@ export async function GET(request: Request) {
 // POST /api/orders - Create a new order
 export async function POST(request: Request) {
   try {
+    // 1. Get context and ID
     const { user, organizationId } = await requireOrganization();
+
+    // 2. Enforce permission
+    await requirePermission('orders:write', organizationId);
     const body = await request.json();
 
     // Validate input
@@ -214,7 +238,7 @@ export async function POST(request: Request) {
           styleReference: data.styleReference,
           styleNotes: data.styleNotes,
           quantity: data.quantity,
-          materialSource: data.materialSource,
+          materialSource: data.materialSource as MaterialSourceType,
           materialDetails: data.materialDetails,
           materialCost: materialCost,
           laborCost: data.laborCost,

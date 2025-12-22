@@ -27,6 +27,7 @@ export type Client = {
   orderCount: number;
   paymentCount: number;
   trackingToken: string | null;
+  isLead: boolean;
   createdAt: string;
 };
 
@@ -57,7 +58,14 @@ export const columns: ColumnDef<Client>[] = [
     header: 'Name',
     cell: ({ row }) => (
       <div className="flex flex-col">
-        <span className="font-medium">{row.getValue('name')}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{row.getValue('name')}</span>
+          {row.original.isLead && (
+            <span className="text-[10px] bg-ghana-gold text-black font-black px-1.5 py-0.5 rounded-full uppercase">
+              Lead
+            </span>
+          )}
+        </div>
       </div>
     ),
   },
@@ -119,6 +127,25 @@ export const columns: ColumnDef<Client>[] = [
             <DropdownMenuItem onClick={() => navigator.clipboard.writeText(client.phone)}>
               Copy Phone
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                const res = await fetch(`/api/clients/${client.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ isLead: !client.isLead }),
+                });
+                if (res.ok) {
+                  toast.success(client.isLead ? 'Removed from leads' : 'Marked as lead');
+                  // Since we are in a column def, we might need a better way to refresh data
+                  // but standard DataTable usually relies on external query state.
+                  // For now, the user has to refresh or wait for cache invalidation.
+                  window.location.reload();
+                }
+              }}
+            >
+              {client.isLead ? 'Remove Lead Status' : 'Mark as Lead'}
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href={`/dashboard/clients/${client.id}`}>View Details</Link>

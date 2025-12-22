@@ -29,6 +29,7 @@ export type CurrentUser = {
       slug: string;
     };
   }[];
+  measurements?: Record<string, any>;
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {

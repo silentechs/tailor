@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireOrganization } from '@/lib/require-permission';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 const inventoryItemSchema = z.object({
@@ -19,6 +19,7 @@ const inventoryItemSchema = z.object({
 export async function GET(request: Request) {
   try {
     const { user, organizationId } = await requireOrganization();
+    await requirePermission('inventory:read', organizationId);
 
     // Fetch organization to get ownerId for broader compatibility if needed (optional optimization)
     // For now, filtering by organizationId is the correct rigorous approach.
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { user, organizationId } = await requireOrganization();
+    await requirePermission('inventory:write', organizationId);
     const body = await request.json();
 
     const validation = inventoryItemSchema.safeParse(body);

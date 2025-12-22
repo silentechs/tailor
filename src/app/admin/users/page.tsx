@@ -30,21 +30,47 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { useState } from 'react';
-
-const MOCK_USERS = [
-    { id: '1', name: 'Kwame Mensah', business: 'Kwame Couture', email: 'kwame@couture.gh', status: 'PENDING', region: 'GREATER_ACCRA', joined: '2h ago' },
-    { id: '2', name: 'Ama Serwaa', business: 'Serwaa Styles', email: 'ama@styles.gh', status: 'ACTIVE', region: 'ASHANTI', joined: '1d ago' },
-    { id: '3', name: 'Kojo Antwi', business: 'Antwi Apparel', email: 'kojo@antwi.gh', status: 'SUSPENDED', region: 'WESTERN', joined: '3d ago' },
-    { id: '4', name: 'Esi Addo', business: 'Addo Artisans', email: 'esi@addo.gh', status: 'PENDING', region: 'CENTRAL', joined: '5h ago' },
-];
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function UserModerationPage() {
-    const [users, setUsers] = useState(MOCK_USERS);
+    const [search, setSearch] = useState('');
+    const queryClient = useQueryClient();
+
+    const { data: usersData, isLoading } = useQuery({
+        queryKey: ['admin-users', search],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (search) params.append('search', search);
+            const res = await fetch(`/api/admin/users?${params.toString()}`);
+            if (!res.ok) throw new Error('Failed to fetch users');
+            return res.json();
+        }
+    });
+
+    const updateStatusMutation = useMutation({
+        mutationFn: async ({ id, status }: { id: string, status: string }) => {
+            const res = await fetch(`/api/admin/users/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            if (!res.ok) throw new Error('Failed to update status');
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+            toast.success('User status updated');
+        },
+        onError: () => {
+            toast.error('Failed to update status');
+        }
+    });
 
     const handleAction = (id: string, newStatus: string) => {
-        setUsers(users.map(u => u.id === id ? { ...u, status: newStatus } : u));
-        toast.success(`User updated to ${newStatus}`);
+        updateStatusMutation.mutate({ id, status: newStatus });
     };
+
+    const users = usersData?.data || [];
 
     return (
         <div className="space-y-10">
@@ -58,6 +84,8 @@ export default function UserModerationPage() {
                     <Input
                         placeholder="Search by name or email..."
                         className="pl-12 h-14 bg-white shadow-sm border-slate-100 focus:border-primary/50 transition-all rounded-2xl"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
             </div>
@@ -74,7 +102,15 @@ export default function UserModerationPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.map((user, idx) => (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">Loading...</TableCell>
+                            </TableRow>
+                        ) : users.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No users found.</TableCell>
+                            </TableRow>
+                        ) : users.map((user: any, idx: number) => (
                             <motion.tr
                                 key={user.id}
                                 initial={{ opacity: 0, x: -10 }}
@@ -95,16 +131,16 @@ export default function UserModerationPage() {
                                 </TableCell>
                                 <TableCell>
                                     <div className="space-y-1">
-                                        <p className="font-bold text-slate-700 text-sm">{user.business}</p>
+                                        <p className="font-bold text-slate-700 text-sm">{user.businessName || 'No Business Name'}</p>
                                         <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-bold text-[9px] uppercase tracking-tighter">
-                                            {user.region.replace(/_/g, ' ')}
+                                            {user.region ? user.region.replace(/_/g, ' ') : 'N/A'}
                                         </Badge>
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <Badge className={cn(
                                         "text-[10px] font-black uppercase shadow-sm border-none px-3 py-1",
-                                        user.status === 'ACTIVE' ? "bg-emerald-50 text-emerald-600" :
+                                        user.status === 'ACTIVE' || user.status === 'APPROVED' ? "bg-emerald-50 text-emerald-600" :
                                             user.status === 'PENDING' ? "bg-amber-50 text-amber-600" :
                                                 "bg-red-50 text-red-600"
                                     )}>
@@ -112,7 +148,7 @@ export default function UserModerationPage() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs font-bold text-slate-400 tracking-tight">
-                                    {user.joined}
+                                    {new Date(user.createdAt).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell className="text-right pr-10">
                                     <div className="flex items-center justify-end gap-2">
@@ -122,7 +158,8 @@ export default function UserModerationPage() {
                                                     size="icon"
                                                     variant="ghost"
                                                     className="h-10 w-10 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                                                    onClick={() => handleAction(user.id, 'ACTIVE')}
+                                                    disabled={updateStatusMutation.isPending}
+                                                    onClick={() => handleAction(user.id, 'APPROVED')}
                                                 >
                                                     <Check className="h-5 w-5" />
                                                 </Button>
@@ -130,6 +167,7 @@ export default function UserModerationPage() {
                                                     size="icon"
                                                     variant="ghost"
                                                     className="h-10 w-10 rounded-full bg-red-50 text-red-600 hover:bg-red-100"
+                                                    disabled={updateStatusMutation.isPending}
                                                     onClick={() => handleAction(user.id, 'REJECTED')}
                                                 >
                                                     <X className="h-5 w-5" />
@@ -146,7 +184,12 @@ export default function UserModerationPage() {
                                                 <DropdownMenuItem className="rounded-xl font-bold text-slate-700 h-10 cursor-pointer">View Portfolio</DropdownMenuItem>
                                                 <DropdownMenuItem className="rounded-xl font-bold text-slate-700 h-10 cursor-pointer">Verification Docs</DropdownMenuItem>
                                                 <div className="h-[1px] bg-slate-100 my-1" />
-                                                <DropdownMenuItem className="rounded-xl font-bold text-red-600 h-10 cursor-pointer focus:bg-red-50 focus:text-red-700">Suspend Account</DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className="rounded-xl font-bold text-red-600 h-10 cursor-pointer focus:bg-red-50 focus:text-red-700"
+                                                    onClick={() => handleAction(user.id, 'SUSPENDED')}
+                                                >
+                                                    Suspend Account
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>

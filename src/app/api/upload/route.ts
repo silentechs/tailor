@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireActiveTailor, requireUser } from '@/lib/direct-current-user';
 import { isR2Configured } from '@/lib/storage/r2-config';
 import { getR2StorageAdapter } from '@/lib/storage/r2-storage-adapter';
 
@@ -32,7 +32,11 @@ async function saveToLocalStorage(file: File, folder: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const user = await requireUser();
+    // Allow TAILOR, SEAMSTRESS, or CLIENT
+    if (user.role !== 'TAILOR' && user.role !== 'SEAMSTRESS' && user.role !== 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File;

@@ -1,7 +1,7 @@
 import type { Region } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 import { formatGhanaPhone, isValidGhanaPhone } from '@/lib/utils';
 
@@ -18,6 +18,7 @@ const updateClientSchema = z.object({
   city: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   profileImage: z.string().optional().nullable(),
+  isLead: z.boolean().optional(),
 });
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -25,13 +26,15 @@ type RouteParams = { params: Promise<{ id: string }> };
 // GET /api/clients/[id] - Get a single client
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('clients:read', organizationId);
+
     const { id } = await params;
 
     const client = await prisma.client.findFirst({
       where: {
         id,
-        tailorId: user.id,
+        organizationId,
       },
       include: {
         orders: {
@@ -87,6 +90,20 @@ export async function GET(_request: Request, { params }: RouteParams) {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        user: {
+          select: {
+            id: true,
+            measurements: true,
+            clientDesigns: {
+              orderBy: { createdAt: 'desc' },
+              take: 20
+            }
+          }
+        },
+        clientDesigns: {
+          orderBy: { createdAt: 'desc' },
+          take: 20
+        }
       },
     });
 
@@ -122,6 +139,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
         activeTrackingToken: client.trackingTokens[0] || null,
         latestConsent: client.socialConsents[0] || null,
         measurements: client.clientMeasurements[0]?.values || {},
+        userDesigns: Array.from(
+          new Map(
+            [...(client.user?.clientDesigns || []), ...(client.clientDesigns || [])].map((d) => [d.id, d])
+          ).values()
+        ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
         trackingTokens: undefined,
         socialConsents: undefined,
         clientMeasurements: undefined,
@@ -141,15 +163,17 @@ export async function GET(_request: Request, { params }: RouteParams) {
 // PUT /api/clients/[id] - Update a client
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('clients:write', organizationId);
+
     const { id } = await params;
     const body = await request.json();
 
-    // Verify client belongs to this tailor
+    // Verify client belongs to this organization
     const existingClient = await prisma.client.findFirst({
       where: {
         id,
-        tailorId: user.id,
+        organizationId,
       },
     });
 
@@ -177,7 +201,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       const formattedPhone = formatGhanaPhone(data.phone);
       const duplicateClient = await prisma.client.findFirst({
         where: {
-          tailorId: user.id,
+          organizationId,
           phone: formattedPhone,
           id: { not: id },
         },
@@ -223,14 +247,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
 // DELETE /api/clients/[id] - Delete a client
 export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('clients:write', organizationId);
+
     const { id } = await params;
 
-    // Verify client belongs to this tailor
+    // Verify client belongs to this organization
     const existingClient = await prisma.client.findFirst({
       where: {
         id,
-        tailorId: user.id,
+        organizationId,
       },
     });
 

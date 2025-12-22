@@ -13,6 +13,22 @@ async function getStats() {
   return data.data;
 }
 
+async function getLeads() {
+  const res = await fetch('/api/analytics/leads');
+  if (!res.ok) throw new Error('Failed to fetch leads');
+  const data = await res.json();
+  return data.data;
+}
+
+async function getInventoryStats() {
+  const res = await fetch('/api/analytics/inventory');
+  if (!res.ok) throw new Error('Failed to fetch inventory stats');
+  const data = await res.json();
+  return data.data;
+}
+
+
+
 export default function AnalyticsPage() {
   const {
     data: stats,
@@ -22,6 +38,18 @@ export default function AnalyticsPage() {
     queryKey: ['dashboard-stats'],
     queryFn: getStats,
   });
+
+  const { data: leads, isLoading: isLoadingLeads } = useQuery({
+    queryKey: ['analytics-leads'],
+    queryFn: getLeads,
+  });
+
+  const { data: inventoryStats, isLoading: isLoadingInv } = useQuery({
+    queryKey: ['analytics-inventory'],
+    queryFn: getInventoryStats,
+  });
+
+
 
   if (isLoading) {
     return (
@@ -121,15 +149,75 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card>
           <CardHeader>
             <CardTitle>Payment Methods</CardTitle>
           </CardHeader>
           <CardContent>
-            <ReactECharts option={piePaymentOption} style={{ height: '400px' }} />
+            <ReactECharts option={piePaymentOption} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Inventory Usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingInv ? (
+              <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" />
+            ) : !inventoryStats?.topUsed || inventoryStats.topUsed.length === 0 ? (
+              <p className="text-center py-12 text-muted-foreground text-sm">No usage data.</p>
+            ) : (
+              <div className="space-y-4 pt-2">
+                {inventoryStats.topUsed.map((item: any, i: number) => (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-bold">{item.name}</span>
+                      <span className="font-mono">{Number(item.total)} {item.unit}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary"
+                        style={{ width: `${Math.min(100, (item.total / (inventoryStats.topUsed[0].total || 1)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Recent Leads</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingLeads ? (
+              <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" />
+            ) : !leads || leads.length === 0 ? (
+              <p className="text-center py-12 text-muted-foreground text-sm">No active leads found.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {leads.slice(0, 6).map((lead: any) => (
+                  <div key={lead.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                    <div>
+                      <p className="font-bold text-sm">{lead.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase">{lead.phone}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-black text-ghana-gold">
+                        {lead._count?.appointments || 0} Appts
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+
     </div>
   );
 }

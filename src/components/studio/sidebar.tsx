@@ -8,7 +8,8 @@ import {
     Ruler,
     Settings,
     ShoppingBag,
-    Star
+    Star,
+    Palette
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,6 +20,7 @@ const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/studio' },
     { icon: ShoppingBag, label: 'My Orders', href: '/studio/orders' },
     { icon: Ruler, label: 'Measurements', href: '/studio/measurements' },
+    { icon: Palette, label: 'My Designs', href: '/studio/designs' },
     { icon: Star, label: 'Style Hub', href: '/studio/styles' },
     { icon: History, label: 'Payments', href: '/studio/payments' },
     { icon: MessageSquare, label: 'Messages', href: '/studio/messages' },

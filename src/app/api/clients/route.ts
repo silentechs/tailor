@@ -2,7 +2,7 @@ import { UserRole, type Region } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createTrackingToken } from '@/lib/client-tracking-service';
-import { requireOrganization } from '@/lib/require-permission';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { notifyNewClient } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { formatGhanaPhone, isValidGhanaPhone } from '@/lib/utils';
@@ -27,6 +27,7 @@ const createClientSchema = z.object({
 export async function GET(request: Request) {
   try {
     const { user, organizationId } = await requireOrganization();
+    await requirePermission('clients:read', organizationId);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -103,6 +104,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { user, organizationId } = await requireOrganization();
+    await requirePermission('clients:write', organizationId);
     const body = await request.json();
 
     // Validate input

@@ -58,15 +58,33 @@ async function deletePortfolioItem(id: string) {
   return res.json();
 }
 
+async function updatePortfolioItem(id: string, data: any) {
+  const res = await fetch(`/api/portfolio/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to update item');
+  }
+  return res.json();
+}
+
 export default function PortfolioPage() {
   const queryClient = useQueryClient();
   const [_activeTab, setActiveTab] = useState('gallery');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({
     title: '',
     category: '',
     description: '',
-    images: ['/placeholder.jpg'], // Mock image upload for now
+    images: ['/placeholder.jpg'],
+    tags: [] as string[],
+    isPublic: true,
+    isFeatured: false,
   });
 
   const {
@@ -83,7 +101,15 @@ export default function PortfolioPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
       setIsAddOpen(false);
-      setNewItem({ title: '', category: '', description: '', images: ['/placeholder.jpg'] });
+      setNewItem({
+        title: '',
+        category: '',
+        description: '',
+        images: ['/placeholder.jpg'],
+        tags: [],
+        isPublic: true,
+        isFeatured: false,
+      });
       toast.success('Project added to portfolio');
     },
     onError: (error: any) => {
@@ -96,6 +122,28 @@ export default function PortfolioPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
       toast.success('Project removed from portfolio');
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => updatePortfolioItem(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      setIsAddOpen(false);
+      setEditingId(null);
+      setNewItem({
+        title: '',
+        category: '',
+        description: '',
+        images: ['/placeholder.jpg'],
+        tags: [],
+        isPublic: true,
+        isFeatured: false,
+      });
+      toast.success('Project updated successfully');
     },
     onError: (error: any) => {
       toast.error(error.message);
@@ -152,7 +200,7 @@ export default function PortfolioPage() {
       toast.error('Please fill in all required fields');
       return;
     }
-    // Remove placeholder if still present (though logic above handles it, just in case)
+    // Remove placeholder if still present
     const cleanImages = newItem.images.filter((img) => img !== '/placeholder.jpg');
 
     if (cleanImages.length === 0) {
@@ -160,10 +208,34 @@ export default function PortfolioPage() {
       return;
     }
 
-    createMutation.mutate({
-      ...newItem,
-      images: cleanImages,
+    if (editingId) {
+      updateMutation.mutate({
+        id: editingId,
+        data: {
+          ...newItem,
+          images: cleanImages,
+        },
+      });
+    } else {
+      createMutation.mutate({
+        ...newItem,
+        images: cleanImages,
+      });
+    }
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingId(item.id);
+    setNewItem({
+      title: item.title,
+      category: item.category,
+      description: item.description || '',
+      images: (item.images && item.images.length > 0) ? item.images : ['/placeholder.jpg'],
+      tags: item.tags || [],
+      isPublic: item.isPublic ?? true,
+      isFeatured: item.isFeatured ?? false,
     });
+    setIsAddOpen(true);
   };
 
   // Analytics Calculations
@@ -226,10 +298,8 @@ export default function PortfolioPage() {
               {portfolio.map((item: any) => (
                 <Card key={item.id} className="overflow-hidden group">
                   <div className="aspect-square bg-muted relative">
-                    {/* Real implementation would use item.images[0] */}
                     <div className="absolute inset-0 flex items-center justify-center bg-secondary/10 text-muted-foreground">
                       {item.images && item.images.length > 0 ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={item.images[0]}
                           alt={item.title}
@@ -253,7 +323,6 @@ export default function PortfolioPage() {
                           <div className="space-y-4">
                             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                               {item.images && item.images.length > 0 ? (
-                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={item.images[0]}
                                   alt={item.title}
@@ -265,19 +334,6 @@ export default function PortfolioPage() {
                                 </div>
                               )}
                             </div>
-                            {item.images && item.images.length > 1 && (
-                              <div className="flex gap-2 overflow-x-auto py-2">
-                                {item.images.map((img: string, idx: number) => (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    key={idx}
-                                    src={img}
-                                    alt={`${item.title} ${idx + 1}`}
-                                    className="h-16 w-16 object-cover rounded-md border"
-                                  />
-                                ))}
-                              </div>
-                            )}
                             <div className="flex items-center gap-2">
                               <Badge variant="outline">
                                 {GARMENT_TYPE_LABELS[item.category as keyof typeof GARMENT_TYPE_LABELS] ||
@@ -293,6 +349,13 @@ export default function PortfolioPage() {
                           </div>
                         </DialogContent>
                       </Dialog>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleEdit(item)}
+                      >
+                        Edit
+                      </Button>
                       <Button
                         variant="destructive"
                         size="sm"
@@ -392,11 +455,25 @@ export default function PortfolioPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Project Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      {/* Project Dialog (Add/Edit) */}
+      <Dialog open={isAddOpen} onOpenChange={(open) => {
+        setIsAddOpen(open);
+        if (!open) {
+          setEditingId(null);
+          setNewItem({
+            title: '',
+            category: '',
+            description: '',
+            images: ['/placeholder.jpg'],
+            tags: [],
+            isPublic: true,
+            isFeatured: false,
+          });
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add New Project</DialogTitle>
+            <DialogTitle>{editingId ? 'Edit Project' : 'Add New Project'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -444,7 +521,6 @@ export default function PortfolioPage() {
                       key={index}
                       className="relative aspect-square rounded-md overflow-hidden border group"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img} alt="Preview" className="object-cover w-full h-full" />
                       <button
                         onClick={() => handleRemoveImage(index)}
@@ -472,13 +548,13 @@ export default function PortfolioPage() {
             <Button variant="outline" onClick={() => setIsAddOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={createMutation.isPending}>
-              {createMutation.isPending ? (
+            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+              {createMutation.isPending || updateMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
                 </>
               ) : (
-                'Save Project'
+                editingId ? 'Update Project' : 'Save Project'
               )}
             </Button>
           </DialogFooter>

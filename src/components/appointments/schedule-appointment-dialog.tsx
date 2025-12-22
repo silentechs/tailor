@@ -3,8 +3,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -48,11 +49,15 @@ const appointmentSchema = z.object({
 interface ScheduleAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialData?: any;
 }
 
-export function ScheduleAppointmentDialog({ open, onOpenChange }: ScheduleAppointmentDialogProps) {
+
+export function ScheduleAppointmentDialog({ open, onOpenChange, initialData }: ScheduleAppointmentDialogProps) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const isEditing = !!initialData;
+
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({
     queryKey: ['clients', searchTerm],
@@ -78,25 +83,52 @@ export function ScheduleAppointmentDialog({ open, onOpenChange }: ScheduleAppoin
     },
   });
 
+  // Handle initial data for editing
+  useEffect(() => {
+
+    if (initialData && open) {
+      const startTime = new Date(initialData.startTime);
+      const endTime = new Date(initialData.endTime);
+      const durationMins = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+
+      form.reset({
+        clientId: initialData.clientId,
+        orderId: initialData.orderId,
+        type: initialData.type,
+        date: startTime.toISOString().split('T')[0],
+        time: startTime.toTimeString().split(' ')[0].substring(0, 5),
+        duration: durationMins.toString(),
+        notes: initialData.notes || '',
+        location: initialData.location || '',
+      });
+    } else if (!open) {
+      form.reset();
+    }
+  }, [initialData, open, form]);
+
+
   const watchedClientId = form.watch('clientId');
   const selectedClient = clients?.find((c: any) => c.id === watchedClientId);
 
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await fetch('/api/appointments', {
-        method: 'POST',
+      const url = isEditing ? `/api/appointments/${initialData.id}` : '/api/appointments';
+      const method = isEditing ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Failed to schedule appointment');
+      if (!res.ok) throw new Error(isEditing ? 'Failed to update appointment' : 'Failed to schedule appointment');
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      toast.success('Appointment scheduled');
+      toast.success(isEditing ? 'Appointment rescheduled' : 'Appointment scheduled');
       onOpenChange(false);
       form.reset();
     },
+
     onError: (error: any) => {
       toast.error(error.message || 'Failed to schedule');
     },
@@ -122,9 +154,9 @@ export function ScheduleAppointmentDialog({ open, onOpenChange }: ScheduleAppoin
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Schedule Appointment</DialogTitle>
+          <DialogTitle>{isEditing ? 'Reschedule Appointment' : 'Schedule Appointment'}</DialogTitle>
           <DialogDescription>
-            Book a session with a client for measurements or fittings.
+            {isEditing ? 'Update the time or details for this session.' : 'Book a session with a client for measurements or fittings.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -312,7 +344,7 @@ export function ScheduleAppointmentDialog({ open, onOpenChange }: ScheduleAppoin
               </Button>
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Schedule
+                {isEditing ? 'Save Changes' : 'Schedule'}
               </Button>
             </DialogFooter>
           </form>

@@ -89,6 +89,7 @@ export async function getSession() {
           linkedClient: {
             select: { id: true, name: true }
           },
+          measurements: true,
         },
       },
     },
@@ -217,13 +218,17 @@ export async function registerUser(data: {
   const hashedPassword = await hashPassword(data.password);
 
   // Create user
+  const initialStatus = (data.role === 'TAILOR' || data.role === 'SEAMSTRESS') ? 'PENDING' : 'ACTIVE';
+
   const user = await prisma.user.create({
     data: {
       email: data.email.toLowerCase(),
       password: hashedPassword,
       name: data.name,
+      phone: data.phone,
+      businessName: data.businessName,
       role: data.role as any,
-      status: 'ACTIVE',
+      status: initialStatus,
       linkedClientId,
     },
   });

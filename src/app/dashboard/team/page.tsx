@@ -41,11 +41,20 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
+import { PERMISSIONS, Permission, ROLE_PERMISSIONS } from '@/lib/permissions';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useMemo } from 'react';
+import { WorkerRole } from '@prisma/client';
 export default function TeamPage() {
     const queryClient = useQueryClient();
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState('WORKER');
+
+    // Editing State
+    const [editingMember, setEditingMember] = useState<any>(null);
+    const [editRole, setEditRole] = useState('');
+    const [editPermissions, setEditPermissions] = useState<Permission[]>([]);
 
     // 1. Fetch current user & organization context
     const { data: userData } = useQuery({
@@ -143,11 +152,86 @@ export default function TeamPage() {
         enabled: !!orgId,
     });
 
+    // 6. Update member mutation
+    const updateMemberMutation = useMutation({
+        mutationFn: async ({ memberId, data }: { memberId: string; data: any }) => {
+            const res = await fetch(`/api/organizations/${orgId}/members/${memberId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to update member');
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            toast.success('Member updated successfully');
+            setEditingMember(null);
+            queryClient.invalidateQueries({ queryKey: ['organizations', orgId, 'members'] });
+        },
+        onError: (error: Error) => {
+            toast.error(error.message);
+        },
+    });
+
+    // 7. Remove member mutation
+    const removeMemberMutation = useMutation({
+        mutationFn: async (memberId: string) => {
+            const res = await fetch(`/api/organizations/${orgId}/members/${memberId}`, {
+                method: 'DELETE',
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to remove member');
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            toast.success('Member removed');
+            queryClient.invalidateQueries({ queryKey: ['organizations', orgId, 'members'] });
+        },
+        onError: (error: Error) => {
+            toast.error(error.message);
+        },
+    });
+
     const handleInvite = (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteEmail) return;
         inviteMutation.mutate({ email: inviteEmail, role: inviteRole });
     };
+
+    const handleSaveEdit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingMember) return;
+
+        // Calculate only custom Permissions: ones that are NOT in the default role set?
+        // Actually, the backend overrides, so we can just send the full list and let the backend/logic decide.
+        // Wait, logic says: effective = role_perms + custom.
+        // If we want to REVOKE a default role perm, the current logic assumes ADDITIVE only permissions.
+        // "effectivePermissions = [...ROLE_PERMISSIONS[role], ...custom]"
+        // This means we CANNOT revoke default role permissions. We can only ADD extra ones.
+        // I will explain this in the UI.
+
+        updateMemberMutation.mutate({
+            memberId: editingMember.id,
+            data: { role: editRole, permissions: editPermissions }
+        });
+    };
+
+    const openEdit = (member: any) => {
+        setEditingMember(member);
+        setEditRole(member.role);
+        setEditPermissions(member.permissions || []);
+    };
+
+    // Calculate permissions implied by the currently selected role
+    const defaultRolePermissions = useMemo(() => {
+        if (!editRole) return [];
+        return ROLE_PERMISSIONS[editRole as WorkerRole] || [];
+    }, [editRole]);
 
     if (!orgId) {
         return (
@@ -273,6 +357,21 @@ export default function TeamPage() {
                                                 <TableCell className="py-4 px-6 text-right text-sm font-medium text-muted-foreground">
                                                     {new Date(member.joinedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                                 </TableCell>
+                                                <TableCell className="py-4 px-6 text-right space-x-2">
+                                                    {/* Do not allow editing the Owner/Self if complex logic needed, but mainly Owner needs protection */}
+                                                    {/* We can check if the member is the owner of the organization. 
+                                                        We need ownerId available in organization object. */}
+                                                    {organization?.ownerId !== member.user.id && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="font-bold text-primary"
+                                                            onClick={() => openEdit(member)}
+                                                        >
+                                                            Edit / Perms
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -352,6 +451,94 @@ export default function TeamPage() {
                         </CardContent>
                     </Card>
                 )}
+                {/* Edit Member Dialog */}
+                <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
+                    <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Edit Member Permissions</DialogTitle>
+                            <DialogDescription>
+                                Manage access level for {editingMember?.user?.name}.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <form onSubmit={handleSaveEdit} className="space-y-6">
+                            <div className="space-y-2">
+                                <Label>Role</Label>
+                                <Select value={editRole} onValueChange={setEditRole}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="MANAGER">Manager (Full Access)</SelectItem>
+                                        <SelectItem value="SENIOR">Senior Tailor</SelectItem>
+                                        <SelectItem value="WORKER">Worker</SelectItem>
+                                        <SelectItem value="APPRENTICE">Apprentice</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    Roles provide a default set of permissions. You can grant <strong>additional</strong> permissions below.
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <Label>Additional Permissions</Label>
+                                <div className="grid grid-cols-2 gap-3 border rounded-lg p-4 bg-muted/20">
+                                    {Object.entries(PERMISSIONS).map(([key, label]) => {
+                                        const isDefault = defaultRolePermissions.includes(key as Permission);
+                                        const isChecked = isDefault || editPermissions.includes(key as Permission);
+
+                                        return (
+                                            <div key={key} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`perm-${key}`}
+                                                    checked={isChecked}
+                                                    disabled={isDefault}
+                                                    onCheckedChange={(checked) => {
+                                                        // Can only toggle if NOT default
+                                                        if (isDefault) return;
+
+                                                        if (checked) {
+                                                            setEditPermissions([...editPermissions, key as Permission]);
+                                                        } else {
+                                                            setEditPermissions(editPermissions.filter(p => p !== key));
+                                                        }
+                                                    }}
+                                                />
+                                                <label
+                                                    htmlFor={`perm-${key}`}
+                                                    className={cn(
+                                                        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer",
+                                                        isDefault && "opacity-70 cursor-default"
+                                                    )}
+                                                >
+                                                    {label} {isDefault && <span className="text-[10px] text-muted-foreground ml-1">(Role Default)</span>}
+                                                </label>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="border-t pt-4 flex justify-between">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    onClick={() => {
+                                        if (confirm('Review Access: This will permanently remove the member from your organization.')) {
+                                            removeMemberMutation.mutate(editingMember.id);
+                                        }
+                                    }}
+                                >
+                                    Remove Member
+                                </Button>
+                                <Button type="submit" disabled={updateMemberMutation.isPending}>
+                                    {updateMemberMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                </Button>
+                            </div>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

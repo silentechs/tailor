@@ -16,6 +16,7 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { InventoryItemDialog } from '@/components/inventory/add-item-dialog';
+import { ReceiptStockDialog } from '@/components/inventory/receipt-stock-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +57,9 @@ export default function InventoryPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<any>(null);
+
 
   const { data: items, isLoading: isItemsLoading } = useQuery({
     queryKey: ['inventory'],
@@ -120,11 +123,16 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="flex gap-3">
+          <Button variant="outline" onClick={() => setIsReceiptOpen(true)}>
+            <ArrowUpRight className="h-4 w-4 mr-2" />
+            Receipt Stock
+          </Button>
           <Button onClick={() => setIsAddOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Item
           </Button>
         </div>
+
       </div>
 
       {/* Stats Overview */}
@@ -331,6 +339,13 @@ export default function InventoryPage() {
         }}
         itemToEdit={itemToEdit}
       />
+
+      <ReceiptStockDialog
+        open={isReceiptOpen}
+        onOpenChange={setIsReceiptOpen}
+        inventoryItems={items || []}
+      />
     </div>
   );
 }
+

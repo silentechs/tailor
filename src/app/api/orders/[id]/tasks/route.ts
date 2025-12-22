@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 const createTaskSchema = z.object({
@@ -26,13 +26,15 @@ type RouteParams = { params: Promise<{ id: string }> };
 // GET /api/orders/[id]/tasks - Get all tasks for an order
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('tasks:read', organizationId);
+
     const { id: orderId } = await params;
 
     const tasks = await prisma.orderTask.findMany({
       where: {
         orderId,
-        tailorId: user.id,
+        organizationId,
       },
       include: {
         material: {
@@ -55,7 +57,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
 // POST /api/orders/[id]/tasks - Create a new task for an order
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('tasks:write', organizationId);
+
     const { id: orderId } = await params;
     const body = await request.json();
 
@@ -67,12 +71,12 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Verify order belongs to tailor
+    // Verify order belongs to organization
     const order = await prisma.order.findUnique({
       where: { id: orderId },
     });
 
-    if (!order || order.tailorId !== user.id) {
+    if (!order || order.organizationId !== organizationId) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
@@ -80,7 +84,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       data: {
         ...validation.data,
         orderId,
-        tailorId: user.id,
+        organizationId,
+        tailorId: user.id, // Creator
       },
     });
 

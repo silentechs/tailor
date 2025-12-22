@@ -40,10 +40,24 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn, GARMENT_TYPE_LABELS } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const MATERIAL_SOURCES = [
+  { value: 'CLIENT_PROVIDED', label: 'Client Provided' },
+  { value: 'TAILOR_PROVIDED', label: 'Tailor Provided' },
+  { value: 'SPLIT', label: 'Split / Shared' },
+];
 
 const orderSchema = z.object({
   clientId: z.string().min(1, 'Please select a client.'),
   garmentType: z.string().min(1, 'Please select a garment type.'),
+  materialSource: z.string(),
   description: z.string().optional(),
   dueDate: z.date().min(new Date(1900, 0, 1), 'A due date is required.'),
   amount: z.string().min(1, 'Amount is required'),
@@ -90,6 +104,11 @@ export default function NewOrderPage() {
     defaultValues: {
       description: '',
       measurements: {},
+      materialSource: 'CLIENT_PROVIDED',
+      clientId: '',
+      garmentType: '',
+      amount: '',
+      deposit: '',
     },
   });
 
@@ -437,6 +456,31 @@ export default function NewOrderPage() {
                               />
                             </PopoverContent>
                           </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="materialSource"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Material Source</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select who provides material" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {MATERIAL_SOURCES.map((source) => (
+                                <SelectItem key={source.value} value={source.value}>
+                                  {source.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

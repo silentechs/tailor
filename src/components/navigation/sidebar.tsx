@@ -101,6 +101,7 @@ export function Sidebar({ className, user, ...props }: SidebarProps) {
         { name: 'Team', href: '/dashboard/team', icon: Users, required: ['workers:manage'] },
         { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare, required: [] }, // Everyone
         { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, required: [] },
+        { name: 'Outbox', href: '/dashboard/communications', icon: MessageSquare, required: [] },
         { name: 'Settings', href: '/dashboard/settings', icon: Settings, required: ['settings:read'] },
       ],
     },

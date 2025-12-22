@@ -64,6 +64,7 @@ model User {
 
   wishlistItems        WishlistItem[]
   portfolioLikes       PortfolioLike[]      @relation("UserLikes")
+  clientDesigns        ClientDesign[]       // NEW: User uploaded designs
 
   @@index([email])
   @@index([status])
@@ -180,6 +181,7 @@ model Client {
   city               String?
   notes              String?
   profileImage       String?
+  isLead             Boolean               @default(false)
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   organization       Organization?         @relation(fields: [organizationId], references: [id])
@@ -196,6 +198,7 @@ model Client {
   payments           Payment[]
   socialConsents     SocialMediaConsent[]
   ratings            OrderRating[]
+  clientDesigns      ClientDesign[]      // NEW: Designs uploaded by Tailor for this client
 
   @@unique([tailorId, phone])
   @@index([tailorId])
@@ -803,6 +806,23 @@ model Lead {
 
   @@index([tailorId])
   @@index([portfolioItemId])
+}
+
+model ClientDesign {
+  id          String       @id @default(cuid())
+  userId      String?      // Optional: Linked to global User
+  clientId    String?      // Optional: Linked to local Client (for Tailor uploads)
+  images      String[]
+  notes       String?
+  garmentType GarmentType? // Optional categorization
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([clientId])
 }
 
 enum PaymentMethod {

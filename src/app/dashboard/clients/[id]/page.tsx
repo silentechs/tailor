@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, Edit, Loader2, Mail, MapPin, Phone, Ruler, Scissors } from 'lucide-react';
+import { CreditCard, Edit, Loader2, Mail, MapPin, Phone, Ruler, Scissors, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency, formatPhoneDisplay } from '@/lib/utils';
 import { columns as orderColumns } from '../../orders/columns';
+import { ClientDesignUploadDialog } from '@/components/clients/client-design-upload-dialog';
 
 async function getClient(id: string) {
   const res = await fetch(`/api/clients/${id}`);
@@ -87,6 +88,13 @@ export default function ClientProfilePage() {
               >
                 Active
               </Badge>
+              {clientData.isLead && (
+                <Badge
+                  className="ml-2 text-sm font-black bg-ghana-gold text-black border-none uppercase"
+                >
+                  Lead
+                </Badge>
+              )}
             </h1>
             <div className="flex items-center gap-4 text-muted-foreground mt-1 text-sm">
               {clientData.region && (
@@ -213,6 +221,12 @@ export default function ClientProfilePage() {
                 Measurements
               </TabsTrigger>
               <TabsTrigger
+                value="designs"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+              >
+                Designs
+              </TabsTrigger>
+              <TabsTrigger
                 value="notes"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
               >
@@ -239,10 +253,29 @@ export default function ClientProfilePage() {
                     <CardTitle>Current Measurements</CardTitle>
                     <CardDescription>Last updated with recent order</CardDescription>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Update
-                  </Button>
+                  <div className="flex gap-2">
+                    {clientData.user && clientData.user.measurements && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const res = await fetch(`/api/clients/${clientData.id}/sync`, { method: 'POST' });
+                          if (res.ok) {
+                            window.location.reload();
+                          } else {
+                            // alert('Failed to sync');
+                          }
+                        }}
+                      >
+                        <Scissors className="h-4 w-4 mr-2" />
+                        Sync from Profile
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Update
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {clientData.measurements && Object.keys(clientData.measurements).length > 0 ? (
@@ -260,6 +293,54 @@ export default function ClientProfilePage() {
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       No measurements recorded yet.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="designs" className="mt-0">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Designs & References</CardTitle>
+                    <CardDescription>
+                      Inspirations from client or uploaded by you.
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    // Trigger upload dialog (will be implemented via state)
+                    const event = new CustomEvent('open-design-upload', { detail: { clientId: clientData.id } });
+                    window.dispatchEvent(event);
+                  }}>
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Add Design
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {clientData.userDesigns && clientData.userDesigns.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {clientData.userDesigns.map((design: any) => (
+                        <div key={design.id} className="group relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted">
+                          <img
+                            src={design.images[0] || '/placeholder-garment.jpg'}
+                            alt="Design"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                            <div>
+                              <p className="text-white text-xs font-bold uppercase tracking-wider">{design.garmentType}</p>
+                              {design.notes && <p className="text-white/80 text-xs line-clamp-2 mt-1">{design.notes}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground font-medium">No designs found.</p>
+                      <p className="text-muted-foreground text-sm mt-1">If the client uploads photos to their profile, they will appear here.</p>
                     </div>
                   )}
                 </CardContent>
@@ -286,6 +367,7 @@ export default function ClientProfilePage() {
           </Tabs>
         </div>
       </div>
+      <ClientDesignUploadDialog />
     </div>
   );
 }

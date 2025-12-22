@@ -1,7 +1,7 @@
 import type { InvoiceStatus, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { calculateInvoice, type InvoiceLineItem } from '@/lib/ghana-invoice-calculations';
 import { generateInvoiceNumber } from '@/lib/invoice-numbering-system';
 import prisma from '@/lib/prisma';
@@ -28,7 +28,8 @@ const createInvoiceSchema = z.object({
 // GET /api/invoices - List all invoices
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('invoices:read', organizationId);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     const clientId = searchParams.get('clientId');
 
     const where: Prisma.InvoiceWhereInput = {
-      tailorId: user.id,
+      organizationId,
       ...(status && { status: status as InvoiceStatus }),
       ...(clientId && { clientId }),
     };
@@ -103,7 +104,9 @@ export async function GET(request: Request) {
 // POST /api/invoices - Create a new invoice
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('invoices:write', organizationId);
+
     const body = await request.json();
 
     const validationResult = createInvoiceSchema.safeParse(body);
@@ -122,7 +125,7 @@ export async function POST(request: Request) {
 
     // Verify client
     const client = await prisma.client.findFirst({
-      where: { id: data.clientId, tailorId: user.id },
+      where: { id: data.clientId, organizationId },
     });
 
     if (!client) {
@@ -140,6 +143,7 @@ export async function POST(request: Request) {
       data: {
         invoiceNumber,
         tailorId: user.id,
+        organizationId,
         clientId: data.clientId,
         orderId: data.orderId,
         items: data.items,

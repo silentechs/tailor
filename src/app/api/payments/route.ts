@@ -2,7 +2,7 @@ import type { PaymentMethod, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logAudit } from '@/lib/audit-service';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { generatePaymentNumber } from '@/lib/invoice-numbering-system';
 import { notifyPaymentReceived } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
@@ -31,7 +31,8 @@ const createPaymentSchema = z.object({
 // GET /api/payments - List all payments
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('payments:read', organizationId);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     const method = searchParams.get('method');
 
     const where: Prisma.PaymentWhereInput = {
-      tailorId: user.id,
+      organizationId,
       ...(clientId && { clientId }),
       ...(orderId && { orderId }),
       ...(method && { method: method as PaymentMethod }),
@@ -89,6 +90,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Handle Forbidden (missing permission)
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Failed to fetch payments' },
       { status: 500 }
@@ -99,7 +105,9 @@ export async function GET(request: Request) {
 // POST /api/payments - Create a new payment
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('payments:write', organizationId);
+
     const body = await request.json();
 
     const validationResult = createPaymentSchema.safeParse(body);
@@ -118,7 +126,7 @@ export async function POST(request: Request) {
 
     // Verify client
     const client = await prisma.client.findFirst({
-      where: { id: data.clientId, tailorId: user.id },
+      where: { id: data.clientId, organizationId },
     });
 
     if (!client) {
@@ -129,7 +137,7 @@ export async function POST(request: Request) {
     let order = null;
     if (data.orderId) {
       order = await prisma.order.findFirst({
-        where: { id: data.orderId, tailorId: user.id },
+        where: { id: data.orderId, organizationId },
       });
 
       if (!order) {
@@ -144,7 +152,8 @@ export async function POST(request: Request) {
     const payment = await prisma.payment.create({
       data: {
         paymentNumber,
-        tailorId: user.id,
+        tailorId: user.id, // Keep tailorId as creator/owner reference
+        organizationId,
         clientId: data.clientId,
         orderId: data.orderId,
         invoiceId: data.invoiceId,
@@ -231,6 +240,11 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Handle Forbidden (missing permission)
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
     }
 
     return NextResponse.json(

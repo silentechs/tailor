@@ -68,6 +68,21 @@ export default function NotificationsPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete notification');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('Notification deleted');
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    },
+  });
+
   const notifications = data?.data || [];
   const unreadCount = data?.meta?.unreadCount || 0;
 
@@ -218,7 +233,11 @@ export default function NotificationsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="text-destructive flex items-center gap-2">
+                      <DropdownMenuItem
+                        className="text-destructive flex items-center gap-2 cursor-pointer"
+                        onClick={() => deleteMutation.mutate(notif.id)}
+                        disabled={deleteMutation.isPending}
+                      >
                         <Trash2 className="h-4 w-4" />
                         Delete
                       </DropdownMenuItem>

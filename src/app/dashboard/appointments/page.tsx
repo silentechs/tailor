@@ -47,6 +47,8 @@ export default function AppointmentsPage() {
   const queryClient = useQueryClient();
   const [_selectedDate, _setSelectedDate] = useState(new Date());
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<any>(null);
+
 
   const {
     data: appointments,
@@ -140,6 +142,10 @@ export default function AppointmentsPage() {
                       key={apt.id}
                       appointment={apt}
                       onStatusChange={(status) => statusMutation.mutate({ id: apt.id, status })}
+                      onReschedule={(apt) => {
+                        setEditingAppointment(apt);
+                        setIsScheduleOpen(true);
+                      }}
                     />
                   ))}
                 {appointments?.filter(
@@ -147,10 +153,10 @@ export default function AppointmentsPage() {
                     isToday(new Date(a.startTime)) &&
                     (a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
                 ).length === 0 && (
-                  <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
-                    <p className="text-sm text-muted-foreground">No active appointments today.</p>
-                  </div>
-                )}
+                    <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
+                      <p className="text-sm text-muted-foreground">No active appointments today.</p>
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -172,6 +178,10 @@ export default function AppointmentsPage() {
                       key={apt.id}
                       appointment={apt}
                       onStatusChange={(status) => statusMutation.mutate({ id: apt.id, status })}
+                      onReschedule={(apt) => {
+                        setEditingAppointment(apt);
+                        setIsScheduleOpen(true);
+                      }}
                     />
                   ))}
                 {appointments?.filter(
@@ -179,10 +189,10 @@ export default function AppointmentsPage() {
                     new Date(a.startTime) > endOfDay(new Date()) &&
                     (a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
                 ).length === 0 && (
-                  <div className="col-span-full text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
-                    <p className="text-sm text-muted-foreground">No other upcoming bookings.</p>
-                  </div>
-                )}
+                    <div className="col-span-full text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
+                      <p className="text-sm text-muted-foreground">No other upcoming bookings.</p>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
@@ -200,23 +210,37 @@ export default function AppointmentsPage() {
                   key={apt.id}
                   appointment={apt}
                   onStatusChange={(status) => statusMutation.mutate({ id: apt.id, status })}
+                  onReschedule={(apt) => {
+                    setEditingAppointment(apt);
+                    setIsScheduleOpen(true);
+                  }}
                 />
               ))}
           </div>
         </TabsContent>
       </Tabs>
 
-      <ScheduleAppointmentDialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen} />
+      <ScheduleAppointmentDialog
+        open={isScheduleOpen}
+        onOpenChange={(open) => {
+          setIsScheduleOpen(open);
+          if (!open) setEditingAppointment(null);
+        }}
+        initialData={editingAppointment}
+      />
     </div>
   );
 }
 
+
 function AppointmentCard({
   appointment,
   onStatusChange,
+  onReschedule,
 }: {
   appointment: any;
   onStatusChange: (status: string) => void;
+  onReschedule: (appointment: any) => void;
 }) {
   const typeLabel = APPOINTMENT_TYPE_LABELS[appointment.type] || appointment.type;
   const statusLabel = APPOINTMENT_STATUS_LABELS[appointment.status] || appointment.status;
@@ -243,6 +267,10 @@ function AppointmentCard({
             <DropdownMenuItem onClick={() => onStatusChange('CANCELLED')}>
               <XCircle className="mr-2 h-4 w-4 text-red-500" />
               Cancel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onReschedule(appointment)}>
+              <CalendarIcon className="mr-2 h-4 w-4 text-blue-500" />
+              Reschedule / Edit
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -38,7 +38,8 @@ export type StitchCraftFileType =
   | 'portfolio'
   | 'invoice'
   | 'export'
-  | 'voice-note';
+  | 'voice-note'
+  | 'client-designs';
 
 /**
  * Storage adapter interface

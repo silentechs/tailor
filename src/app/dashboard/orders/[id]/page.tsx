@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { MaterialsList } from '@/components/orders/materials-list';
 import { PaymentDialog } from '@/components/orders/payment-dialog';
+import { ProgressPhotos } from '@/components/orders/progress-photos';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -382,6 +383,7 @@ export default function OrderDetailsPage() {
               </div>
 
               <MaterialsList orderId={id} />
+              <ProgressPhotos orderId={id} initialPhotos={orderData.progressPhotos} />
             </CardContent>
           </Card>
 

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, Globe, Loader2, Save, Share2, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { MeasurementTemplateManager } from '@/components/settings/measurement-template-manager';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -160,6 +161,7 @@ export default function SettingsPage() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notif</TabsTrigger>
           <TabsTrigger value="showcase">Showcase</TabsTrigger>
+          <TabsTrigger value="measurements">Tools</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
@@ -351,6 +353,10 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="measurements" className="space-y-6 mt-6">
+          <MeasurementTemplateManager />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6 mt-6">
