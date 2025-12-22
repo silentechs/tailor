@@ -106,7 +106,7 @@ export function AddPaymentDialog({ open, onOpenChange }: AddPaymentDialogProps) 
     mutationFn: async (values: z.infer<typeof paymentSchema>) => {
       const payload = {
         clientId: values.clientId,
-        orderId: values.orderId || null,
+        orderId: values.orderId && values.orderId !== 'no-order' ? values.orderId : null,
         amount: Number(values.amount),
         method: values.method,
         mobileNumber: values.mobileNumber || null,
@@ -193,7 +193,7 @@ export function AddPaymentDialog({ open, onOpenChange }: AddPaymentDialogProps) 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No Order</SelectItem>
+                        <SelectItem value="no-order">No Order</SelectItem>
                         {clientOrders.map((order: any) => (
                           <SelectItem key={order.id} value={order.id}>
                             {order.orderNumber} - {order.garmentType.replace(/_/g, ' ')}
