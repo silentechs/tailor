@@ -39,6 +39,8 @@ export const metadata: Metadata = {
 
 import Script from 'next/script';
 import { Providers } from '@/components/providers';
+import { RouteProgress } from '@/components/route-progress';
+import { SkipToContent } from '@/components/skip-to-content';
 import { Toaster } from '@/components/ui/sonner';
 
 export default function RootLayout({
@@ -55,7 +57,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="StitchCraft" />
       </head>
       <body className={`${playfair.variable} ${dmSans.variable} antialiased font-body`}>
-        <Providers>{children}</Providers>
+        <SkipToContent />
+        <Providers>
+          <main id="main-content">{children}</main>
+        </Providers>
+        <RouteProgress />
         <Toaster />
         <Script id="sw-register" strategy="afterInteractive">
           {`

@@ -31,6 +31,8 @@ const publicRoutes = [
   '/',
   '/auth/login',
   '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
   '/discover',
   '/gallery',
   '/showcase',
@@ -39,6 +41,8 @@ const publicRoutes = [
   '/offline',
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
   '/api/health',
   '/api/discover',
   '/api/gallery',
@@ -72,7 +76,7 @@ const _protectedApiPrefixes = [
   '/api/user',
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static files and Next.js internals
