@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import { notifyAppointmentCreated } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const appointmentSchema = z.object({
   clientId: z.string().min(1, 'Client is required'),
@@ -65,7 +65,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Get appointments error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch appointments' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch appointments',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
@@ -125,7 +128,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Create appointment error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to create appointment' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create appointment',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

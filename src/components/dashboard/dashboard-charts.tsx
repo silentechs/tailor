@@ -78,7 +78,8 @@ export function DashboardCharts({ revenueTrend, garmentDistribution }: Dashboard
         name: 'Garments',
         type: 'pie',
         radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
+        center: ['50%', '50%'],
+        avoidLabelOverlap: true,
         itemStyle: {
           borderRadius: 8,
           borderColor: isDark ? '#020617' : '#fff',
@@ -91,7 +92,7 @@ export function DashboardCharts({ revenueTrend, garmentDistribution }: Dashboard
         emphasis: {
           label: {
             show: true,
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: 'bold',
           },
         },
@@ -108,31 +109,35 @@ export function DashboardCharts({ revenueTrend, garmentDistribution }: Dashboard
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-      <Card className="lg:col-span-4">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+      <Card className="lg:col-span-4 overflow-hidden">
         <CardHeader>
           <CardTitle>Revenue Trend</CardTitle>
           <CardDescription>Monthly earnings over the last 6 months</CardDescription>
         </CardHeader>
-        <CardContent className="h-[300px]">
+        <CardContent className="h-[300px] w-full">
           <ReactECharts
             option={revenueOptions}
             style={{ height: '100%', width: '100%' }}
             theme={isDark ? 'dark' : undefined}
+            notMerge={true}
+            lazyUpdate={true}
           />
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-3">
+      <Card className="lg:col-span-3 overflow-hidden">
         <CardHeader>
           <CardTitle>Garment Distribution</CardTitle>
           <CardDescription>Most popular styles in your workshop</CardDescription>
         </CardHeader>
-        <CardContent className="h-[300px]">
+        <CardContent className="h-[300px] w-full">
           <ReactECharts
             option={garmentOptions}
             style={{ height: '100%', width: '100%' }}
             theme={isDark ? 'dark' : undefined}
+            notMerge={true}
+            lazyUpdate={true}
           />
         </CardContent>
       </Card>

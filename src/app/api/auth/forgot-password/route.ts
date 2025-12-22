@@ -1,65 +1,66 @@
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { sendEmail, getEmailLayout } from '@/lib/email-service';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+import { getEmailLayout, sendEmail } from '@/lib/email-service';
 import { captureError } from '@/lib/logger';
+import prisma from '@/lib/prisma';
 import { SECURITY_HEADERS } from '@/lib/security-headers';
 
-const APP_URL = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const APP_URL =
+  process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 const forgotPasswordSchema = z.object({
-    email: z.string().email('Invalid email address'),
+  email: z.string().email('Invalid email address'),
 });
 
 export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const result = forgotPasswordSchema.safeParse(body);
+  try {
+    const body = await request.json();
+    const result = forgotPasswordSchema.safeParse(body);
 
-        if (!result.success) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid email address' },
-                { status: 400, headers: SECURITY_HEADERS }
-            );
-        }
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid email address' },
+        { status: 400, headers: SECURITY_HEADERS }
+      );
+    }
 
-        const { email } = result.data;
+    const { email } = result.data;
 
-        // Find user by email
-        const user = await prisma.user.findUnique({
-            where: { email: email.toLowerCase() },
-        });
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
 
-        // Always return success to prevent email enumeration attacks
-        if (!user) {
-            return NextResponse.json(
-                { success: true, message: 'If an account exists, a reset link has been sent.' },
-                { headers: SECURITY_HEADERS }
-            );
-        }
+    // Always return success to prevent email enumeration attacks
+    if (!user) {
+      return NextResponse.json(
+        { success: true, message: 'If an account exists, a reset link has been sent.' },
+        { headers: SECURITY_HEADERS }
+      );
+    }
 
-        // Delete any existing reset tokens for this user
-        await prisma.passwordResetToken.deleteMany({
-            where: { userId: user.id },
-        });
+    // Delete any existing reset tokens for this user
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
 
-        // Create new reset token (expires in 1 hour)
-        const token = uuidv4();
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    // Create new reset token (expires in 1 hour)
+    const token = uuidv4();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-        await prisma.passwordResetToken.create({
-            data: {
-                userId: user.id,
-                token,
-                expiresAt,
-            },
-        });
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt,
+      },
+    });
 
-        // Send reset email
-        const resetUrl = `${APP_URL}/auth/reset-password?token=${token}`;
+    // Send reset email
+    const resetUrl = `${APP_URL}/auth/reset-password?token=${token}`;
 
-        const emailContent = `
+    const emailContent = `
       <h2 style="color: #006B3F;">Reset Your Password</h2>
       <p>Dear ${user.name},</p>
       <p>We received a request to reset your password for your StitchCraft Ghana account.</p>
@@ -76,23 +77,23 @@ export async function POST(request: Request) {
       </p>
     `;
 
-        await sendEmail({
-            to: user.email,
-            subject: 'Reset Your StitchCraft Password',
-            html: getEmailLayout(emailContent, { subject: 'Reset Your Password' }),
-            text: `Reset your password by visiting: ${resetUrl}. This link expires in 1 hour.`,
-            template: 'password_reset',
-        });
+    await sendEmail({
+      to: user.email,
+      subject: 'Reset Your StitchCraft Password',
+      html: getEmailLayout(emailContent, { subject: 'Reset Your Password' }),
+      text: `Reset your password by visiting: ${resetUrl}. This link expires in 1 hour.`,
+      template: 'password_reset',
+    });
 
-        return NextResponse.json(
-            { success: true, message: 'If an account exists, a reset link has been sent.' },
-            { headers: SECURITY_HEADERS }
-        );
-    } catch (error) {
-        captureError('ForgotPasswordAPI', error);
-        return NextResponse.json(
-            { success: false, error: 'Failed to process request' },
-            { status: 500, headers: SECURITY_HEADERS }
-        );
-    }
+    return NextResponse.json(
+      { success: true, message: 'If an account exists, a reset link has been sent.' },
+      { headers: SECURITY_HEADERS }
+    );
+  } catch (error) {
+    captureError('ForgotPasswordAPI', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to process request' },
+      { status: 500, headers: SECURITY_HEADERS }
+    );
+  }
 }

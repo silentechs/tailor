@@ -47,11 +47,11 @@ export function CommandMenu() {
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'relative inline-flex items-center justify-start rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-muted/50 hover:bg-muted h-10 px-4 w-full max-w-md group'
+          'relative inline-flex items-center justify-start rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-muted/50 hover:bg-muted h-10 w-10 md:w-full md:max-w-md md:px-4 group'
         )}
       >
-        <Search className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        <span className="text-muted-foreground">Search anything...</span>
+        <Search className="h-4 w-4 md:mr-2 text-muted-foreground group-hover:text-primary transition-colors mx-auto md:mx-0" />
+        <span className="hidden md:inline text-muted-foreground">Search anything...</span>
         <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden lg:flex h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
           <span className="text-xs">⌘</span>K
         </kbd>

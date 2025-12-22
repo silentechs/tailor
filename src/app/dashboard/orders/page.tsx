@@ -99,24 +99,24 @@ export default function OrdersPage() {
       </div>
 
       <Tabs defaultValue="individual" className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="individual" className="flex items-center gap-2">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <TabsList className="w-full lg:w-auto overflow-x-auto no-scrollbar justify-start">
+            <TabsTrigger value="individual" className="flex items-center gap-2 whitespace-nowrap">
               <Scissors className="h-4 w-4" />
               Individual Orders
             </TabsTrigger>
-            <TabsTrigger value="bulk" className="flex items-center gap-2">
+            <TabsTrigger value="bulk" className="flex items-center gap-2 whitespace-nowrap">
               <Layers className="h-4 w-4" />
               Bulk Collections
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
                   <Filter className="h-4 w-4 mr-2" />
-                  Filter
+                  <span className="hidden sm:inline">Filter</span>
                   {hasFilters && (
                     <Badge variant="secondary" className="ml-2 h-5 px-1.5">
                       1
@@ -151,16 +151,17 @@ export default function OrdersPage() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button asChild variant="secondary">
+            <Button asChild variant="secondary" size="sm" className="flex-1 sm:flex-none">
               <Link href="/dashboard/orders/bulk-wizard">
-                <Layers className="h-4 w-4 mr-2" />
-                New Collection
+                <Layers className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">New Collection</span>
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild size="sm" className="flex-1 sm:flex-none">
               <Link href="/dashboard/orders/new">
-                <Plus className="h-4 w-4 mr-2" />
-                New Order
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">New Order</span>
+                <span className="sm:hidden">New</span>
               </Link>
             </Button>
           </div>

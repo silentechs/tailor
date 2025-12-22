@@ -5,11 +5,13 @@ import {
   Heart,
   Loader2,
   MapPin,
+  Menu,
   MessageCircle,
   Phone,
   Scissors,
   Share2,
   ShoppingBag,
+  X,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -20,22 +22,40 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-
-import { trackLead } from '@/lib/tracking';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 async function getShowcaseData(username: string) {
   const res = await fetch(`/api/showcase/public/${username}`);
   if (!res.ok) {
-    throw new Error('Showcase not found');
+    throw new Error('Failed to fetch showcase data');
   }
-  const data = await res.json();
-  return data.data;
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error || 'Showcase not found');
+  }
+  // Transform portfolio items to include likeCount
+  return {
+    ...json.data,
+    portfolioItems: json.data.portfolioItems?.map((item: any) => ({
+      ...item,
+      likeCount: item._count?.likes || 0,
+    })) || [],
+  };
+}
+
+function trackLead({ tailorId, channel, source }: { tailorId: string; channel: string; source: string }) {
+  fetch('/api/analytics/lead', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tailorId, channel, source }),
+  }).catch(() => {});
 }
 
 export default function ShowcasePageClient() {
   const params = useParams();
   const username = params.username as string;
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const {
     data: tailor,
@@ -87,6 +107,12 @@ export default function ShowcasePageClient() {
     new Set(tailor.portfolioItems.map((i: any) => i.category))
   ) as string[];
 
+  const navLinks = [
+    { name: 'Home', href: '/' },
+    { name: 'Features', href: '/#features' },
+    { name: 'Gallery', href: '/gallery' },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Elegant Header */}
@@ -98,32 +124,67 @@ export default function ShowcasePageClient() {
               StitchCraft <span className="text-muted-foreground font-normal">Showcase</span>
             </span>
           </Link>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild className="hidden md:flex">
-            <Link href="/">Home</Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className="hidden md:flex">
-            <Link href="/#features">Features</Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className="hidden md:flex">
-            <Link href="/#how-it-works">How it Works</Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className="hidden md:flex">
-            <Link href="/#pricing">Pricing</Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className="hidden md:flex">
-            <Link href="/gallery">Gallery</Link>
-          </Button>
-          <ShareButton
-            variant="ghost"
-            size="sm"
-            shareTitle={`${tailor.businessName || tailor.name} on StitchCraft`}
-            shareText={`Check out ${tailor.businessName || tailor.name}'s showcase!`}
-          >
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
-          </ShareButton>
+
+          <div className="flex items-center gap-2">
+            <nav className="hidden md:flex items-center gap-6 mr-6">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className="text-sm font-medium hover:text-primary transition-colors"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+
+            <ShareButton
+              variant="ghost"
+              size="sm"
+              className="hidden sm:flex"
+              shareTitle={`${tailor.businessName || tailor.name} on StitchCraft`}
+              shareText={`Check out ${tailor.businessName || tailor.name}'s showcase!`}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </ShareButton>
+
+            {/* Mobile Menu Trigger */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <SheetTitle>Navigation Menu</SheetTitle>
+                <div className="flex flex-col gap-6 py-8">
+                  <div className="flex flex-col gap-4">
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.name}
+                        href={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-lg font-medium hover:text-primary transition-colors py-2 border-b border-border/50"
+                      >
+                        {link.name}
+                      </Link>
+                    ))}
+                  </div>
+                  <ShareButton
+                    variant="outline"
+                    className="w-full h-12 rounded-xl mt-4"
+                    shareTitle={`${tailor.businessName || tailor.name} on StitchCraft`}
+                    shareText={`Check out ${tailor.businessName || tailor.name}'s showcase!`}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share This Profile
+                  </ShareButton>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
 

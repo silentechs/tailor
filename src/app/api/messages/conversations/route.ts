@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 // GET /api/messages/conversations - List active conversations grouped by order
 export async function GET(_request: Request) {
@@ -68,7 +68,10 @@ export async function GET(_request: Request) {
   } catch (error) {
     console.error('Get conversations error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch conversations' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch conversations',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

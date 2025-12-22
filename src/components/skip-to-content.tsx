@@ -8,10 +8,10 @@ import Link from 'next/link';
  * Becomes visible on focus for keyboard navigation
  */
 export function SkipToContent() {
-    return (
-        <Link
-            href="#main-content"
-            className="
+  return (
+    <Link
+      href="#main-content"
+      className="
         sr-only focus:not-sr-only
         fixed left-4 top-4 z-[9999]
         bg-primary text-white
@@ -21,8 +21,8 @@ export function SkipToContent() {
         shadow-lg
         transition-all duration-200
       "
-        >
-            Skip to main content
-        </Link>
-    );
+    >
+      Skip to main content
+    </Link>
+  );
 }

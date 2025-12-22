@@ -20,7 +20,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn, formatCurrency } from '@/lib/utils';
-import type { DashboardStats, MetricCardProps, RecentOrder, METRIC_COLOR_MAP } from '@/types/dashboard';
+import type {
+  DashboardStats,
+  METRIC_COLOR_MAP,
+  MetricCardProps,
+  RecentOrder,
+} from '@/types/dashboard';
 
 async function getDashboardStats(): Promise<DashboardStats> {
   const res = await fetch('/api/dashboard/stats');

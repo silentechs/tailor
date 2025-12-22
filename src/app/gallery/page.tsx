@@ -106,8 +106,8 @@ export default function GalleryPage() {
 
           {/* Filter Bar */}
           <div className="sticky top-24 z-30 mb-12 space-y-4">
-            <div className="bg-background/80 backdrop-blur-2xl p-4 rounded-3xl border border-border/50 shadow-2xl flex flex-col lg:flex-row gap-4 items-center">
-              <div className="relative w-full lg:w-1/3 group">
+            <div className="bg-background/80 backdrop-blur-2xl p-4 rounded-3xl border border-border/50 shadow-2xl flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative w-full md:w-1/3 group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   placeholder="Search styles or artisans..."
@@ -117,9 +117,9 @@ export default function GalleryPage() {
                 />
               </div>
 
-              <div className="flex flex-wrap lg:flex-nowrap gap-3 items-center w-full lg:w-auto">
+              <div className="flex flex-wrap md:flex-nowrap gap-3 items-center w-full md:w-auto">
                 <Select value={selectedArtisan} onValueChange={setSelectedArtisan}>
-                  <SelectTrigger className="h-12 w-full lg:w-48 rounded-2xl bg-muted/30 border-none">
+                  <SelectTrigger className="h-12 w-full md:w-48 rounded-2xl bg-muted/30 border-none">
                     <User className="h-4 w-4 mr-2 text-primary" />
                     <SelectValue placeholder="All Artisans" />
                   </SelectTrigger>
@@ -133,7 +133,7 @@ export default function GalleryPage() {
                 </Select>
 
                 <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                  <SelectTrigger className="h-12 w-full lg:w-48 rounded-2xl bg-muted/30 border-none">
+                  <SelectTrigger className="h-12 w-full md:w-48 rounded-2xl bg-muted/30 border-none">
                     <MapPin className="h-4 w-4 mr-2 text-ghana-gold" />
                     <SelectValue placeholder="All Regions" />
                   </SelectTrigger>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 export async function GET() {
   try {
@@ -40,7 +40,10 @@ export async function GET() {
   } catch (error) {
     console.error('Workshop queue error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch workshop queue' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch workshop queue',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

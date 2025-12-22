@@ -44,9 +44,9 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { fetchApi } from '@/lib/fetch-api';
 import { useCsrf } from '@/hooks/use-csrf';
 import { useMeasurementDraft } from '@/hooks/use-measurement-draft';
+import { fetchApi } from '@/lib/fetch-api';
 import { offlineDb } from '@/lib/offline-db';
 import { cn, GARMENT_TYPE_LABELS } from '@/lib/utils';
 

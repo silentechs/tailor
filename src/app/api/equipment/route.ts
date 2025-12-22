@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 export async function GET() {
   try {
@@ -11,7 +11,7 @@ export async function GET() {
     // (In the future, we should add organizationId to the Equipment model)
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { ownerId: true }
+      select: { ownerId: true },
     });
 
     if (!org) {
@@ -36,7 +36,10 @@ export async function GET() {
   } catch (error) {
     console.error('Get equipment error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch equipment' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch equipment',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
@@ -46,10 +49,10 @@ export async function POST(request: Request) {
   try {
     const { user, organizationId } = await requireOrganization();
     await requirePermission('inventory:write', organizationId);
-    
+
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { ownerId: true }
+      select: { ownerId: true },
     });
 
     if (!org) {
@@ -69,7 +72,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Create equipment error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to create equipment' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create equipment',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

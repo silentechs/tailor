@@ -23,9 +23,9 @@ export function MobileNav({ user }: { user?: CurrentUser }) {
   return (
     <div
       data-mobile-nav
-      className="fixed bottom-0 left-0 right-0 border-t bg-background p-2 md:hidden z-50 pb-[env(safe-area-inset-bottom)] no-print"
+      className="fixed bottom-0 left-0 right-0 border-t bg-white dark:bg-zinc-950 px-1 py-2 md:hidden z-[100] pb-[env(safe-area-inset-bottom)] no-print shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
     >
-      <div className="flex justify-around items-center">
+      <div className="flex justify-evenly items-center max-w-md mx-auto">
         {items.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -35,11 +35,11 @@ export function MobileNav({ user }: { user?: CurrentUser }) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center p-2 text-xs font-medium transition-colors min-w-[64px]',
+                'flex flex-col items-center justify-center p-1.5 text-[10px] font-medium transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-primary'
               )}
             >
-              <item.icon className="h-5 w-5 mb-1" />
+              <item.icon className="h-5 w-5 mb-0.5" />
               {item.name}
             </Link>
           );
@@ -49,9 +49,9 @@ export function MobileNav({ user }: { user?: CurrentUser }) {
           <SheetTrigger asChild>
             <button
               type="button"
-              className="flex flex-col items-center justify-center p-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors min-w-[64px]"
+              className="flex flex-col items-center justify-center p-1.5 text-[10px] font-medium text-muted-foreground hover:text-primary transition-colors"
             >
-              <Menu className="h-5 w-5 mb-1" />
+              <Menu className="h-5 w-5 mb-0.5" />
               Menu
             </button>
           </SheetTrigger>

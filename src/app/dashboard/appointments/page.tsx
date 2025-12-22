@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { fetchApi } from '@/lib/fetch-api';
 import {
   APPOINTMENT_STATUS_COLORS,
   APPOINTMENT_STATUS_LABELS,
@@ -35,7 +36,6 @@ import {
   formatDate,
   formatTime,
 } from '@/lib/utils';
-import { fetchApi } from '@/lib/fetch-api';
 
 async function getAppointments() {
   const res = await fetchApi('/api/appointments');

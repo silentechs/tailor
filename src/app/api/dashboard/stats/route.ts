@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 // GET /api/dashboard/stats - Get dashboard statistics
 export async function GET() {
@@ -292,7 +292,10 @@ export async function GET() {
     console.error('Get dashboard stats error:', error);
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch dashboard stats' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch dashboard stats',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

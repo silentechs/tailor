@@ -43,7 +43,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Get notifications error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch notifications' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch notifications',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
@@ -63,7 +66,10 @@ export async function PUT(_request: Request) {
   } catch (error) {
     console.error('Mark all read error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to update notifications' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update notifications',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

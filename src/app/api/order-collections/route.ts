@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { generateOrderNumber } from '@/lib/utils';
 
 // Validation schema for creating an order within a collection
@@ -80,7 +80,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Get collections error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch collections' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch collections',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
@@ -190,7 +193,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Create collection error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to create collection' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create collection',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

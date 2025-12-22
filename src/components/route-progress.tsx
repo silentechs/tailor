@@ -1,26 +1,26 @@
 'use client';
 
-import NProgress from 'nprogress';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import NProgress from 'nprogress';
+import { Suspense, useEffect } from 'react';
 
 // Configure NProgress with Ghana-themed primary color
 NProgress.configure({
-    showSpinner: false,
-    trickleSpeed: 200,
-    minimum: 0.1,
+  showSpinner: false,
+  trickleSpeed: 200,
+  minimum: 0.1,
 });
 
 function RouteProgressHandler() {
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-    useEffect(() => {
-        // Start progress when route changes
-        NProgress.done();
-    }, [pathname, searchParams]);
+  useEffect(() => {
+    // Start progress when route changes
+    NProgress.done();
+  }, [pathname, searchParams]);
 
-    return null;
+  return null;
 }
 
 /**
@@ -29,10 +29,10 @@ function RouteProgressHandler() {
  * Uses the Ghana-themed primary color from design system
  */
 export function RouteProgress() {
-    return (
-        <>
-            {/* NProgress styles with Ghana-themed primary color */}
-            <style jsx global>{`
+  return (
+    <>
+      {/* NProgress styles with Ghana-themed primary color */}
+      <style jsx global>{`
         #nprogress {
           pointer-events: none;
         }
@@ -59,11 +59,11 @@ export function RouteProgress() {
           transform: rotate(3deg) translate(0px, -4px);
         }
       `}</style>
-            <Suspense fallback={null}>
-                <RouteProgressHandler />
-            </Suspense>
-        </>
-    );
+      <Suspense fallback={null}>
+        <RouteProgressHandler />
+      </Suspense>
+    </>
+  );
 }
 
 /**
@@ -71,9 +71,9 @@ export function RouteProgress() {
  * Use these when initiating navigation from code
  */
 export function startProgress() {
-    NProgress.start();
+  NProgress.start();
 }
 
 export function stopProgress() {
-    NProgress.done();
+  NProgress.done();
 }

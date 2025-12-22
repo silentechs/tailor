@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 // GET /api/communications/logs - Get SMS and Email notification logs
 export async function GET() {
@@ -9,7 +9,7 @@ export async function GET() {
     await requirePermission('settings:read', organizationId);
 
     // TODO: Add organizationId/tailorId to notification logs in schema.prisma
-    // For now, we fetch recent logs. In a production multi-tenant app, 
+    // For now, we fetch recent logs. In a production multi-tenant app,
     // these MUST be filtered by organizationId.
 
     const [sms, emails] = await Promise.all([

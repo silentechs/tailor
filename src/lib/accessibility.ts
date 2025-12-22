@@ -3,7 +3,7 @@
  * Provides helpers for ARIA attributes, keyboard navigation, and screen reader support
  */
 
-import type { RefObject, KeyboardEvent } from 'react';
+import type { KeyboardEvent, RefObject } from 'react';
 
 // ============================================
 // Focus Management
@@ -13,41 +13,41 @@ import type { RefObject, KeyboardEvent } from 'react';
  * Traps focus within a container element (for modals/dialogs)
  */
 export function trapFocus(container: HTMLElement) {
-    const focusableSelectors = [
-        'button:not([disabled])',
-        'a[href]',
-        'input:not([disabled])',
-        'select:not([disabled])',
-        'textarea:not([disabled])',
-        '[tabindex]:not([tabindex="-1"])',
-    ].join(', ');
+  const focusableSelectors = [
+    'button:not([disabled])',
+    'a[href]',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(', ');
 
-    const focusableElements = container.querySelectorAll<HTMLElement>(focusableSelectors);
-    const firstFocusable = focusableElements[0];
-    const lastFocusable = focusableElements[focusableElements.length - 1];
+  const focusableElements = container.querySelectorAll<HTMLElement>(focusableSelectors);
+  const firstFocusable = focusableElements[0];
+  const lastFocusable = focusableElements[focusableElements.length - 1];
 
-    function handleKeyDown(e: globalThis.KeyboardEvent) {
-        if (e.key !== 'Tab') return;
+  function handleKeyDown(e: globalThis.KeyboardEvent) {
+    if (e.key !== 'Tab') return;
 
-        if (e.shiftKey) {
-            if (document.activeElement === firstFocusable) {
-                e.preventDefault();
-                lastFocusable?.focus();
-            }
-        } else {
-            if (document.activeElement === lastFocusable) {
-                e.preventDefault();
-                firstFocusable?.focus();
-            }
-        }
+    if (e.shiftKey) {
+      if (document.activeElement === firstFocusable) {
+        e.preventDefault();
+        lastFocusable?.focus();
+      }
+    } else {
+      if (document.activeElement === lastFocusable) {
+        e.preventDefault();
+        firstFocusable?.focus();
+      }
     }
+  }
 
-    container.addEventListener('keydown', handleKeyDown);
-    firstFocusable?.focus();
+  container.addEventListener('keydown', handleKeyDown);
+  firstFocusable?.focus();
 
-    return () => {
-        container.removeEventListener('keydown', handleKeyDown);
-    };
+  return () => {
+    container.removeEventListener('keydown', handleKeyDown);
+  };
 }
 
 // ============================================
@@ -58,8 +58,8 @@ export function trapFocus(container: HTMLElement) {
  * Props for skip link component
  */
 export interface SkipLinkProps {
-    href?: string;
-    children?: React.ReactNode;
+  href?: string;
+  children?: React.ReactNode;
 }
 
 /**
@@ -82,36 +82,38 @@ export const skipLinkClasses = `
  * Handle keyboard navigation for lists (arrow keys)
  */
 export function handleListKeyDown(
-    e: KeyboardEvent<HTMLElement>,
-    items: HTMLElement[],
-    currentIndex: number,
-    onSelect?: (index: number) => void
+  e: KeyboardEvent<HTMLElement>,
+  items: HTMLElement[],
+  currentIndex: number,
+  onSelect?: (index: number) => void
 ) {
-    switch (e.key) {
-        case 'ArrowDown':
-            e.preventDefault();
-            const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
-            items[nextIndex]?.focus();
-            break;
-        case 'ArrowUp':
-            e.preventDefault();
-            const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
-            items[prevIndex]?.focus();
-            break;
-        case 'Home':
-            e.preventDefault();
-            items[0]?.focus();
-            break;
-        case 'End':
-            e.preventDefault();
-            items[items.length - 1]?.focus();
-            break;
-        case 'Enter':
-        case ' ':
-            e.preventDefault();
-            onSelect?.(currentIndex);
-            break;
+  switch (e.key) {
+    case 'ArrowDown': {
+      e.preventDefault();
+      const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+      items[nextIndex]?.focus();
+      break;
     }
+    case 'ArrowUp': {
+      e.preventDefault();
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+      items[prevIndex]?.focus();
+      break;
+    }
+    case 'Home':
+      e.preventDefault();
+      items[0]?.focus();
+      break;
+    case 'End':
+      e.preventDefault();
+      items[items.length - 1]?.focus();
+      break;
+    case 'Enter':
+    case ' ':
+      e.preventDefault();
+      onSelect?.(currentIndex);
+      break;
+  }
 }
 
 // ============================================
@@ -124,14 +126,14 @@ let announcer: HTMLDivElement | null = null;
  * Announce a message to screen readers
  */
 export function announce(message: string, priority: 'polite' | 'assertive' = 'polite') {
-    if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return;
 
-    if (!announcer) {
-        announcer = document.createElement('div');
-        announcer.setAttribute('aria-live', priority);
-        announcer.setAttribute('aria-atomic', 'true');
-        announcer.className = 'sr-only';
-        announcer.style.cssText = `
+  if (!announcer) {
+    announcer = document.createElement('div');
+    announcer.setAttribute('aria-live', priority);
+    announcer.setAttribute('aria-atomic', 'true');
+    announcer.className = 'sr-only';
+    announcer.style.cssText = `
       position: absolute;
       width: 1px;
       height: 1px;
@@ -142,18 +144,18 @@ export function announce(message: string, priority: 'polite' | 'assertive' = 'po
       white-space: nowrap;
       border: 0;
     `;
-        document.body.appendChild(announcer);
+    document.body.appendChild(announcer);
+  }
+
+  announcer.setAttribute('aria-live', priority);
+  announcer.textContent = '';
+
+  // Use requestAnimationFrame to ensure the DOM update is noticed by screen readers
+  requestAnimationFrame(() => {
+    if (announcer) {
+      announcer.textContent = message;
     }
-
-    announcer.setAttribute('aria-live', priority);
-    announcer.textContent = '';
-
-    // Use requestAnimationFrame to ensure the DOM update is noticed by screen readers
-    requestAnimationFrame(() => {
-        if (announcer) {
-            announcer.textContent = message;
-        }
-    });
+  });
 }
 
 // ============================================
@@ -164,32 +166,32 @@ export function announce(message: string, priority: 'polite' | 'assertive' = 'po
  * Generate ARIA attributes for a button that controls a menu/dropdown
  */
 export function getMenuButtonProps(isOpen: boolean, menuId: string) {
-    return {
-        'aria-expanded': isOpen,
-        'aria-haspopup': 'menu' as const,
-        'aria-controls': menuId,
-    };
+  return {
+    'aria-expanded': isOpen,
+    'aria-haspopup': 'menu' as const,
+    'aria-controls': menuId,
+  };
 }
 
 /**
  * Generate ARIA attributes for a menu/dropdown
  */
 export function getMenuProps(menuId: string) {
-    return {
-        id: menuId,
-        role: 'menu' as const,
-        'aria-orientation': 'vertical' as const,
-    };
+  return {
+    id: menuId,
+    role: 'menu' as const,
+    'aria-orientation': 'vertical' as const,
+  };
 }
 
 /**
  * Generate ARIA attributes for a menu item
  */
 export function getMenuItemProps(index: number) {
-    return {
-        role: 'menuitem' as const,
-        tabIndex: index === 0 ? 0 : -1,
-    };
+  return {
+    role: 'menuitem' as const,
+    tabIndex: index === 0 ? 0 : -1,
+  };
 }
 
 // ============================================
@@ -200,10 +202,10 @@ export function getMenuItemProps(index: number) {
  * Generate ARIA attributes for loading states
  */
 export function getLoadingProps(isLoading: boolean, loadingText = 'Loading...') {
-    return {
-        'aria-busy': isLoading,
-        'aria-describedby': isLoading ? 'loading-indicator' : undefined,
-    };
+  return {
+    'aria-busy': isLoading,
+    'aria-describedby': isLoading ? 'loading-indicator' : undefined,
+  };
 }
 
 // ============================================
@@ -214,22 +216,22 @@ export function getLoadingProps(isLoading: boolean, loadingText = 'Loading...') 
  * Generate ARIA attributes for form fields with validation
  */
 export function getFieldProps(fieldId: string, error?: string) {
-    return {
-        id: fieldId,
-        'aria-invalid': !!error,
-        'aria-describedby': error ? `${fieldId}-error` : undefined,
-    };
+  return {
+    id: fieldId,
+    'aria-invalid': !!error,
+    'aria-describedby': error ? `${fieldId}-error` : undefined,
+  };
 }
 
 /**
  * Generate attributes for error messages
  */
 export function getErrorProps(fieldId: string) {
-    return {
-        id: `${fieldId}-error`,
-        role: 'alert' as const,
-        'aria-live': 'polite' as const,
-    };
+  return {
+    id: `${fieldId}-error`,
+    role: 'alert' as const,
+    'aria-live': 'polite' as const,
+  };
 }
 
 // ============================================
@@ -240,16 +242,16 @@ export function getErrorProps(fieldId: string) {
  * Check if text color should be light or dark based on background
  */
 export function getContrastTextColor(bgColor: string): 'text-white' | 'text-black' {
-    // Remove # if present
-    const hex = bgColor.replace('#', '');
+  // Remove # if present
+  const hex = bgColor.replace('#', '');
 
-    // Convert to RGB
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
+  // Convert to RGB
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
 
-    // Calculate relative luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-    return luminance > 0.5 ? 'text-black' : 'text-white';
+  return luminance > 0.5 ? 'text-black' : 'text-white';
 }

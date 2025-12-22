@@ -14,7 +14,7 @@ import { useCsrf } from '@/hooks/use-csrf';
 export function StudioClientContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [queryClient] = React.useState(() => new QueryClient());
-  
+
   // Initialize CSRF token
   useCsrf();
 

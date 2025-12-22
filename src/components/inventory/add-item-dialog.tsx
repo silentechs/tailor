@@ -61,25 +61,25 @@ export function InventoryItemDialog({ open, onOpenChange, itemToEdit }: Inventor
     resolver: zodResolver(itemSchema),
     values: itemToEdit
       ? {
-        name: itemToEdit.name,
-        sku: itemToEdit.sku || '',
-        category: itemToEdit.category || 'fabric',
-        description: itemToEdit.description || '',
-        unitOfMeasure: itemToEdit.unitOfMeasure || 'YARDS',
-        quantity: String(itemToEdit.quantity || '0'),
-        minStock: String(itemToEdit.minStock || '0'),
-        unitCost: itemToEdit.unitCost ? String(itemToEdit.unitCost) : '',
-      }
+          name: itemToEdit.name,
+          sku: itemToEdit.sku || '',
+          category: itemToEdit.category || 'fabric',
+          description: itemToEdit.description || '',
+          unitOfMeasure: itemToEdit.unitOfMeasure || 'YARDS',
+          quantity: String(itemToEdit.quantity || '0'),
+          minStock: String(itemToEdit.minStock || '0'),
+          unitCost: itemToEdit.unitCost ? String(itemToEdit.unitCost) : '',
+        }
       : {
-        name: '',
-        sku: '',
-        category: 'fabric',
-        description: '',
-        unitOfMeasure: 'YARDS',
-        quantity: '0',
-        minStock: '0',
-        unitCost: '',
-      },
+          name: '',
+          sku: '',
+          category: 'fabric',
+          description: '',
+          unitOfMeasure: 'YARDS',
+          quantity: '0',
+          minStock: '0',
+          unitCost: '',
+        },
   });
 
   // Reset image when dialog opens with different item

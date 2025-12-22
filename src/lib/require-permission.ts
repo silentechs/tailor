@@ -56,7 +56,7 @@ export async function requirePermission(
       if (effectivePermissions.includes(permission)) {
         return { user, organization: membership.organization };
       }
-      
+
       throw new Error(`Forbidden: Missing permission ${permission}`);
     }
 

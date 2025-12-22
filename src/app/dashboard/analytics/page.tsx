@@ -131,8 +131,13 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle>Revenue Performance</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ReactECharts option={barOption} />
+          <CardContent className="h-[350px]">
+            <ReactECharts
+              option={barOption}
+              style={{ height: '100%', width: '100%' }}
+              notMerge={true}
+              lazyUpdate={true}
+            />
           </CardContent>
         </Card>
 
@@ -140,8 +145,13 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle>Order Distribution</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ReactECharts option={pieOption} />
+          <CardContent className="h-[350px]">
+            <ReactECharts
+              option={pieOption}
+              style={{ height: '100%', width: '100%' }}
+              notMerge={true}
+              lazyUpdate={true}
+            />
           </CardContent>
         </Card>
 
@@ -149,8 +159,13 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle>Payment Methods</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ReactECharts option={piePaymentOption} />
+          <CardContent className="h-[350px]">
+            <ReactECharts
+              option={piePaymentOption}
+              style={{ height: '100%', width: '100%' }}
+              notMerge={true}
+              lazyUpdate={true}
+            />
           </CardContent>
         </Card>
 

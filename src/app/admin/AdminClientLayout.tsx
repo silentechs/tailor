@@ -29,7 +29,7 @@ const ADMIN_NAV = [
 
 export function AdminClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
+
   // Initialize CSRF token
   useCsrf();
 

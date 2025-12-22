@@ -6,7 +6,6 @@ import { Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { fetchApi } from '@/lib/fetch-api';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { fetchApi } from '@/lib/fetch-api';
 
 const paymentSchema = z.object({
   clientId: z.string().min(1, 'Client is required'),

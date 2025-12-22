@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const movementSchema = z.object({
   itemId: z.string(),
@@ -44,7 +44,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Get movements error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch movements' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch movements',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
@@ -121,7 +124,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Inventory movement error:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to record inventory movement' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to record inventory movement',
+      },
       { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }

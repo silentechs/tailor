@@ -41,7 +41,7 @@ export const collectionColumns: ColumnDef<OrderCollection>[] = [
       const completed = row.original.completedOrders;
       const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
       return (
-        <div className="w-full max-w-[100px]">
+        <div className="w-full max-w-[150px]">
           <div className="text-xs mb-1 flex justify-between">
             <span>{percentage}%</span>
             <span className="text-muted-foreground">

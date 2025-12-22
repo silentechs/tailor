@@ -41,8 +41,8 @@ import { Separator } from '@/components/ui/separator';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { MeasurementSketcher } from '@/components/workshop/measurement-sketcher';
 import { OrderTaskBoard } from '@/components/workshop/order-task-board';
-import { downloadInvoicePDF } from '@/lib/pdf-generator';
 import { fetchApi } from '@/lib/fetch-api';
+import { downloadInvoicePDF } from '@/lib/pdf-generator';
 import {
   formatCurrency,
   formatDate,

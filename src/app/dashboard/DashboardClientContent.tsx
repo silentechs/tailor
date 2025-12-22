@@ -30,15 +30,15 @@ export function DashboardClientContent({
     user.role === 'WORKER' && (!user.memberships || user.memberships.length === 0);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background overflow-x-hidden">
       {/* Desktop Sidebar */}
       <Sidebar className="hidden md:block w-64 fixed inset-y-0 z-50 shadow-sm" user={user} />
 
       {/* Main Content */}
-      <div className="flex-1 md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0 transition-all duration-300 ease-in-out">
+      <div className="flex-1 md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0 transition-all duration-300 ease-in-out overflow-x-hidden">
         <Topbar />
 
-        <main className="flex-1 p-4 md:p-8 overflow-x-hidden w-full max-w-[1600px] mx-auto">
+        <main className="flex-1 p-4 md:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden">
           {needsToJoin && (
             <Alert variant="destructive" className="mb-6 bg-red-50 border-red-200 text-red-800">
               <AlertTitle className="font-bold text-lg">Action Required: Join your Team</AlertTitle>

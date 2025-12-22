@@ -7,7 +7,6 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { fetchApi } from '@/lib/fetch-api';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,6 +27,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { KENTE_PATTERNS } from '@/lib/design-system';
+import { fetchApi } from '@/lib/fetch-api';
 
 // Simple phone validation
 const phoneRegex = /^(?:\+233|0)[235][0-9]{8}$/;
@@ -266,7 +266,13 @@ function RegisterContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          Loading...
+        </div>
+      }
+    >
       <RegisterContent />
     </Suspense>
   );

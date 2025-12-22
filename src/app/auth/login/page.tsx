@@ -7,8 +7,6 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { fetchApi } from '@/lib/fetch-api';
-import { captureError } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,6 +26,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { KENTE_PATTERNS } from '@/lib/design-system';
+import { fetchApi } from '@/lib/fetch-api';
+import { captureError } from '@/lib/logger';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -175,7 +175,13 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          Loading...
+        </div>
+      }
+    >
       <LoginContent />
     </Suspense>
   );
