@@ -66,6 +66,7 @@ model User {
   portfolioLikes       PortfolioLike[]      @relation("UserLikes")
   clientDesigns        ClientDesign[]       // NEW: User uploaded designs
   passwordResetTokens  PasswordResetToken[]
+  feedbacks            Feedback[]
 
   @@index([email])
   @@index([status])
@@ -958,6 +959,59 @@ model PasswordResetToken {
   
   @@index([token])
   @@index([userId])
+}
+
+model Feedback {
+  id              String           @id @default(cuid())
+  userId          String?          // Nullable for anonymous feedback
+  category        FeedbackCategory
+  priority        FeedbackPriority @default(MEDIUM)
+  status          FeedbackStatus   @default(NEW)
+  subject         String
+  message         String           @db.Text
+  email           String?          // For anonymous users
+  name            String?          // For anonymous users
+  userAgent       String?
+  pageUrl         String?
+  screenshots     String[]         @default([])
+  adminNotes      String?          @db.Text
+  respondedAt     DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([category])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+enum FeedbackCategory {
+  BUG_REPORT
+  FEATURE_REQUEST
+  GENERAL_FEEDBACK
+  SUPPORT_REQUEST
+  COMPLAINT
+  PRAISE
+}
+
+enum FeedbackPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum FeedbackStatus {
+  NEW
+  IN_REVIEW
+  IN_PROGRESS
+  RESPONDED
+  RESOLVED
+  CLOSED
 }
 
 

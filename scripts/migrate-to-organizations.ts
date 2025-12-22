@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 
 const connectionString = process.env.DATABASE_URL;
@@ -9,6 +9,50 @@ if (!connectionString) throw new Error('DATABASE_URL is not defined');
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+// Type for models that have updateMany with tailorId and organizationId
+type UpdatableModelName =
+  | 'client'
+  | 'order'
+  | 'orderTask'
+  | 'appointment'
+  | 'measurementTemplate'
+  | 'inventoryItem'
+  | 'invoice'
+  | 'payment'
+  | 'orderCollection'
+  | 'portfolioItem';
+
+// Helper to update models - using Prisma's $executeRaw for flexibility
+async function updateModelRecords(
+  modelName: UpdatableModelName,
+  tailorId: string,
+  organizationId: string
+): Promise<number> {
+  // Map model names to table names (Prisma uses PascalCase for models, snake_case for tables)
+  const tableNameMap: Record<UpdatableModelName, string> = {
+    client: 'Client',
+    order: 'Order',
+    orderTask: 'OrderTask',
+    appointment: 'Appointment',
+    measurementTemplate: 'MeasurementTemplate',
+    inventoryItem: 'InventoryItem',
+    invoice: 'Invoice',
+    payment: 'Payment',
+    orderCollection: 'OrderCollection',
+    portfolioItem: 'PortfolioItem',
+  };
+
+  const tableName = tableNameMap[modelName];
+
+  const result = await prisma.$executeRaw`
+    UPDATE "${Prisma.raw(tableName)}" 
+    SET "organizationId" = ${organizationId}
+    WHERE "tailorId" = ${tailorId} AND "organizationId" IS NULL
+  `;
+
+  return Number(result);
+}
 
 async function main() {
   console.log('Starting data migration to Organizations...');
@@ -71,7 +115,7 @@ async function main() {
     // 4. Update operational models
     const organizationId = org.id;
 
-    const modelsToUpdate = [
+    const modelsToUpdate: UpdatableModelName[] = [
       'client',
       'order',
       'orderTask',
@@ -85,12 +129,9 @@ async function main() {
     ];
 
     for (const model of modelsToUpdate) {
-      const count = await (prisma[model as any] as any).updateMany({
-        where: { tailorId: user.id, organizationId: null },
-        data: { organizationId },
-      });
-      if (count.count > 0) {
-        console.log(`  - Updated ${count.count} ${model} records`);
+      const count = await updateModelRecords(model, user.id, organizationId);
+      if (count > 0) {
+        console.log(`  - Updated ${count} ${model} records`);
       }
     }
 

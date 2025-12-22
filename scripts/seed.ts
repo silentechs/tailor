@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { GarmentType, PrismaClient, Region } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { Pool } from 'pg';
 
@@ -43,14 +43,23 @@ async function main() {
   });
   console.log(`- Upserted admin: ${adminEmail}`);
 
-  const tailorsData = [
+  const tailorsData: Array<{
+    email: string;
+    name: string;
+    businessName: string;
+    showcaseUsername: string;
+    phone: string;
+    region: Region;
+    city: string;
+    bio: string;
+  }> = [
     {
       email: 'tailor@stitchcraft.gh',
       name: 'Kwame Mensah',
       businessName: 'Mensah Master Styles',
       showcaseUsername: 'mensah-styles',
       phone: '0240000001',
-      region: 'GREATER_ACCRA',
+      region: Region.GREATER_ACCRA,
       city: 'Accra',
       bio: 'Master of modern Ghanaian tailoring with over 15 years of experience in bespoke suits and traditionals.',
     },
@@ -60,7 +69,7 @@ async function main() {
       businessName: 'Abena Artisans',
       showcaseUsername: 'abena-styles',
       phone: '0240000002',
-      region: 'ASHANTI',
+      region: Region.ASHANTI,
       city: 'Kumasi',
       bio: 'Specializing in Kente bridal wear and high-fashion Kaba & Slit designs. Heritage meets haute couture.',
     },
@@ -70,7 +79,7 @@ async function main() {
       businessName: 'Boateng Bespoke',
       showcaseUsername: 'boateng-couture',
       phone: '0240000003',
-      region: 'WESTERN',
+      region: Region.WESTERN,
       city: 'Takoradi',
       bio: 'Elegant Kaftans and Agbada for the modern gentleman. Precision is our signature in every stitch.',
     },
@@ -80,7 +89,7 @@ async function main() {
       businessName: 'Northern Thread',
       showcaseUsername: 'northern-thread',
       phone: '0240000004',
-      region: 'NORTHERN',
+      region: Region.NORTHERN,
       city: 'Tamale',
       bio: 'Authentic Batakari and Smocks. We preserve the northern heritage through fine weaving and tailoring.',
     },
@@ -95,28 +104,39 @@ async function main() {
         status: 'ACTIVE',
         businessName: t.businessName,
         bio: t.bio,
-        region: t.region as any,
+        region: t.region,
         city: t.city,
       },
       create: {
-        ...t,
+        email: t.email,
+        name: t.name,
+        businessName: t.businessName,
+        showcaseUsername: t.showcaseUsername,
+        phone: t.phone,
+        region: t.region,
+        city: t.city,
+        bio: t.bio,
         password,
         role: 'TAILOR',
         status: 'ACTIVE',
         showcaseEnabled: true,
-        region: t.region as any,
-      } as any,
+      },
     });
 
     console.log(`- Upserted tailor: ${t.businessName}`);
 
     // Add Portfolio Items for each tailor
-    const portfolioData = [
+    const portfolioData: Array<{
+      title: string;
+      description: string;
+      category: GarmentType;
+      images: string[];
+    }> = [
       {
         title: `${t.name} Signature ${t.region.replace(/_/g, ' ')} Set`,
         description:
           'A masterpiece created for the Ghana Fashion Awards. Handcrafted with premium textiles.',
-        category: 'KENTE_CLOTH',
+        category: GarmentType.KENTE_CLOTH,
         images: [
           'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/kente_couture_premium/1766236569006-kente_couture_premium.png',
         ],
@@ -125,7 +145,7 @@ async function main() {
         title: 'Modern Fusion Ensemble',
         description:
           'Blending traditional textiles with urban silhouettes for the contemporary Ghanaian.',
-        category: 'KAFTAN',
+        category: GarmentType.KAFTAN,
         images: [
           'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/modern_ghanaian_kaftan/1766236569356-modern_ghanaian_kaftan.png',
         ],
@@ -133,7 +153,7 @@ async function main() {
       {
         title: 'Bespoke Ceremony Gown',
         description: 'Intricate pattern mapping and fine silk lining for a royal finish.',
-        category: 'KABA_AND_SLIT',
+        category: GarmentType.KABA_AND_SLIT,
         images: [
           'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/kaba_slit_elegant/1766236569570-kaba_slit_elegant.png',
         ],
@@ -141,7 +161,7 @@ async function main() {
       {
         title: 'Authentic Northern Batakari',
         description: 'Traditional smock hand-woven with heritage blue and white stripes.',
-        category: 'SMOCK_BATAKARI',
+        category: GarmentType.SMOCK_BATAKARI,
         images: [
           'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/batakari_northern_authentic_smock/1766236569910-batakari_northern_authentic_smock.png',
         ],
@@ -158,7 +178,6 @@ async function main() {
         data: {
           ...p,
           tailorId: user.id,
-          category: p.category as any,
           isPublic: true,
           viewCount: Math.floor(Math.random() * 500) + 100,
           likeCount: Math.floor(Math.random() * 100) + 10,
@@ -178,7 +197,7 @@ async function main() {
         name: 'Ama Osei',
         phone: '0244123456',
         email: 'ama.osei@example.com',
-        region: 'GREATER_ACCRA' as any,
+        region: Region.GREATER_ACCRA,
       },
     });
 
@@ -200,7 +219,7 @@ async function main() {
         orderNumber: 'SC-2512-AMA',
         tailorId: kwame.id,
         clientId: ama.id,
-        garmentType: 'KABA_AND_SLIT' as any,
+        garmentType: GarmentType.KABA_AND_SLIT,
         garmentDescription: 'Wedding guest outfit with silk embroidery.',
         status: 'IN_PROGRESS',
         laborCost: 450,

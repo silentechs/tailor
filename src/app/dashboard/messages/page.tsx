@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { VoiceInput } from '@/components/ui/voice-input';
 import { fetchApi } from '@/lib/fetch-api';
 import { cn, formatRelativeTime } from '@/lib/utils';
 
@@ -249,12 +250,20 @@ export default function MessagesPage() {
               {/* Input Area */}
               <div className="p-4 border-t bg-card">
                 <form onSubmit={handleSend} className="flex gap-2">
-                  <Input
-                    placeholder="Type your message..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    className="flex-1"
-                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Type your message..."
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      className="pr-10"
+                    />
+                    <VoiceInput
+                      onTranscript={(text) => {
+                        setMessageInput((prev) => (prev ? `${prev} ${text}` : text));
+                      }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                    />
+                  </div>
                   <Button
                     type="submit"
                     size="icon"

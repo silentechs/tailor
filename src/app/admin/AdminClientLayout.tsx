@@ -5,6 +5,7 @@ import {
   Bell,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   MessageSquare,
   Package,
   ShieldCheck,
@@ -25,6 +26,7 @@ const ADMIN_NAV = [
   { label: 'Payments', href: '/admin/payments', icon: Wallet },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Messages', href: '/admin/messaging-tracking', icon: MessageSquare },
+  { label: 'Feedback', href: '/admin/feedback', icon: MessageCircle },
 ];
 
 export function AdminClientLayout({ children }: { children: React.ReactNode }) {

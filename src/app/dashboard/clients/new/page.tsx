@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { VoiceInput } from '@/components/ui/voice-input';
 import { fetchApi } from '@/lib/fetch-api';
 import { GHANA_REGIONS } from '@/lib/utils';
 
@@ -228,7 +229,16 @@ export default function NewClientPage() {
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Notes</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Additional Notes</FormLabel>
+                      <VoiceInput
+                        onTranscript={(text) => {
+                          const current = form.getValues('notes') || '';
+                          form.setValue('notes', current ? `${current} ${text}` : text);
+                        }}
+                        placeholder="Describe preferences..."
+                      />
+                    </div>
                     <FormControl>
                       <Textarea
                         placeholder="Any specific preferences or details..."

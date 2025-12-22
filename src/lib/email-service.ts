@@ -525,3 +525,142 @@ export async function sendAppointmentReminderEmail(
     template: 'appointment_reminder',
   });
 }
+
+// ============================================
+// Feedback Email Templates
+// ============================================
+
+export interface FeedbackNotificationData {
+  id: string;
+  category: string;
+  subject: string;
+  message: string;
+  priority: string;
+  userName: string;
+  userEmail: string;
+  userRole: string;
+}
+
+const CATEGORY_LABELS: Record<string, { label: string; icon: string; color: string }> = {
+  BUG_REPORT: { label: 'Bug Report', icon: '🐛', color: BRAND_COLORS.accent },
+  FEATURE_REQUEST: { label: 'Feature Request', icon: '💡', color: BRAND_COLORS.secondary },
+  GENERAL_FEEDBACK: { label: 'General Feedback', icon: '💬', color: BRAND_COLORS.primary },
+  SUPPORT_REQUEST: { label: 'Support Request', icon: '🆘', color: '#3B82F6' },
+  COMPLAINT: { label: 'Complaint', icon: '⚠️', color: BRAND_COLORS.accent },
+  PRAISE: { label: 'Praise', icon: '⭐', color: BRAND_COLORS.secondary },
+};
+
+const PRIORITY_BADGES: Record<string, { label: string; bg: string; color: string }> = {
+  LOW: { label: 'Low', bg: '#E5E7EB', color: '#374151' },
+  MEDIUM: { label: 'Medium', bg: '#FEF3C7', color: '#92400E' },
+  HIGH: { label: 'High', bg: '#FED7AA', color: '#C2410C' },
+  URGENT: { label: 'Urgent', bg: '#FEE2E2', color: '#B91C1C' },
+};
+
+export async function sendFeedbackNotificationEmail(
+  to: string,
+  data: FeedbackNotificationData
+): Promise<EmailResult> {
+  const categoryInfo = CATEGORY_LABELS[data.category] || CATEGORY_LABELS.GENERAL_FEEDBACK;
+  const priorityInfo = PRIORITY_BADGES[data.priority] || PRIORITY_BADGES.MEDIUM;
+
+  const subject = `${categoryInfo.icon} New ${categoryInfo.label}: ${data.subject}`;
+  const content = `
+    <div style="margin-bottom: 20px;">
+      <span style="display: inline-block; background: ${priorityInfo.bg}; color: ${priorityInfo.color}; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-right: 8px;">
+        ${priorityInfo.label} Priority
+      </span>
+      <span style="display: inline-block; background: ${categoryInfo.color}15; color: ${categoryInfo.color}; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+        ${categoryInfo.icon} ${categoryInfo.label}
+      </span>
+    </div>
+
+    <h2 style="color: ${BRAND_COLORS.dark}; margin-bottom: 10px; font-size: 22px;">${data.subject}</h2>
+    
+    <div class="card" style="margin: 20px 0; border-left: 4px solid ${categoryInfo.color};">
+      <p style="margin: 0; white-space: pre-wrap; line-height: 1.8; color: #444;">${data.message}</p>
+    </div>
+
+    <div style="background: #F9FAFB; border-radius: 12px; padding: 20px; margin: 25px 0;">
+      <p style="margin: 0 0 15px 0; font-weight: bold; color: #374151; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Submitted By</p>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Name</td>
+          <td style="padding: 8px 0; font-weight: bold; color: #111827;">${data.userName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Email</td>
+          <td style="padding: 8px 0; font-weight: bold; color: #111827;">${data.userEmail}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Role</td>
+          <td style="padding: 8px 0;">
+            <span style="background: ${BRAND_COLORS.primary}15; color: ${BRAND_COLORS.primary}; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+              ${data.userRole}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${APP_URL}/admin/feedback?id=${data.id}" class="btn">View in Admin Dashboard</a>
+    </div>
+    
+    <p style="margin-top: 30px; font-size: 13px; color: #6B7280;">
+      This is an automated notification. Please review and respond to this feedback promptly.
+    </p>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html: getEmailLayout(content, { subject, preheader: `New ${categoryInfo.label} from ${data.userName}` }),
+    text: `New ${categoryInfo.label} from ${data.userName} (${data.userEmail}): ${data.subject}\n\n${data.message}\n\nView at: ${APP_URL}/admin/feedback?id=${data.id}`,
+    template: 'feedback_notification',
+  });
+}
+
+export interface FeedbackResponseData {
+  name: string;
+  subject: string;
+  response: string;
+  feedbackId: string;
+}
+
+export async function sendFeedbackResponseEmail(
+  to: string,
+  data: FeedbackResponseData
+): Promise<EmailResult> {
+  const subject = `Re: ${data.subject} - We've Responded to Your Feedback`;
+  const content = `
+    <h2 style="color: ${BRAND_COLORS.primary};">📬 Response to Your Feedback</h2>
+    <p>Dear ${data.name},</p>
+    <p>Thank you for taking the time to share your feedback with us. We've reviewed your message and wanted to follow up.</p>
+    
+    <div style="background: #F0FDF4; border-radius: 12px; padding: 25px; margin: 25px 0; border-left: 4px solid ${BRAND_COLORS.primary};">
+      <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: bold; color: ${BRAND_COLORS.primary}; text-transform: uppercase; letter-spacing: 0.05em;">Your Feedback</p>
+      <p style="margin: 0; font-style: italic; color: #374151;">"${data.subject}"</p>
+    </div>
+
+    <div style="background: ${BRAND_COLORS.primary}08; border-radius: 12px; padding: 25px; margin: 25px 0;">
+      <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: bold; color: ${BRAND_COLORS.primary}; text-transform: uppercase; letter-spacing: 0.05em;">Our Response</p>
+      <p style="margin: 0; white-space: pre-wrap; line-height: 1.8; color: #1F2937;">${data.response}</p>
+    </div>
+
+    <p>We truly value your input as it helps us improve ${APP_NAME} for everyone. If you have any further questions or feedback, please don't hesitate to reach out.</p>
+    
+    <p style="margin-top: 30px;">
+      Warm regards,<br>
+      <strong>The ${APP_NAME} Team</strong>
+    </p>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html: getEmailLayout(content, { subject }),
+    text: `Dear ${data.name}, Thank you for your feedback about "${data.subject}". Our response: ${data.response}`,
+    template: 'feedback_response',
+  });
+}

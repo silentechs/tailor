@@ -16,7 +16,7 @@ import {
   User,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -28,6 +28,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -44,11 +45,14 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { VoiceInput } from '@/components/ui/voice-input';
 import { useCsrf } from '@/hooks/use-csrf';
+import { useOrders } from '@/hooks/use-api';
 import { useMeasurementDraft } from '@/hooks/use-measurement-draft';
+import { suggestPriceFromHistory } from '@/lib/ai-logic';
 import { fetchApi } from '@/lib/fetch-api';
 import { offlineDb } from '@/lib/offline-db';
-import { cn, GARMENT_TYPE_LABELS } from '@/lib/utils';
+import { cn, formatCurrency, GARMENT_TYPE_LABELS } from '@/lib/utils';
 
 const MATERIAL_SOURCES = [
   { value: 'CLIENT_PROVIDED', label: 'Client Provided' },
@@ -122,9 +126,19 @@ export default function NewOrderPage() {
   // In a real app, we might want to keep the selected client in a separate state or cached.
   // For now, we try to find it in the current list.
   const selectedClient = clients?.find((c: any) => c.id === watchedClientId);
+  const watchedGarmentType = useWatch({ control: form.control, name: 'garmentType' });
 
   // Auto-save measurement draft
   useMeasurementDraft(watchedClientId, form.control);
+
+  const { data: allOrders } = useOrders({ pageSize: 1000 });
+
+  const priceSuggestion = useMemo(() => {
+    if (!watchedGarmentType || !allOrders?.data) return null;
+    // Cast to the expected type for AI suggestions
+    const ordersForAI = allOrders.data as Array<{ garmentType: string; totalAmount: any }>;
+    return suggestPriceFromHistory(watchedGarmentType, ordersForAI);
+  }, [watchedGarmentType, allOrders]);
 
   async function onSubmit(values: z.infer<typeof orderSchema>) {
     setIsSubmitting(true);
@@ -181,8 +195,6 @@ export default function NewOrderPage() {
   };
 
   const prevStep = () => setStep(step - 1);
-
-  const watchedGarmentType = useWatch({ control: form.control, name: 'garmentType' });
 
   return (
     <div className="max-w-4xl mx-auto pb-12 animate-in fade-in duration-500">
@@ -398,7 +410,16 @@ export default function NewOrderPage() {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description & Notes</FormLabel>
+                          <div className="flex items-center justify-between">
+                            <FormLabel>Description & Notes</FormLabel>
+                            <VoiceInput
+                              onTranscript={(text) => {
+                                const current = form.getValues('description') || '';
+                                form.setValue('description', current ? `${current} ${text}` : text);
+                              }}
+                              placeholder="Describe the style..."
+                            />
+                          </div>
                           <FormControl>
                             <Textarea
                               placeholder="Detailed description of the style, fabric, embroidery, etc."
@@ -517,6 +538,23 @@ export default function NewOrderPage() {
                                 />
                               </div>
                             </FormControl>
+                            {priceSuggestion && (
+                              <FormDescription className="text-xs flex items-center gap-1.5 mt-2 bg-primary/5 p-2 rounded-md border border-primary/10">
+                                <span className="text-primary font-bold">AI Suggestion:</span>
+                                {formatCurrency(priceSuggestion.min)} –{' '}
+                                {formatCurrency(priceSuggestion.max)} (Avg:{' '}
+                                {formatCurrency(priceSuggestion.avg)})
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    form.setValue('amount', priceSuggestion.avg.toFixed(2))
+                                  }
+                                  className="ml-auto text-primary hover:underline font-medium"
+                                >
+                                  Apply
+                                </button>
+                              </FormDescription>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}

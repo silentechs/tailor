@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type * as React from 'react';
+import { FeedbackButton } from '@/components/feedback';
 import { FAB } from '@/components/navigation/fab';
 import { MobileNav } from '@/components/navigation/mobile-nav';
 import { Sidebar } from '@/components/navigation/sidebar';
@@ -69,6 +70,13 @@ export function DashboardClientContent({
 
       {/* Floating Action Button */}
       <FAB />
+
+      {/* Feedback Button */}
+      <FeedbackButton
+        user={{ id: user.id, name: user.name, email: user.email, role: user.role }}
+        variant="floating"
+        className="bottom-24 md:bottom-6"
+      />
     </div>
   );
 }

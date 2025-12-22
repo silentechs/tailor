@@ -18,6 +18,7 @@ import {
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { VoiceInput } from '@/components/ui/voice-input';
 import { cn } from '@/lib/utils';
 
 export function CommandMenu() {
@@ -66,6 +67,19 @@ export function CommandMenu() {
               <Command.Input
                 placeholder="Type a command or search..."
                 className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <VoiceInput
+                onTranscript={(text) => {
+                  // We need to find a way to set the value of Command.Input
+                  // cmdk doesn't make this easy with controlled components sometimes
+                  // But usually, we can dispatch an input event
+                  const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
+                  if (input) {
+                    input.value = text;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                }}
+                className="ml-2"
               />
             </div>
             <Command.List className="max-h-[450px] overflow-y-auto overflow-x-hidden p-2">

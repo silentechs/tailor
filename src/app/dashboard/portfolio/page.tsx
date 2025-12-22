@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, Image as ImageIcon, Loader2, Plus, Trash2, Upload } from 'lucide-react';
+import { Eye, Image as ImageIcon, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +26,9 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { VoiceInput } from '@/components/ui/voice-input';
 import { fetchApi } from '@/lib/fetch-api';
+import { suggestTagsForGarment } from '@/lib/ai-logic';
 import { GARMENT_TYPE_LABELS } from '@/lib/utils';
 
 // API Functions
@@ -489,7 +491,14 @@ export default function PortfolioPage() {
             <div className="grid gap-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                onValueChange={(val) => setNewItem({ ...newItem, category: val })}
+                onValueChange={(val) => {
+                  const suggestedTags = suggestTagsForGarment(val);
+                  setNewItem({ 
+                    ...newItem, 
+                    category: val,
+                    tags: [...new Set([...newItem.tags, ...suggestedTags])]
+                  });
+                }}
                 value={newItem.category}
               >
                 <SelectTrigger>
@@ -505,12 +514,79 @@ export default function PortfolioPage() {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description">Description</Label>
+                <VoiceInput
+                  onTranscript={(text) => {
+                    setNewItem((prev) => ({
+                      ...prev,
+                      description: prev.description ? `${prev.description} ${text}` : text,
+                    }));
+                  }}
+                  placeholder="Describe your work..."
+                />
+              </div>
               <Textarea
+                id="description"
                 placeholder="Describe the materials, techniques used..."
                 value={newItem.description}
                 onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>Tags</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {newItem.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1 px-2 py-1">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewItem({ ...newItem, tags: newItem.tags.filter((t) => t !== tag) })
+                      }
+                      className="hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add tag..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = e.currentTarget.value.trim();
+                      if (val && !newItem.tags.includes(val)) {
+                        setNewItem({ ...newItem, tags: [...newItem.tags, val] });
+                        e.currentTarget.value = '';
+                      }
+                    }
+                  }}
+                />
+              </div>
+              {newItem.category && (
+                <div className="mt-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                    AI Suggestions for {GARMENT_TYPE_LABELS[newItem.category] || newItem.category}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {suggestTagsForGarment(newItem.category)
+                      .filter((t) => !newItem.tags.includes(t))
+                      .map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setNewItem({ ...newItem, tags: [...newItem.tags, tag] })}
+                          className="text-[10px] bg-primary/5 hover:bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/10 transition-colors"
+                        >
+                          + {tag}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="grid gap-2">
               <Label>Photos</Label>

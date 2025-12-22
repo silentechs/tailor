@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CheckCircle2,
   MessageCircle,
+  MessageSquarePlus,
   Scissors,
   Smartphone,
   TrendingUp,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { FeedbackButton } from '@/components/feedback';
 import { FeatureCard } from '@/components/landing/feature-card';
 import { KenteBackground } from '@/components/landing/kente-background';
 import { Navbar } from '@/components/landing/navbar';
@@ -453,6 +455,13 @@ export default function LandingPage() {
                   <Link href="/safety" className="hover:text-primary transition-colors">
                     Artisan Safety
                   </Link>
+                </li>
+                <li>
+                  <FeedbackButton
+                    variant="minimal"
+                    label="Share Feedback"
+                    className="hover:text-primary transition-colors"
+                  />
                 </li>
               </ul>
             </div>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Menu, Search, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
+import { FeedbackButton } from '@/components/feedback';
 import { NotificationsPopover } from '@/components/studio/notifications-popover';
 import { StudioSidebar } from '@/components/studio/sidebar';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,13 @@ export function StudioClientContent({ children }: { children: React.ReactNode })
           <footer className="h-20 flex items-center justify-center text-zinc-600 text-sm font-bold uppercase tracking-widest border-t border-white/5">
             &copy; {new Date().getFullYear()} StitchCraft Studio &bull; Private Portal
           </footer>
+
+          {/* Feedback Button - Client role */}
+          <FeedbackButton
+            user={undefined} // User context will be fetched from session in the dialog
+            variant="floating"
+            className="[&>button]:bg-white/10 [&>button]:hover:bg-white/20 [&>button]:text-white [&>button]:border [&>button]:border-white/10"
+          />
         </div>
       </div>
     </QueryClientProvider>
