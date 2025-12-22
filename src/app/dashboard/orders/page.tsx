@@ -172,7 +172,7 @@ export default function OrdersPage() {
             {statusFilter && (
               <Badge variant="secondary" className="gap-1">
                 {ORDER_STATUS_LABELS[statusFilter as keyof typeof ORDER_STATUS_LABELS]}
-                <button onClick={() => setStatusFilter('')}>
+                <button type="button" onClick={() => setStatusFilter('')}>
                   <X className="h-3 w-3" />
                 </button>
               </Badge>

@@ -5,10 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import type { CurrentUser } from '@/lib/direct-current-user';
 import { cn } from '@/lib/utils';
 import { Sidebar } from './sidebar';
-
-import { CurrentUser } from '@/lib/direct-current-user';
 
 export function MobileNav({ user }: { user?: CurrentUser }) {
   const pathname = usePathname();
@@ -22,7 +21,10 @@ export function MobileNav({ user }: { user?: CurrentUser }) {
   ];
 
   return (
-    <div data-mobile-nav className="fixed bottom-0 left-0 right-0 border-t bg-background p-2 md:hidden z-50 pb-[env(safe-area-inset-bottom)] no-print">
+    <div
+      data-mobile-nav
+      className="fixed bottom-0 left-0 right-0 border-t bg-background p-2 md:hidden z-50 pb-[env(safe-area-inset-bottom)] no-print"
+    >
       <div className="flex justify-around items-center">
         {items.map((item) => {
           const isActive =
@@ -45,7 +47,10 @@ export function MobileNav({ user }: { user?: CurrentUser }) {
 
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <button className="flex flex-col items-center justify-center p-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors min-w-[64px]">
+            <button
+              type="button"
+              className="flex flex-col items-center justify-center p-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors min-w-[64px]"
+            >
               <Menu className="h-5 w-5 mb-1" />
               Menu
             </button>

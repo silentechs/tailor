@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { fetchApi } from '@/lib/fetch-api';
 
 const showcaseSchema = z.object({
   showcaseEnabled: z.boolean(),
@@ -33,14 +34,14 @@ const showcaseSchema = z.object({
 type ShowcaseValues = z.infer<typeof showcaseSchema>;
 
 async function getProfile() {
-  const res = await fetch('/api/auth/me');
+  const res = await fetchApi('/api/auth/me');
   if (!res.ok) throw new Error('Failed to fetch profile');
   const data = await res.json();
   return data.user;
 }
 
 async function updateProfile(data: any) {
-  const res = await fetch('/api/auth/me', {
+  const res = await fetchApi('/api/auth/me', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

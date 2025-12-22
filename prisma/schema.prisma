@@ -65,6 +65,7 @@ model User {
   wishlistItems        WishlistItem[]
   portfolioLikes       PortfolioLike[]      @relation("UserLikes")
   clientDesigns        ClientDesign[]       // NEW: User uploaded designs
+  passwordResetTokens  PasswordResetToken[]
 
   @@index([email])
   @@index([status])
@@ -943,6 +944,20 @@ enum MaintenanceType {
   REPAIR
   OVERHAUL
   CALIBRATION
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
 }
 
 

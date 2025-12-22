@@ -59,9 +59,18 @@ export function calculateInvoiceTotal(subtotal: number): number {
 
 export function calculateInvoice(items: InvoiceLineItem[]): InvoiceCalculation {
   const subtotal = calculateSubtotal(items);
-  const vatAmount = calculateVAT(subtotal);
+
+  // Ghana Standard Rate Logic:
+  // 1. Calculate Levies (NHIL, GETFUND) on subtotal
+  // 2. Add Levies to subtotal to get VAT Base
+  // 3. Calculate VAT on VAT Base
+
   const nhilAmount = calculateNHIL(subtotal);
   const getfundAmount = calculateGETFUND(subtotal);
+
+  const vatBase = subtotal + nhilAmount + getfundAmount;
+  const vatAmount = roundCurrency(vatBase * TAX_RATES.VAT);
+
   const totalTax = vatAmount + nhilAmount + getfundAmount;
   const totalAmount = subtotal + totalTax;
 

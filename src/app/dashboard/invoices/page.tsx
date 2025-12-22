@@ -119,7 +119,7 @@ export default function InvoicesPage() {
           {statusFilter && (
             <Badge variant="secondary" className="gap-1">
               {INVOICE_STATUSES.find((s) => s.value === statusFilter)?.label}
-              <button onClick={() => setStatusFilter('')}>
+              <button type="button" onClick={() => setStatusFilter('')}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>

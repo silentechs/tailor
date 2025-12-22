@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkCSRF, csrfErrorResponse } from './csrf';
+import { captureError } from './logger';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, rateLimitedResponse } from './rate-limiter';
 import { sanitizeObject, validateInput } from './sanitize';
 import { SECURITY_HEADERS } from './security-headers';
@@ -45,6 +46,7 @@ export async function securityCheck(
   if (!skipCSRF && !['GET', 'HEAD', 'OPTIONS'].includes(request.method.toUpperCase())) {
     const csrfResult = await checkCSRF(request);
     if (!csrfResult.valid) {
+      console.warn(`CSRF failure on ${route}: ${csrfResult.error}`);
       return {
         passed: false,
         response: csrfErrorResponse(csrfResult.error || 'Invalid CSRF token'),
@@ -167,7 +169,7 @@ export function withSecurity(
         headers,
       });
     } catch (error) {
-      console.error(`API Error [${route}]:`, error);
+      captureError(`API:${route}`, error);
       return secureErrorResponse('Internal server error', 500, 'INTERNAL_ERROR');
     }
   };

@@ -107,7 +107,11 @@ export const columns: ColumnDef<Client>[] = [
   {
     accessorKey: 'createdAt',
     header: 'Joined',
-    cell: ({ row }) => <div className="text-sm text-muted-foreground">{new Date(row.getValue('createdAt')).toLocaleDateString()}</div>,
+    cell: ({ row }) => (
+      <div className="text-sm text-muted-foreground">
+        {new Date(row.getValue('createdAt')).toLocaleDateString()}
+      </div>
+    ),
   },
   {
     id: 'actions',

@@ -44,12 +44,11 @@ export const RATE_LIMIT_CONFIGS = {
 
 class RateLimiter {
   private store: Map<string, RateLimitEntry> = new Map();
-  private cleanupInterval: ReturnType<typeof setInterval> | undefined;
 
   constructor() {
     // Clean up expired entries every minute
     if (typeof setInterval !== 'undefined') {
-      this.cleanupInterval = setInterval(() => this.cleanup(), 60 * 1000);
+      setInterval(() => this.cleanup(), 60 * 1000);
     }
   }
 

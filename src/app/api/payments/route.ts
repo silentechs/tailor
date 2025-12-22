@@ -1,11 +1,11 @@
 import type { PaymentMethod, Prisma } from '@prisma/client';
-import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { secureErrorResponse, secureJsonResponse, withSecurity } from '@/lib/api-security';
 import { logAudit } from '@/lib/audit-service';
-import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { generatePaymentNumber } from '@/lib/invoice-numbering-system';
 import { notifyPaymentReceived } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { formatCurrency } from '@/lib/utils';
 
 // Validation schema for creating a payment
@@ -29,9 +29,9 @@ const createPaymentSchema = z.object({
 });
 
 // GET /api/payments - List all payments
-export async function GET(request: Request) {
+export const GET = withSecurity(async (request: Request) => {
   try {
-    const { user, organizationId } = await requireOrganization();
+    const { organizationId } = await requireOrganization();
     await requirePermission('payments:read', organizationId);
 
     const { searchParams } = new URL(request.url);
@@ -57,23 +57,15 @@ export async function GET(request: Request) {
       take: pageSize,
       include: {
         client: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-          },
+          select: { id: true, name: true, phone: true },
         },
         order: {
-          select: {
-            id: true,
-            orderNumber: true,
-            garmentType: true,
-          },
+          select: { id: true, orderNumber: true, garmentType: true },
         },
       },
     });
 
-    return NextResponse.json({
+    return secureJsonResponse({
       success: true,
       data: payments,
       pagination: {
@@ -85,171 +77,143 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Get payments error:', error);
-
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return secureErrorResponse('Unauthorized', 401);
     }
-
-    // Handle Forbidden (missing permission)
-    if (error instanceof Error && error.message.includes('Forbidden')) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch payments' },
-      { status: 500 }
-    );
+    return secureErrorResponse('Failed to fetch payments', 500);
   }
-}
+}, 'payments:list');
 
 // POST /api/payments - Create a new payment
-export async function POST(request: Request) {
-  try {
-    const { user, organizationId } = await requireOrganization();
-    await requirePermission('payments:write', organizationId);
+export const POST = withSecurity(
+  async (_request: Request, { sanitizedBody }) => {
+    try {
+      const { user, organizationId } = await requireOrganization();
+      await requirePermission('payments:write', organizationId);
 
-    const body = await request.json();
+      const body = sanitizedBody;
 
-    const validationResult = createPaymentSchema.safeParse(body);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: validationResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const data = validationResult.data;
-
-    // Verify client
-    const client = await prisma.client.findFirst({
-      where: { id: data.clientId, organizationId },
-    });
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
-    }
-
-    // Verify order if provided
-    let order = null;
-    if (data.orderId) {
-      order = await prisma.order.findFirst({
-        where: { id: data.orderId, organizationId },
-      });
-
-      if (!order) {
-        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      const validationResult = createPaymentSchema.safeParse(body);
+      if (!validationResult.success) {
+        return secureErrorResponse('Validation failed', 400);
       }
-    }
 
-    // Generate payment number
-    const paymentNumber = await generatePaymentNumber(user.id);
+      const data = validationResult.data;
 
-    // Create payment
-    const payment = await prisma.payment.create({
-      data: {
-        paymentNumber,
-        tailorId: user.id, // Keep tailorId as creator/owner reference
-        organizationId,
-        clientId: data.clientId,
-        orderId: data.orderId,
-        invoiceId: data.invoiceId,
-        amount: data.amount,
-        method: data.method,
-        status: 'COMPLETED',
-        mobileNumber: data.mobileNumber,
-        transactionId: data.transactionId,
-        bankName: data.bankName,
-        accountNumber: data.accountNumber,
-        notes: data.notes,
-      },
-      include: {
-        client: {
-          select: { name: true, phone: true, email: true },
+      // Verify client
+      const client = await prisma.client.findFirst({
+        where: { id: data.clientId, organizationId },
+      });
+
+      if (!client) {
+        return secureErrorResponse('Client not found', 404);
+      }
+
+      // Verify order if provided
+      let order = null;
+      if (data.orderId) {
+        order = await prisma.order.findFirst({
+          where: { id: data.orderId, organizationId },
+        });
+
+        if (!order) {
+          return secureErrorResponse('Order not found', 404);
+        }
+      }
+
+      // Generate payment number
+      const paymentNumber = await generatePaymentNumber(user.id);
+
+      // Create payment
+      const payment = await prisma.payment.create({
+        data: {
+          paymentNumber,
+          tailorId: user.id,
+          organizationId,
+          clientId: data.clientId,
+          orderId: data.orderId,
+          invoiceId: data.invoiceId,
+          amount: data.amount,
+          method: data.method,
+          status: 'COMPLETED',
+          mobileNumber: data.mobileNumber,
+          transactionId: data.transactionId,
+          bankName: data.bankName,
+          accountNumber: data.accountNumber,
+          notes: data.notes,
         },
-      },
-    });
-
-    // Update order paid amount if linked to an order
-    if (order) {
-      const newPaidAmount = Number(order.paidAmount) + data.amount;
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { paidAmount: newPaidAmount },
-      });
-    }
-
-    // Update invoice if linked
-    if (data.invoiceId) {
-      const invoice = await prisma.invoice.findUnique({
-        where: { id: data.invoiceId },
-      });
-
-      if (invoice) {
-        const newPaidAmount = Number(invoice.paidAmount) + data.amount;
-        const newStatus = newPaidAmount >= Number(invoice.totalAmount) ? 'PAID' : invoice.status;
-
-        await prisma.invoice.update({
-          where: { id: data.invoiceId },
-          data: {
-            paidAmount: newPaidAmount,
-            status: newStatus,
-            ...(newStatus === 'PAID' && { paidAt: new Date() }),
+        include: {
+          client: {
+            select: { name: true, phone: true, email: true },
           },
+        },
+      });
+
+      // Update order paid amount if linked to an order
+      if (order) {
+        const newPaidAmount = Number(order.paidAmount) + data.amount;
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { paidAmount: newPaidAmount },
         });
       }
+
+      // Update invoice if linked
+      if (data.invoiceId) {
+        const invoice = await prisma.invoice.findUnique({
+          where: { id: data.invoiceId },
+        });
+
+        if (invoice) {
+          const newPaidAmount = Number(invoice.paidAmount) + data.amount;
+          const newStatus = newPaidAmount >= Number(invoice.totalAmount) ? 'PAID' : invoice.status;
+
+          await prisma.invoice.update({
+            where: { id: data.invoiceId },
+            data: {
+              paidAmount: newPaidAmount,
+              status: newStatus,
+              ...(newStatus === 'PAID' && { paidAt: new Date() }),
+            },
+          });
+        }
+      }
+
+      // Send notification
+      await notifyPaymentReceived(
+        user.id,
+        client.phone,
+        client.email,
+        client.name,
+        formatCurrency(data.amount),
+        user.notifySms,
+        user.notifyEmail
+      );
+
+      // Audit Log
+      await logAudit({
+        userId: user.id,
+        action: 'PAYMENT_CREATE',
+        resource: 'payment',
+        resourceId: payment.id,
+        details: {
+          clientName: client.name,
+          amount: data.amount,
+          orderId: data.orderId,
+          method: data.method,
+          organizationId,
+        },
+      });
+
+      return secureJsonResponse({ success: true, data: payment }, { status: 201 });
+    } catch (error) {
+      console.error('Create payment error:', error);
+      if (error instanceof Error && error.message === 'Unauthorized') {
+        return secureErrorResponse('Unauthorized', 401);
+      }
+      return secureErrorResponse('Failed to create payment', 500);
     }
-
-    // Send notification
-    await notifyPaymentReceived(
-      user.id,
-      client.phone,
-      client.email,
-      client.name,
-      formatCurrency(data.amount),
-      user.notifySms,
-      user.notifyEmail
-    );
-
-    // Log payment
-    await logAudit({
-      userId: user.id,
-      action: 'CREATE_PAYMENT',
-      resource: 'PAYMENT',
-      resourceId: payment.id,
-      details: {
-        clientName: client.name,
-        amount: data.amount,
-        orderId: data.orderId,
-        method: data.method,
-      },
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: payment,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Create payment error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Handle Forbidden (missing permission)
-    if (error instanceof Error && error.message.includes('Forbidden')) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Failed to create payment' },
-      { status: 500 }
-    );
-  }
-}
+  },
+  'payments:create',
+  { rateLimit: 'write' }
+);

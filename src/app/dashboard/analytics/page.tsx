@@ -27,8 +27,6 @@ async function getInventoryStats() {
   return data.data;
 }
 
-
-
 export default function AnalyticsPage() {
   const {
     data: stats,
@@ -48,8 +46,6 @@ export default function AnalyticsPage() {
     queryKey: ['analytics-inventory'],
     queryFn: getInventoryStats,
   });
-
-
 
   if (isLoading) {
     return (
@@ -169,16 +165,20 @@ export default function AnalyticsPage() {
               <p className="text-center py-12 text-muted-foreground text-sm">No usage data.</p>
             ) : (
               <div className="space-y-4 pt-2">
-                {inventoryStats.topUsed.map((item: any, i: number) => (
-                  <div key={i} className="space-y-1">
+                {inventoryStats.topUsed.map((item: any) => (
+                  <div key={`${item.name}-${item.unit ?? ''}`} className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span className="font-bold">{item.name}</span>
-                      <span className="font-mono">{Number(item.total)} {item.unit}</span>
+                      <span className="font-mono">
+                        {Number(item.total)} {item.unit}
+                      </span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-primary"
-                        style={{ width: `${Math.min(100, (item.total / (inventoryStats.topUsed[0].total || 1)) * 100)}%` }}
+                        style={{
+                          width: `${Math.min(100, (item.total / (inventoryStats.topUsed[0].total || 1)) * 100)}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -195,11 +195,16 @@ export default function AnalyticsPage() {
             {isLoadingLeads ? (
               <Loader2 className="h-6 w-6 animate-spin mx-auto my-12" />
             ) : !leads || leads.length === 0 ? (
-              <p className="text-center py-12 text-muted-foreground text-sm">No active leads found.</p>
+              <p className="text-center py-12 text-muted-foreground text-sm">
+                No active leads found.
+              </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {leads.slice(0, 6).map((lead: any) => (
-                  <div key={lead.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                  <div
+                    key={lead.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
+                  >
                     <div>
                       <p className="font-bold text-sm">{lead.name}</p>
                       <p className="text-[10px] text-muted-foreground uppercase">{lead.phone}</p>
@@ -216,8 +221,6 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-
-
     </div>
   );
 }

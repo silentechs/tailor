@@ -1,3 +1,4 @@
+import { captureError, captureWarning } from './logger';
 import prisma from './prisma';
 import { formatGhanaPhone, isValidGhanaPhone } from './utils';
 
@@ -199,10 +200,7 @@ class Hub2SMSProvider implements SMSProvider {
 class MockProvider implements SMSProvider {
   name = 'mock';
 
-  async send(to: string, message: string): Promise<SMSResult> {
-    console.log(`[MOCK SMS] To: ${to}`);
-    console.log(`[MOCK SMS] Message: ${message}`);
-
+  async send(_to: string, _message: string): Promise<SMSResult> {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -249,7 +247,7 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
       return result;
     }
 
-    console.warn(`SMS provider ${provider.name} failed:`, result.error);
+    captureWarning('SMSService', `Provider ${provider.name} failed: ${result.error}`);
   }
 
   // If all providers fail, try mock as last resort
@@ -281,7 +279,7 @@ async function logSMSAttempt(
       },
     });
   } catch (error) {
-    console.error('Failed to log SMS attempt:', error);
+    captureError('SMSService', error, { context: 'logSMSAttempt' });
   }
 }
 

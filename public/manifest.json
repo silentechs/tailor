@@ -8,10 +8,7 @@
   "background_color": "#ffffff",
   "theme_color": "#006B3F",
   "orientation": "portrait-primary",
-  "categories": [
-    "business",
-    "productivity"
-  ],
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icon.png",

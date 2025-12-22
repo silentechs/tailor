@@ -10,25 +10,26 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { fetchApi } from '@/lib/fetch-api';
 import { cn, formatRelativeTime } from '@/lib/utils';
 
 // --- API Helpers ---
 async function getConversations() {
-  const res = await fetch('/api/messages/conversations');
+  const res = await fetchApi('/api/messages/conversations');
   if (!res.ok) throw new Error('Failed to fetch conversations');
   const data = await res.json();
   return data.data;
 }
 
 async function getMessages(orderId: string) {
-  const res = await fetch(`/api/messages?orderId=${orderId}`);
+  const res = await fetchApi(`/api/messages?orderId=${orderId}`);
   if (!res.ok) throw new Error('Failed to fetch messages');
   const data = await res.json();
   return data.data;
 }
 
 async function sendMessage(data: { orderId: string; message: string }) {
-  const res = await fetch('/api/messages', {
+  const res = await fetchApi('/api/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -120,6 +121,7 @@ export default function MessagesPage() {
                 {conversations?.map((conv: any) => (
                   <button
                     key={conv.id}
+                    type="button"
                     onClick={() => setSelectedOrderId(conv.id)}
                     className={cn(
                       'p-4 flex items-start gap-3 border-b hover:bg-muted/50 transition-colors text-left relative',

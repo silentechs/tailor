@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 const movementSchema = z.object({
@@ -14,7 +14,9 @@ const movementSchema = z.object({
 // GET /api/inventory/movements - Get recent movements
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('inventory:read', organizationId);
+
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const type = searchParams.get('type');
@@ -22,7 +24,7 @@ export async function GET(request: Request) {
 
     const movements = await prisma.inventoryMovement.findMany({
       where: {
-        tailorId: user.id,
+        item: { organizationId },
         ...(type && { type: type as any }),
         ...(orderId && { orderId }),
       },
@@ -42,15 +44,16 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Get movements error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch movements' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch movements' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('inventory:write', organizationId);
     const body = await request.json();
 
     const validation = movementSchema.safeParse(body);
@@ -67,9 +70,9 @@ export async function POST(request: Request) {
 
     const { itemId, type, quantity, orderId, reason } = validation.data;
 
-    // Verify item belongs to tailor
+    // Verify item belongs to organization
     const item = await prisma.inventoryItem.findFirst({
-      where: { id: itemId, tailorId: user.id },
+      where: { id: itemId, organizationId },
     });
 
     if (!item) {
@@ -93,9 +96,6 @@ export async function POST(request: Request) {
       });
 
       // 2. Update the item's current quantity
-      // Logic: RECEIPT, RETURN, positive ADJUSTMENT = +
-      // ISSUE, DAMAGED, negative ADJUSTMENT = -
-      // For this API, we assume 'quantity' is always positive and the 'type' determines direction
       const multiplier =
         type === 'RECEIPT' ||
         type === 'RETURN' ||
@@ -121,8 +121,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Inventory movement error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to record inventory movement' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to record inventory movement' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }

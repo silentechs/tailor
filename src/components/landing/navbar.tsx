@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Scissors } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -30,16 +29,16 @@ export function Navbar() {
             Features
           </Link>
           <Link
-            href="/#how-it-works"
+            href="/gallery"
             className="text-sm font-medium hover:text-primary transition-colors"
           >
-            How it Works
+            Gallery
           </Link>
           <Link
-            href="/#pricing"
+            href="/discover"
             className="text-sm font-medium hover:text-primary transition-colors"
           >
-            Pricing
+            Find a Tailor
           </Link>
         </nav>
 

@@ -2,11 +2,12 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { fetchApi } from '@/lib/fetch-api';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -44,14 +45,18 @@ const registerSchema = z
     path: ['confirmPassword'],
   });
 
-export default function RegisterPage() {
+function RegisterContent() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-  const trackingToken = searchParams?.get('token');
+  const searchParams = useSearchParams();
+  const trackingToken = searchParams.get('token');
   const isClientRegistration = !!trackingToken;
 
-  const emailParam = searchParams?.get('email');
+  // Check if this is a worker registration (via invitation)
+  const callbackUrl = searchParams.get('callbackUrl');
+  const isWorkerRegistration = callbackUrl?.includes('/auth/accept-invitation');
+
+  const emailParam = searchParams.get('email');
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -64,10 +69,22 @@ export default function RegisterPage() {
     },
   });
 
+  // Update email field if param changes
+  useEffect(() => {
+    if (emailParam) {
+      form.setValue('email', emailParam);
+    }
+  }, [emailParam, form]);
+
   async function onSubmit(values: z.infer<typeof registerSchema>) {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
+      // Determine the registration role
+      let role: 'TAILOR' | 'CLIENT' | 'WORKER' = 'TAILOR';
+      if (isClientRegistration) role = 'CLIENT';
+      else if (isWorkerRegistration) role = 'WORKER';
+
+      const response = await fetchApi('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +94,7 @@ export default function RegisterPage() {
           password: values.password,
           name: values.name,
           phone: values.phone,
-          role: isClientRegistration ? 'CLIENT' : 'TAILOR',
+          role,
           trackingToken: trackingToken || undefined,
         }),
       });
@@ -89,7 +106,7 @@ export default function RegisterPage() {
           Object.entries(data.details).forEach(([key, messages]) => {
             form.setError(key as any, {
               type: 'server',
-              message: (messages as string[]).join(', ')
+              message: (messages as string[]).join(', '),
             });
           });
           throw new Error('Please check the form for errors');
@@ -141,7 +158,9 @@ export default function RegisterPage() {
             {isClientRegistration ? 'Join the Studio' : 'Join StitchCraft'}
           </CardTitle>
           <CardDescription>
-            {isClientRegistration ? 'Access your private tailoring portal' : 'Create your tailor profile'}
+            {isClientRegistration
+              ? 'Access your private tailoring portal'
+              : 'Create your tailor profile'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -228,12 +247,27 @@ export default function RegisterPage() {
         <CardFooter className="flex justify-center text-sm text-muted-foreground pb-8">
           <div>
             Already have an account?{' '}
-            <Link href="/auth/login" className="text-primary font-semibold hover:underline">
+            <Link
+              href={
+                searchParams?.get('callbackUrl')
+                  ? `/auth/login?callbackUrl=${encodeURIComponent(searchParams.get('callbackUrl')!)}${searchParams.get('email') ? `&email=${encodeURIComponent(searchParams.get('email')!)}` : ''}`
+                  : `/auth/login${searchParams?.get('email') ? `?email=${encodeURIComponent(searchParams.get('email')!)}` : ''}`
+              }
+              className="text-primary font-semibold hover:underline"
+            >
               Sign In
             </Link>
           </div>
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }

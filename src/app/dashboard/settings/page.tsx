@@ -20,16 +20,17 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { fetchApi } from '@/lib/fetch-api';
 
 async function getProfile() {
-  const res = await fetch('/api/auth/me');
+  const res = await fetchApi('/api/auth/me');
   if (!res.ok) throw new Error('Failed to fetch profile');
   const data = await res.json();
   return data.user;
 }
 
 async function updateProfile(data: any) {
-  const res = await fetch('/api/auth/me', {
+  const res = await fetchApi('/api/auth/me', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -79,7 +80,7 @@ export default function SettingsPage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetchApi('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -92,7 +93,7 @@ export default function SettingsPage() {
       await updateProfile({ profileImage: data.url });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success('Profile photo updated');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to upload photo');
     } finally {
       setIsUploadingPhoto(false);
@@ -157,7 +158,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-[500px]">
+        <TabsList className="grid w-full grid-cols-6 lg:w-[600px]">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notif</TabsTrigger>
           <TabsTrigger value="showcase">Showcase</TabsTrigger>

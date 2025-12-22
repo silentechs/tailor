@@ -3,8 +3,9 @@
 import { RefreshCcw } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { captureError } from '@/lib/logger';
 
-export default function Error({
+export default function ErrorPage({
   error,
   reset,
 }: {
@@ -13,7 +14,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('App Error:', error);
+    captureError('AppError', error, { digest: error.digest });
   }, [error]);
 
   return (

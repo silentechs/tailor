@@ -1,5 +1,5 @@
-import type * as React from 'react';
 import { redirect } from 'next/navigation';
+import type * as React from 'react';
 import { getCurrentUser } from '@/lib/direct-current-user';
 import { DashboardClientContent } from './DashboardClientContent';
 

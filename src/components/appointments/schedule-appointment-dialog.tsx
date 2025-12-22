@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { toast } from 'sonner';
@@ -52,12 +52,14 @@ interface ScheduleAppointmentDialogProps {
   initialData?: any;
 }
 
-
-export function ScheduleAppointmentDialog({ open, onOpenChange, initialData }: ScheduleAppointmentDialogProps) {
+export function ScheduleAppointmentDialog({
+  open,
+  onOpenChange,
+  initialData,
+}: ScheduleAppointmentDialogProps) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const isEditing = !!initialData;
-
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({
     queryKey: ['clients', searchTerm],
@@ -85,7 +87,6 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, initialData }: S
 
   // Handle initial data for editing
   useEffect(() => {
-
     if (initialData && open) {
       const startTime = new Date(initialData.startTime);
       const endTime = new Date(initialData.endTime);
@@ -106,7 +107,6 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, initialData }: S
     }
   }, [initialData, open, form]);
 
-
   const watchedClientId = form.watch('clientId');
   const selectedClient = clients?.find((c: any) => c.id === watchedClientId);
 
@@ -119,7 +119,10 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, initialData }: S
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(isEditing ? 'Failed to update appointment' : 'Failed to schedule appointment');
+      if (!res.ok)
+        throw new Error(
+          isEditing ? 'Failed to update appointment' : 'Failed to schedule appointment'
+        );
       return res.json();
     },
     onSuccess: () => {
@@ -156,7 +159,9 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, initialData }: S
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Reschedule Appointment' : 'Schedule Appointment'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update the time or details for this session.' : 'Book a session with a client for measurements or fittings.'}
+            {isEditing
+              ? 'Update the time or details for this session.'
+              : 'Book a session with a client for measurements or fittings.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -202,25 +207,35 @@ export function ScheduleAppointmentDialog({ open, onOpenChange, initialData }: S
                         />
                       </div>
                       <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border rounded-md p-1">
-                        {clients?.map((client: any) => (
-                          <div
-                            key={client.id}
-                            className="flex items-center gap-3 p-2 hover:bg-muted rounded cursor-pointer transition-colors"
-                            onClick={() => form.setValue('clientId', client.id)}
-                          >
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium">{client.name}</span>
-                            <span className="text-xs text-muted-foreground ml-auto">
-                              {client.phone}
-                            </span>
+                        {isLoadingClients ? (
+                          <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading clients...
                           </div>
-                        ))}
-                        {clients?.length === 0 && (
-                          <p className="text-xs text-center py-4 text-muted-foreground">
-                            No clients found.
-                          </p>
+                        ) : (
+                          <>
+                            {clients?.map((client: any) => (
+                              <button
+                                key={client.id}
+                                type="button"
+                                className="flex w-full items-center gap-3 p-2 hover:bg-muted rounded cursor-pointer transition-colors text-left"
+                                onClick={() => form.setValue('clientId', client.id)}
+                              >
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm font-medium">{client.name}</span>
+                                <span className="text-xs text-muted-foreground ml-auto">
+                                  {client.phone}
+                                </span>
+                              </button>
+                            ))}
+                            {clients?.length === 0 && (
+                              <p className="text-xs text-center py-4 text-muted-foreground">
+                                No clients found.
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

@@ -1,8 +1,8 @@
 import type { Region } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { formatGhanaPhone, isValidGhanaPhone } from '@/lib/utils';
 
 // Validation schema for updating a client
@@ -26,7 +26,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 // GET /api/clients/[id] - Get a single client
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const { user, organizationId } = await requireOrganization();
+    const { organizationId } = await requireOrganization();
     await requirePermission('clients:read', organizationId);
 
     const { id } = await params;
@@ -96,14 +96,14 @@ export async function GET(_request: Request, { params }: RouteParams) {
             measurements: true,
             clientDesigns: {
               orderBy: { createdAt: 'desc' },
-              take: 20
-            }
-          }
+              take: 20,
+            },
+          },
         },
         clientDesigns: {
           orderBy: { createdAt: 'desc' },
-          take: 20
-        }
+          take: 20,
+        },
       },
     });
 
@@ -141,7 +141,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
         measurements: client.clientMeasurements[0]?.values || {},
         userDesigns: Array.from(
           new Map(
-            [...(client.user?.clientDesigns || []), ...(client.clientDesigns || [])].map((d) => [d.id, d])
+            [...(client.user?.clientDesigns || []), ...(client.clientDesigns || [])].map((d) => [
+              d.id,
+              d,
+            ])
           ).values()
         ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
         trackingTokens: undefined,
@@ -163,7 +166,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 // PUT /api/clients/[id] - Update a client
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const { user, organizationId } = await requireOrganization();
+    const { organizationId } = await requireOrganization();
     await requirePermission('clients:write', organizationId);
 
     const { id } = await params;
@@ -247,7 +250,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 // DELETE /api/clients/[id] - Delete a client
 export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
-    const { user, organizationId } = await requireOrganization();
+    const { organizationId } = await requireOrganization();
     await requirePermission('clients:write', organizationId);
 
     const { id } = await params;

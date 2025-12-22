@@ -13,6 +13,7 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { captureError } from '../logger';
 import { getBucketName, getPublicUrl, getR2Client } from './r2-config';
 import {
   type FileInfo,
@@ -108,7 +109,7 @@ export class R2StorageAdapter implements StorageAdapter {
         contentType,
       };
     } catch (error: any) {
-      console.error('R2 upload error:', error);
+      captureError('R2Storage', error, { operation: 'upload', tailorId, fileType });
       throw new StorageError(
         `Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'UPLOAD_FAILED'
@@ -128,7 +129,7 @@ export class R2StorageAdapter implements StorageAdapter {
         })
       );
     } catch (error: any) {
-      console.error('R2 delete error:', error);
+      captureError('R2Storage', error, { operation: 'delete', key });
       throw new StorageError(
         `Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'DELETE_FAILED'
@@ -160,7 +161,7 @@ export class R2StorageAdapter implements StorageAdapter {
         );
       }
     } catch (error: any) {
-      console.error('R2 batch delete error:', error);
+      captureError('R2Storage', error, { operation: 'deleteMany', count: keys.length });
       throw new StorageError(
         `Failed to delete files: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'DELETE_MANY_FAILED'
@@ -186,7 +187,7 @@ export class R2StorageAdapter implements StorageAdapter {
 
       return url;
     } catch (error: any) {
-      console.error('R2 signed URL error:', error);
+      captureError('R2Storage', error, { operation: 'getSignedUrl', key });
       throw new StorageError(
         `Failed to generate signed URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'SIGNED_URL_FAILED'
@@ -223,7 +224,7 @@ export class R2StorageAdapter implements StorageAdapter {
 
       return { url, key };
     } catch (error: any) {
-      console.error('R2 signed upload URL error:', error);
+      captureError('R2Storage', error, { operation: 'getSignedUploadUrl', tailorId, fileType });
       throw new StorageError(
         `Failed to generate signed upload URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'SIGNED_UPLOAD_URL_FAILED'
@@ -272,7 +273,7 @@ export class R2StorageAdapter implements StorageAdapter {
         contentType: undefined,
       }));
     } catch (error: any) {
-      console.error('R2 list files error:', error);
+      captureError('R2Storage', error, { operation: 'listFiles', prefix });
       throw new StorageError(
         `Failed to list files: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'LIST_FILES_FAILED'
@@ -316,7 +317,7 @@ export class R2StorageAdapter implements StorageAdapter {
         })
       );
     } catch (error: any) {
-      console.error('R2 copy file error:', error);
+      captureError('R2Storage', error, { operation: 'copyFile', sourceKey, destinationKey });
       throw new StorageError(
         `Failed to copy file: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'COPY_FILE_FAILED'

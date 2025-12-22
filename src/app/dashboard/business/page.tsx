@@ -20,8 +20,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn, formatCurrency } from '@/lib/utils';
+import type { DashboardStats, MetricCardProps, RecentOrder, METRIC_COLOR_MAP } from '@/types/dashboard';
 
-async function getDashboardStats() {
+async function getDashboardStats(): Promise<DashboardStats> {
   const res = await fetch('/api/dashboard/stats');
   if (!res.ok) throw new Error('Failed to fetch dashboard stats');
   const data = await res.json();
@@ -54,6 +55,7 @@ export default function BusinessDashboardPage() {
       <div className="text-center py-20 bg-red-50/50 rounded-2xl border border-red-100">
         <p className="text-red-600 font-bold">Error loading dashboard stats.</p>
         <button
+          type="button"
           onClick={() => window.location.reload()}
           className="mt-4 text-sm font-bold text-red-700 underline"
         >
@@ -186,8 +188,8 @@ export default function BusinessDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats?.recentOrders?.length > 0 ? (
-                stats.recentOrders.map((order: any) => (
+              {stats?.recentOrders && stats.recentOrders.length > 0 ? (
+                stats.recentOrders.map((order: RecentOrder) => (
                   <div
                     key={order.id}
                     className="flex items-center gap-4 border-b border-slate-50 last:border-0 pb-3 last:pb-0 group hover:bg-slate-50/50 p-2 rounded-lg transition-colors"
@@ -239,8 +241,8 @@ export default function BusinessDashboardPage() {
   );
 }
 
-function MetricCard({ title, value, subtext, icon, color, trend }: any) {
-  const colorMap: any = {
+function MetricCard({ title, value, subtext, icon, color, trend }: MetricCardProps) {
+  const colorMap: Record<MetricCardProps['color'], string> = {
     gold: 'border-l-[var(--color-ghana-gold)]',
     green: 'border-l-[var(--color-ghana-green)]',
     red: 'border-l-[var(--color-ghana-red)]',

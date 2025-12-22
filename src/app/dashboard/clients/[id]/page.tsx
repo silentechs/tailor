@@ -1,9 +1,20 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, Edit, Loader2, Mail, MapPin, Phone, Ruler, Scissors, Image as ImageIcon } from 'lucide-react';
+import {
+  CreditCard,
+  Edit,
+  Image as ImageIcon,
+  Loader2,
+  Mail,
+  MapPin,
+  Phone,
+  Ruler,
+  Scissors,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { ClientDesignUploadDialog } from '@/components/clients/client-design-upload-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,12 +22,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/ui/data-table';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { fetchApi } from '@/lib/fetch-api';
 import { formatCurrency, formatPhoneDisplay } from '@/lib/utils';
 import { columns as orderColumns } from '../../orders/columns';
-import { ClientDesignUploadDialog } from '@/components/clients/client-design-upload-dialog';
 
 async function getClient(id: string) {
-  const res = await fetch(`/api/clients/${id}`);
+  const res = await fetchApi(`/api/clients/${id}`);
   if (!res.ok) {
     throw new Error('Failed to fetch client');
   }
@@ -89,9 +100,7 @@ export default function ClientProfilePage() {
                 Active
               </Badge>
               {clientData.isLead && (
-                <Badge
-                  className="ml-2 text-sm font-black bg-ghana-gold text-black border-none uppercase"
-                >
+                <Badge className="ml-2 text-sm font-black bg-ghana-gold text-black border-none uppercase">
                   Lead
                 </Badge>
               )}
@@ -254,12 +263,14 @@ export default function ClientProfilePage() {
                     <CardDescription>Last updated with recent order</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    {clientData.user && clientData.user.measurements && (
+                    {clientData.user?.measurements && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={async () => {
-                          const res = await fetch(`/api/clients/${clientData.id}/sync`, { method: 'POST' });
+                          const res = await fetchApi(`/api/clients/${clientData.id}/sync`, {
+                            method: 'POST',
+                          });
                           if (res.ok) {
                             window.location.reload();
                           } else {
@@ -304,15 +315,19 @@ export default function ClientProfilePage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle>Designs & References</CardTitle>
-                    <CardDescription>
-                      Inspirations from client or uploaded by you.
-                    </CardDescription>
+                    <CardDescription>Inspirations from client or uploaded by you.</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    // Trigger upload dialog (will be implemented via state)
-                    const event = new CustomEvent('open-design-upload', { detail: { clientId: clientData.id } });
-                    window.dispatchEvent(event);
-                  }}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Trigger upload dialog (will be implemented via state)
+                      const event = new CustomEvent('open-design-upload', {
+                        detail: { clientId: clientData.id },
+                      });
+                      window.dispatchEvent(event);
+                    }}
+                  >
                     <ImageIcon className="h-4 w-4 mr-2" />
                     Add Design
                   </Button>
@@ -321,7 +336,10 @@ export default function ClientProfilePage() {
                   {clientData.userDesigns && clientData.userDesigns.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {clientData.userDesigns.map((design: any) => (
-                        <div key={design.id} className="group relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted">
+                        <div
+                          key={design.id}
+                          className="group relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted"
+                        >
                           <img
                             src={design.images[0] || '/placeholder-garment.jpg'}
                             alt="Design"
@@ -329,8 +347,14 @@ export default function ClientProfilePage() {
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                             <div>
-                              <p className="text-white text-xs font-bold uppercase tracking-wider">{design.garmentType}</p>
-                              {design.notes && <p className="text-white/80 text-xs line-clamp-2 mt-1">{design.notes}</p>}
+                              <p className="text-white text-xs font-bold uppercase tracking-wider">
+                                {design.garmentType}
+                              </p>
+                              {design.notes && (
+                                <p className="text-white/80 text-xs line-clamp-2 mt-1">
+                                  {design.notes}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -340,7 +364,9 @@ export default function ClientProfilePage() {
                     <div className="text-center py-12 border-2 border-dashed rounded-lg">
                       <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                       <p className="text-muted-foreground font-medium">No designs found.</p>
-                      <p className="text-muted-foreground text-sm mt-1">If the client uploads photos to their profile, they will appear here.</p>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        If the client uploads photos to their profile, they will appear here.
+                      </p>
                     </div>
                   )}
                 </CardContent>

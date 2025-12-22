@@ -42,7 +42,8 @@ export function loadR2Config(): R2Config {
 
   return {
     buckets: {
-      storage: process.env.R2_BUCKET_NAME || process.env.R2_STORAGE_BUCKET || 'stitch-craft-storage',
+      storage:
+        process.env.R2_BUCKET_NAME || process.env.R2_STORAGE_BUCKET || 'stitch-craft-storage',
       exports: process.env.R2_BUCKET_NAME || process.env.R2_EXPORT_BUCKET || 'stitch-craft-exports',
     },
     endpoint,

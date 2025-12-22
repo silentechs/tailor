@@ -18,8 +18,8 @@ export const viewport: Viewport = {
   themeColor: '#006B3F',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export const metadata: Metadata = {
@@ -37,9 +37,9 @@ export const metadata: Metadata = {
   },
 };
 
+import Script from 'next/script';
 import { Providers } from '@/components/providers';
 import { Toaster } from '@/components/ui/sonner';
-import Script from 'next/script';
 
 export default function RootLayout({
   children,
@@ -61,14 +61,7 @@ export default function RootLayout({
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(
-                  function(registration) {
-                    console.log('ServiceWorker registration successful');
-                  },
-                  function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                  }
-                );
+                navigator.serviceWorker.register('/sw.js').catch(function() {});
               });
             }
           `}

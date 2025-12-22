@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
-import { requireActiveTailor, requireUser } from '@/lib/direct-current-user';
+import { requireUser } from '@/lib/direct-current-user';
 import { isR2Configured } from '@/lib/storage/r2-config';
 import { getR2StorageAdapter } from '@/lib/storage/r2-storage-adapter';
 

@@ -22,7 +22,7 @@ const registerSchema = z.object({
     .optional()
     .refine((val) => !val || isValidGhanaPhone(val), 'Invalid Ghana phone number'),
   businessName: z.string().optional(),
-  role: z.enum(['TAILOR', 'SEAMSTRESS', 'CLIENT']),
+  role: z.enum(['TAILOR', 'SEAMSTRESS', 'CLIENT', 'WORKER']),
   region: z.string().optional(),
   city: z.string().optional(),
   trackingToken: z.string().optional(),

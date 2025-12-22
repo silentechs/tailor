@@ -35,9 +35,10 @@ import {
   formatDate,
   formatTime,
 } from '@/lib/utils';
+import { fetchApi } from '@/lib/fetch-api';
 
 async function getAppointments() {
-  const res = await fetch('/api/appointments');
+  const res = await fetchApi('/api/appointments');
   if (!res.ok) throw new Error('Failed to fetch appointments');
   const data = await res.json();
   return data.data;
@@ -49,19 +50,14 @@ export default function AppointmentsPage() {
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
 
-
-  const {
-    data: appointments,
-    isLoading,
-    error,
-  } = useQuery({
+  const { data: appointments, isLoading } = useQuery({
     queryKey: ['appointments'],
     queryFn: getAppointments,
   });
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const res = await fetch(`/api/appointments/${id}`, {
+      const res = await fetchApi(`/api/appointments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -153,10 +149,10 @@ export default function AppointmentsPage() {
                     isToday(new Date(a.startTime)) &&
                     (a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
                 ).length === 0 && (
-                    <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
-                      <p className="text-sm text-muted-foreground">No active appointments today.</p>
-                    </div>
-                  )}
+                  <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
+                    <p className="text-sm text-muted-foreground">No active appointments today.</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -189,10 +185,10 @@ export default function AppointmentsPage() {
                     new Date(a.startTime) > endOfDay(new Date()) &&
                     (a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
                 ).length === 0 && (
-                    <div className="col-span-full text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
-                      <p className="text-sm text-muted-foreground">No other upcoming bookings.</p>
-                    </div>
-                  )}
+                  <div className="col-span-full text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
+                    <p className="text-sm text-muted-foreground">No other upcoming bookings.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -231,7 +227,6 @@ export default function AppointmentsPage() {
     </div>
   );
 }
-
 
 function AppointmentCard({
   appointment,

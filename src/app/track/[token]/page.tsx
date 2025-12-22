@@ -1,11 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import {
   Calendar,
   CheckCircle2,
   Circle,
   Clock,
+  Facebook,
+  Instagram,
   Loader2,
   MessageSquare,
   Package,
@@ -17,12 +20,7 @@ import {
   Shield,
   Star,
   ThumbsUp,
-  Instagram,
-  Facebook,
-  Check,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -96,7 +94,7 @@ export default function TrackingPage() {
     );
   }
 
-  const { client, tailor, orders, payments, qrCode, trackingUrl } = data;
+  const { client, tailor, orders, qrCode, trackingUrl } = data;
   const activeOrder = orders[selectedOrderTab];
 
   const shareLink = () => {
@@ -107,7 +105,7 @@ export default function TrackingPage() {
           text: `Tracking status for my orders at ${tailor.businessName}`,
           url: trackingUrl,
         })
-        .catch(() => { });
+        .catch(() => {});
     } else {
       navigator.clipboard.writeText(trackingUrl);
       toast.success('Tracking link copied to clipboard');
@@ -160,10 +158,24 @@ export default function TrackingPage() {
           </div>
           {/* Ghana Pattern Overlay - SVG */}
           <div className="absolute top-0 right-0 w-32 h-32 opacity-20 pointer-events-none transform translate-x-8 -translate-y-8">
-            <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              width="128"
+              height="128"
+              viewBox="0 0 128 128"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <title>Kente pattern overlay</title>
               <rect width="128" height="128" fill="url(#kente_tracking)" />
               <defs>
-                <pattern id="kente_tracking" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <pattern
+                  id="kente_tracking"
+                  x="0"
+                  y="0"
+                  width="20"
+                  height="20"
+                  patternUnits="userSpaceOnUse"
+                >
                   <rect width="5" height="20" fill="#CE1126" />
                   <rect x="5" width="5" height="20" fill="#FCD116" />
                   <rect x="10" width="5" height="20" fill="#006B3F" />
@@ -180,6 +192,7 @@ export default function TrackingPage() {
             {orders.map((order: any, idx: number) => (
               <button
                 key={order.id}
+                type="button"
                 onClick={() => setSelectedOrderTab(idx)}
                 className={cn(
                   'px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border',
@@ -214,7 +227,7 @@ export default function TrackingPage() {
             <div className="relative pl-6 space-y-8">
               <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100" />
               {activeOrder.timeline.map((step: any, idx: number) => (
-                <div key={idx} className="relative">
+                <div key={`${step.label}-${step.date ?? ''}`} className="relative">
                   <div
                     className={cn(
                       'absolute -left-[22px] p-0.5 rounded-full z-10 bg-white',
@@ -356,8 +369,12 @@ export default function TrackingPage() {
             <div className="mx-auto w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center mb-4">
               <ThumbsUp className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="text-xl font-heading font-bold">How is your experience?</CardTitle>
-            <p className="text-sm text-muted-foreground">Your feedback helps {tailor.businessName} grow.</p>
+            <CardTitle className="text-xl font-heading font-bold">
+              How is your experience?
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Your feedback helps {tailor.businessName} grow.
+            </p>
           </CardHeader>
           <CardContent className="space-y-6 pb-8">
             <div className="flex justify-center gap-2">
@@ -371,8 +388,8 @@ export default function TrackingPage() {
                 >
                   <Star
                     className={cn(
-                      "h-10 w-10 transition-colors",
-                      star <= rating ? "fill-yellow-400 text-yellow-400" : "text-slate-200"
+                      'h-10 w-10 transition-colors',
+                      star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'
                     )}
                   />
                 </motion.button>
@@ -395,8 +412,12 @@ export default function TrackingPage() {
                       className="h-5 w-5 rounded border-slate-300 text-primary focus:ring-primary"
                     />
                   </div>
-                  <label htmlFor="consent" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
-                    I give permission to {tailor.businessName} to share photos/videos of my garment on social media for showcasing purposes.
+                  <label
+                    htmlFor="consent"
+                    className="text-xs text-slate-600 leading-relaxed cursor-pointer"
+                  >
+                    I give permission to {tailor.businessName} to share photos/videos of my garment
+                    on social media for showcasing purposes.
                   </label>
                 </div>
                 <Button
@@ -418,7 +439,7 @@ export default function TrackingPage() {
 
                       toast.success('Thank you for your feedback!');
                       setRating(0);
-                    } catch (err) {
+                    } catch (_err) {
                       toast.error('Failed to submit feedback. Please try again.');
                     } finally {
                       setIsSubmittingRating(false);
@@ -426,7 +447,11 @@ export default function TrackingPage() {
                   }}
                   disabled={isSubmittingRating}
                 >
-                  {isSubmittingRating ? <Loader2 className="h-5 w-5 animate-spin" /> : "Submit Feedback"}
+                  {isSubmittingRating ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    'Submit Feedback'
+                  )}
                 </Button>
               </motion.div>
             )}
@@ -450,13 +475,25 @@ export default function TrackingPage() {
               </p>
             </div>
             <div className="flex items-center justify-center gap-4 pt-2">
-              <Button variant="outline" size="icon" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full bg-white/5 border-white/10 hover:bg-white/10"
+              >
                 <Instagram className="h-5 w-5" />
               </Button>
-              <Button variant="outline" size="icon" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full bg-white/5 border-white/10 hover:bg-white/10"
+              >
                 <Facebook className="h-5 w-5" />
               </Button>
-              <Button variant="outline" size="icon" className="rounded-full bg-white/5 border-white/10 hover:bg-white/10">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full bg-white/5 border-white/10 hover:bg-white/10"
+              >
                 <Share2 className="h-5 w-5" />
               </Button>
             </div>
@@ -465,9 +502,17 @@ export default function TrackingPage() {
           {/* Kente Pattern Overlay - SVG */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
             <svg width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <title>Kente pattern background</title>
               <rect width="100%" height="100%" fill="url(#kente_bottom)" />
               <defs>
-                <pattern id="kente_bottom" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+                <pattern
+                  id="kente_bottom"
+                  x="0"
+                  y="0"
+                  width="60"
+                  height="60"
+                  patternUnits="userSpaceOnUse"
+                >
                   <rect width="15" height="60" fill="#CE1126" />
                   <rect x="15" width="15" height="60" fill="#FCD116" />
                   <rect x="30" width="15" height="60" fill="#006B3F" />

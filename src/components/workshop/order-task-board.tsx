@@ -1,7 +1,16 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle2, Circle, Loader2, Package, Plus, Settings2, Trash2 } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Circle,
+  Loader2,
+  Package,
+  Plus,
+  Settings2,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +19,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { fetchApi } from '@/lib/fetch-api';
 import { cn } from '@/lib/utils';
 
 interface Task {
@@ -59,7 +69,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
   const { data: tasksData, isLoading } = useQuery({
     queryKey: ['order-tasks', orderId],
     queryFn: async () => {
-      const res = await fetch(`/api/orders/${orderId}/tasks`);
+      const res = await fetchApi(`/api/orders/${orderId}/tasks`);
       if (!res.ok) throw new Error('Failed to fetch tasks');
       const result = await res.json();
       return result.data as Task[];
@@ -67,8 +77,16 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: async ({ title, materialId, materialQty }: { title: string; materialId?: string | null; materialQty?: number | null }) => {
-      const res = await fetch(`/api/orders/${orderId}/tasks`, {
+    mutationFn: async ({
+      title,
+      materialId,
+      materialQty,
+    }: {
+      title: string;
+      materialId?: string | null;
+      materialQty?: number | null;
+    }) => {
+      const res = await fetchApi(`/api/orders/${orderId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, materialId, materialQty }),
@@ -89,7 +107,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
   const { data: inventory } = useQuery({
     queryKey: ['inventory-list'],
     queryFn: async () => {
-      const res = await fetch('/api/inventory');
+      const res = await fetchApi('/api/inventory');
       if (!res.ok) throw new Error('Failed to load inventory');
       const data = await res.json();
       return data.data;
@@ -102,14 +120,14 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
       taskId,
       status,
       materialId,
-      materialQty
+      materialQty,
     }: {
       taskId: string;
       status?: string;
       materialId?: string | null;
       materialQty?: number | null;
     }) => {
-      const res = await fetch(`/api/orders/${orderId}/tasks/${taskId}`, {
+      const res = await fetchApi(`/api/orders/${orderId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, materialId, materialQty }),
@@ -127,7 +145,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
 
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      const res = await fetch(`/api/orders/${orderId}/tasks/${taskId}`, {
+      const res = await fetchApi(`/api/orders/${orderId}/tasks/${taskId}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete task');
@@ -161,7 +179,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
     createTaskMutation.mutate({
       title: newTaskTitle,
       materialId: tempMaterialId,
-      materialQty: tempMaterialQty ? Number(tempMaterialQty) : null
+      materialQty: tempMaterialQty ? Number(tempMaterialQty) : null,
     });
   };
 
@@ -246,6 +264,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
                 )}
               >
                 <button
+                  type="button"
                   onClick={() =>
                     updateTaskMutation.mutate({
                       taskId: task.id,
@@ -273,14 +292,24 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
                   {task.material && (
                     <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
                       <Package className="h-3 w-3" />
-                      <span>{task.material.name} ({task.materialQty} {task.material.unitOfMeasure})</span>
-                      {task.consumedAt && <Badge variant="outline" className="text-[8px] h-3 px-1 ml-1 bg-emerald-50 text-emerald-600 border-emerald-100">Consumed</Badge>}
+                      <span>
+                        {task.material.name} ({task.materialQty} {task.material.unitOfMeasure})
+                      </span>
+                      {task.consumedAt && (
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] h-3 px-1 ml-1 bg-emerald-50 text-emerald-600 border-emerald-100"
+                        >
+                          Consumed
+                        </Badge>
+                      )}
                     </div>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
+                    type="button"
                     onClick={() => handleOpenEdit(task)}
                     className="text-slate-400 hover:text-primary p-1"
                     title="Task Settings"
@@ -289,6 +318,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
                     <Settings2 className="h-4 w-4" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => deleteTaskMutation.mutate(task.id)}
                     className="text-slate-400 hover:text-red-500 p-1"
                   >
@@ -318,8 +348,8 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Link Material from Inventory</Label>
                 <Select
-                  value={tempMaterialId || "none"}
-                  onValueChange={(val) => setTempMaterialId(val === "none" ? null : val)}
+                  value={tempMaterialId || 'none'}
+                  onValueChange={(val) => setTempMaterialId(val === 'none' ? null : val)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a material..." />
@@ -337,7 +367,8 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
-                  Quantity to Deduct ({inventory?.find((i: any) => i.id === tempMaterialId)?.unitOfMeasure || 'units'})
+                  Quantity to Deduct (
+                  {inventory?.find((i: any) => i.id === tempMaterialId)?.unitOfMeasure || 'units'})
                 </Label>
                 <Input
                   type="number"
@@ -353,10 +384,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                onClick={handleSaveEdit}
-                disabled={updateTaskMutation.isPending}
-              >
+              <Button onClick={handleSaveEdit} disabled={updateTaskMutation.isPending}>
                 {updateTaskMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
@@ -382,8 +410,8 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Link Material from Inventory</Label>
                 <Select
-                  value={tempMaterialId || "none"}
-                  onValueChange={(val) => setTempMaterialId(val === "none" ? null : val)}
+                  value={tempMaterialId || 'none'}
+                  onValueChange={(val) => setTempMaterialId(val === 'none' ? null : val)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a material..." />
@@ -401,7 +429,8 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
-                  Quantity to Deduct ({inventory?.find((i: any) => i.id === tempMaterialId)?.unitOfMeasure || 'units'})
+                  Quantity to Deduct (
+                  {inventory?.find((i: any) => i.id === tempMaterialId)?.unitOfMeasure || 'units'})
                 </Label>
                 <Input
                   type="number"
@@ -414,10 +443,7 @@ export function OrderTaskBoard({ orderId }: OrderTaskBoardProps) {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                onClick={handleAddTask}
-                disabled={createTaskMutation.isPending}
-              >
+              <Button onClick={handleAddTask} disabled={createTaskMutation.isPending}>
                 {createTaskMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Task
               </Button>

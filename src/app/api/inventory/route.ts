@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const inventoryItemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -18,7 +18,7 @@ const inventoryItemSchema = z.object({
 // GET /api/inventory - List inventory items
 export async function GET(request: Request) {
   try {
-    const { user, organizationId } = await requireOrganization();
+    const { organizationId } = await requireOrganization();
     await requirePermission('inventory:read', organizationId);
 
     // Fetch organization to get ownerId for broader compatibility if needed (optional optimization)
@@ -80,11 +80,14 @@ export async function POST(request: Request) {
     // We need the organization owner ID for the required 'tailorId' field
     const organization = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { ownerId: true }
+      select: { ownerId: true },
     });
 
     if (!organization) {
-      return NextResponse.json({ success: false, error: 'Organization not found' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: 'Organization not found' },
+        { status: 404 }
+      );
     }
 
     const item = await prisma.$transaction(async (tx) => {

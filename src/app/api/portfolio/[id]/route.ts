@@ -102,4 +102,3 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ success: false, error: 'Failed to update item' }, { status: 500 });
   }
 }
-

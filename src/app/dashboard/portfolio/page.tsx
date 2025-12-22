@@ -26,18 +26,19 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { fetchApi } from '@/lib/fetch-api';
 import { GARMENT_TYPE_LABELS } from '@/lib/utils';
 
 // API Functions
 async function getPortfolio() {
-  const res = await fetch('/api/portfolio');
+  const res = await fetchApi('/api/portfolio');
   if (!res.ok) throw new Error('Failed to fetch portfolio');
   const data = await res.json();
   return data.data;
 }
 
 async function createPortfolioItem(data: any) {
-  const res = await fetch('/api/portfolio', {
+  const res = await fetchApi('/api/portfolio', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -51,7 +52,7 @@ async function createPortfolioItem(data: any) {
 }
 
 async function deletePortfolioItem(id: string) {
-  const res = await fetch(`/api/portfolio/${id}`, {
+  const res = await fetchApi(`/api/portfolio/${id}`, {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error('Failed to delete item');
@@ -59,7 +60,7 @@ async function deletePortfolioItem(id: string) {
 }
 
 async function updatePortfolioItem(id: string, data: any) {
-  const res = await fetch(`/api/portfolio/${id}`, {
+  const res = await fetchApi(`/api/portfolio/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -165,7 +166,7 @@ export default function PortfolioPage() {
     const loadingToast = toast.loading('Uploading image...');
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetchApi('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -230,7 +231,7 @@ export default function PortfolioPage() {
       title: item.title,
       category: item.category,
       description: item.description || '',
-      images: (item.images && item.images.length > 0) ? item.images : ['/placeholder.jpg'],
+      images: item.images && item.images.length > 0 ? item.images : ['/placeholder.jpg'],
       tags: item.tags || [],
       isPublic: item.isPublic ?? true,
       isFeatured: item.isFeatured ?? false,
@@ -250,10 +251,10 @@ export default function PortfolioPage() {
   // Group by category
   const categoryStats = portfolio
     ? portfolio.reduce((acc: any, item: any) => {
-      const cat = item.category;
-      acc[cat] = (acc[cat] || 0) + 1;
-      return acc;
-    }, {})
+        const cat = item.category;
+        acc[cat] = (acc[cat] || 0) + 1;
+        return acc;
+      }, {})
     : {};
 
   return (
@@ -336,8 +337,9 @@ export default function PortfolioPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="outline">
-                                {GARMENT_TYPE_LABELS[item.category as keyof typeof GARMENT_TYPE_LABELS] ||
-                                  item.category}
+                                {GARMENT_TYPE_LABELS[
+                                  item.category as keyof typeof GARMENT_TYPE_LABELS
+                                ] || item.category}
                               </Badge>
                               <span className="text-sm text-muted-foreground">
                                 {item.viewCount} views • {item.likeCount} likes
@@ -349,11 +351,7 @@ export default function PortfolioPage() {
                           </div>
                         </DialogContent>
                       </Dialog>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleEdit(item)}
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => handleEdit(item)}>
                         Edit
                       </Button>
                       <Button
@@ -456,21 +454,24 @@ export default function PortfolioPage() {
       </Tabs>
 
       {/* Project Dialog (Add/Edit) */}
-      <Dialog open={isAddOpen} onOpenChange={(open) => {
-        setIsAddOpen(open);
-        if (!open) {
-          setEditingId(null);
-          setNewItem({
-            title: '',
-            category: '',
-            description: '',
-            images: ['/placeholder.jpg'],
-            tags: [],
-            isPublic: true,
-            isFeatured: false,
-          });
-        }
-      }}>
+      <Dialog
+        open={isAddOpen}
+        onOpenChange={(open) => {
+          setIsAddOpen(open);
+          if (!open) {
+            setEditingId(null);
+            setNewItem({
+              title: '',
+              category: '',
+              description: '',
+              images: ['/placeholder.jpg'],
+              tags: [],
+              isPublic: true,
+              isFeatured: false,
+            });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Edit Project' : 'Add New Project'}</DialogTitle>
@@ -518,7 +519,7 @@ export default function PortfolioPage() {
                   .filter((img) => img !== '/placeholder.jpg')
                   .map((img, index) => (
                     <div
-                      key={index}
+                      key={img}
                       className="relative aspect-square rounded-md overflow-hidden border group"
                     >
                       <img src={img} alt="Preview" className="object-cover w-full h-full" />
@@ -548,13 +549,18 @@ export default function PortfolioPage() {
             <Button variant="outline" onClick={() => setIsAddOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button
+              onClick={handleSave}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
               {createMutation.isPending || updateMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
                 </>
+              ) : editingId ? (
+                'Update Project'
               ) : (
-                editingId ? 'Update Project' : 'Save Project'
+                'Save Project'
               )}
             </Button>
           </DialogFooter>

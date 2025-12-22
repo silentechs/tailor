@@ -53,7 +53,8 @@ export function MeasurementSketcher({
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    let x, y;
+    let x = 0;
+    let y = 0;
 
     if ('touches' in e) {
       x = e.touches[0].clientX - rect.left;
@@ -76,7 +77,8 @@ export function MeasurementSketcher({
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    let x, y;
+    let x = 0;
+    let y = 0;
 
     if ('touches' in e) {
       x = e.touches[0].clientX - rect.left;

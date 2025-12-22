@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const createTaskSchema = z.object({
   title: z.string().min(1),
@@ -26,7 +26,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 // GET /api/orders/[id]/tasks - Get all tasks for an order
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const { user, organizationId } = await requireOrganization();
+    const { organizationId } = await requireOrganization();
     await requirePermission('tasks:read', organizationId);
 
     const { id: orderId } = await params;

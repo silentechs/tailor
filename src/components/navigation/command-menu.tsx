@@ -44,6 +44,7 @@ export function CommandMenu() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className={cn(
           'relative inline-flex items-center justify-start rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-muted/50 hover:bg-muted h-10 px-4 w-full max-w-md group'

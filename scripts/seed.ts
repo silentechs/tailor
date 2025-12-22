@@ -114,33 +114,43 @@ async function main() {
     const portfolioData = [
       {
         title: `${t.name} Signature ${t.region.replace(/_/g, ' ')} Set`,
-        description: 'A masterpiece created for the Ghana Fashion Awards. Handcrafted with premium textiles.',
+        description:
+          'A masterpiece created for the Ghana Fashion Awards. Handcrafted with premium textiles.',
         category: 'KENTE_CLOTH',
-        images: ['https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/kente_couture_premium/1766236569006-kente_couture_premium.png'],
+        images: [
+          'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/kente_couture_premium/1766236569006-kente_couture_premium.png',
+        ],
       },
       {
         title: 'Modern Fusion Ensemble',
-        description: 'Blending traditional textiles with urban silhouettes for the contemporary Ghanaian.',
+        description:
+          'Blending traditional textiles with urban silhouettes for the contemporary Ghanaian.',
         category: 'KAFTAN',
-        images: ['https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/modern_ghanaian_kaftan/1766236569356-modern_ghanaian_kaftan.png'],
+        images: [
+          'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/modern_ghanaian_kaftan/1766236569356-modern_ghanaian_kaftan.png',
+        ],
       },
       {
         title: 'Bespoke Ceremony Gown',
         description: 'Intricate pattern mapping and fine silk lining for a royal finish.',
         category: 'KABA_AND_SLIT',
-        images: ['https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/kaba_slit_elegant/1766236569570-kaba_slit_elegant.png'],
+        images: [
+          'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/kaba_slit_elegant/1766236569570-kaba_slit_elegant.png',
+        ],
       },
       {
         title: 'Authentic Northern Batakari',
         description: 'Traditional smock hand-woven with heritage blue and white stripes.',
         category: 'SMOCK_BATAKARI',
-        images: ['https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/batakari_northern_authentic_smock/1766236569910-batakari_northern_authentic_smock.png'],
-      }
+        images: [
+          'https://pub-df92ddd9823a4d139e53bfaa16c56656.r2.dev/tailors/seed-master/portfolios/batakari_northern_authentic_smock/1766236569910-batakari_northern_authentic_smock.png',
+        ],
+      },
     ];
 
     // Clear existing portfolio items to ensure fresh data/images
     await prisma.portfolioItem.deleteMany({
-      where: { tailorId: user.id }
+      where: { tailorId: user.id },
     });
 
     for (const p of portfolioData) {
@@ -180,7 +190,7 @@ async function main() {
         clientId: ama.id,
         token: 'TRACK-AMA-123',
         isActive: true,
-      }
+      },
     });
 
     const order = await prisma.order.upsert({
@@ -197,7 +207,7 @@ async function main() {
         totalAmount: 700,
         paidAmount: 350,
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      }
+      },
     });
 
     console.log(`- Created tracking order for Ama: ${order.orderNumber}`);

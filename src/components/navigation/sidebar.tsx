@@ -22,10 +22,9 @@ import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import type { CurrentUser } from '@/lib/direct-current-user';
+import { type Permission, ROLE_PERMISSIONS } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
-
-import { CurrentUser } from '@/lib/direct-current-user';
-import { ROLE_PERMISSIONS, Permission } from '@/lib/permissions';
 
 type WorkerRole = keyof typeof ROLE_PERMISSIONS;
 
@@ -50,15 +49,41 @@ export function Sidebar({ className, user, ...props }: SidebarProps) {
 
   const hasPermission = (permission: Permission) => {
     if (!user) return false;
-    if (user.role === 'ADMIN' || user.role === 'TAILOR' || user.role === 'SEAMSTRESS') return true;
-    if (user.role === 'WORKER') {
-      const membership = user.memberships?.[0];
-      if (!membership) return false;
+
+    // 1. Super Admin always has access
+    if (user.role === 'ADMIN') return true;
+
+    // 2. Identify the organization context
+    // We assume the first membership or owned org is the active one for the sidebar
+    const membership = user.memberships?.[0];
+    const ownedOrg = (user as any).ownedOrganizations?.[0];
+    const organization = membership?.organization || ownedOrg;
+
+    if (!organization) {
+      // If no organization context, fallback to base role logic
+      return user.role === 'TAILOR' || user.role === 'SEAMSTRESS';
+    }
+
+    // 3. Check if user is the OWNER of this organization
+    // Owners always have full access to their own shop
+    if (ownedOrg && ownedOrg.id === organization.id) {
+      return true;
+    }
+
+    // 4. Check WORKER permissions within the organization
+    if (membership) {
       const workerRole = membership.role as WorkerRole;
       const rolePerms = ROLE_PERMISSIONS[workerRole] || [];
       const customPerms = (membership.permissions as Permission[]) || [];
       return rolePerms.includes(permission) || customPerms.includes(permission);
     }
+
+    // 5. Fallback for TAILORs who might not have membership yet but own the shop
+    // (This covers the edge case where ownedOrganizations check above might be insufficient)
+    if (user.role === 'TAILOR' || user.role === 'SEAMSTRESS') {
+      return true;
+    }
+
     return false;
   };
 
@@ -66,8 +91,18 @@ export function Sidebar({ className, user, ...props }: SidebarProps) {
     {
       title: 'Business',
       items: [
-        { name: 'Overview', href: '/dashboard/business', icon: LayoutDashboard, required: ['payments:read'] },
-        { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart, required: ['orders:read'] }, // Approx
+        {
+          name: 'Overview',
+          href: '/dashboard/business',
+          icon: LayoutDashboard,
+          required: ['payments:read'],
+        },
+        {
+          name: 'Analytics',
+          href: '/dashboard/analytics',
+          icon: BarChart,
+          required: ['orders:read'],
+        }, // Approx
       ],
     },
     {
@@ -76,23 +111,58 @@ export function Sidebar({ className, user, ...props }: SidebarProps) {
         { name: 'Clients', href: '/dashboard/clients', icon: Users, required: ['clients:read'] },
         { name: 'Orders', href: '/dashboard/orders', icon: FileText, required: ['orders:read'] },
         { name: 'Workshop', href: '/dashboard/workshop', icon: Scissors, required: ['tasks:read'] },
-        { name: 'Appointments', href: '/dashboard/appointments', icon: Calendar, required: ['clients:read'] },
-        { name: 'Inventory', href: '/dashboard/inventory', icon: Layers, required: ['inventory:read'] },
-        { name: 'Equipment', href: '/dashboard/equipment', icon: Wrench, required: ['inventory:read'] },
+        {
+          name: 'Appointments',
+          href: '/dashboard/appointments',
+          icon: Calendar,
+          required: ['clients:read'],
+        },
+        {
+          name: 'Inventory',
+          href: '/dashboard/inventory',
+          icon: Layers,
+          required: ['inventory:read'],
+        },
+        {
+          name: 'Equipment',
+          href: '/dashboard/equipment',
+          icon: Wrench,
+          required: ['inventory:read'],
+        },
       ],
     },
     {
       title: 'Finance',
       items: [
-        { name: 'Payments', href: '/dashboard/payments', icon: CreditCard, required: ['payments:read'] },
-        { name: 'Invoices', href: '/dashboard/invoices', icon: FileText, required: ['invoices:read'] },
+        {
+          name: 'Payments',
+          href: '/dashboard/payments',
+          icon: CreditCard,
+          required: ['payments:read'],
+        },
+        {
+          name: 'Invoices',
+          href: '/dashboard/invoices',
+          icon: FileText,
+          required: ['invoices:read'],
+        },
       ],
     },
     {
       title: 'Showcase',
       items: [
-        { name: 'Portfolio', href: '/dashboard/portfolio', icon: ImageIcon, required: ['settings:write'] }, // Restricted
-        { name: 'Public Profile', href: '/dashboard/showcase', icon: Globe, required: ['settings:write'] },
+        {
+          name: 'Portfolio',
+          href: '/dashboard/portfolio',
+          icon: ImageIcon,
+          required: ['settings:write'],
+        }, // Restricted
+        {
+          name: 'Public Profile',
+          href: '/dashboard/showcase',
+          icon: Globe,
+          required: ['settings:write'],
+        },
       ],
     },
     {
@@ -102,18 +172,25 @@ export function Sidebar({ className, user, ...props }: SidebarProps) {
         { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare, required: [] }, // Everyone
         { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, required: [] },
         { name: 'Outbox', href: '/dashboard/communications', icon: MessageSquare, required: [] },
-        { name: 'Settings', href: '/dashboard/settings', icon: Settings, required: ['settings:read'] },
+        {
+          name: 'Settings',
+          href: '/dashboard/settings',
+          icon: Settings,
+          required: ['settings:read'],
+        },
       ],
     },
   ];
 
-  const sidebarItems = allItems.map(group => ({
-    ...group,
-    items: group.items.filter(item => {
-      if (!item.required || item.required.length === 0) return true;
-      return item.required.every(p => hasPermission(p as Permission));
-    })
-  })).filter(group => group.items.length > 0);
+  const sidebarItems = allItems
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.required || item.required.length === 0) return true;
+        return item.required.every((p) => hasPermission(p as Permission));
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <div

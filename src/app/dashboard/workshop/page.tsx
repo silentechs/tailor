@@ -18,9 +18,10 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { DraggableWorkshopCard } from '@/components/workshop/draggable-workshop-card';
 import { WorkshopColumn } from '@/components/workshop/workshop-column';
+import { fetchApi } from '@/lib/fetch-api';
 
 async function getWorkshopQueue() {
-  const res = await fetch('/api/workshop');
+  const res = await fetchApi('/api/workshop');
   if (!res.ok) throw new Error('Failed to fetch workshop queue');
   const data = await res.json();
   return data.data;
@@ -41,7 +42,7 @@ export default function WorkshopPage() {
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const res = await fetch(`/api/orders/${id}`, {
+      const res = await fetchApi(`/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),

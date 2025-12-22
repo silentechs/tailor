@@ -2,11 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { fetchApi } from '@/lib/fetch-api';
+import { captureError } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -32,22 +34,31 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-export default function LoginPage() {
+function LoginContent() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get('email');
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      email: emailParam || '',
       password: '',
     },
   });
 
+  // Update email field if param changes
+  useEffect(() => {
+    if (emailParam) {
+      form.setValue('email', emailParam);
+    }
+  }, [emailParam, form]);
+
   async function onSubmit(values: z.infer<typeof loginSchema>) {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetchApi('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,10 +76,15 @@ export default function LoginPage() {
         description: 'You have successfully logged in.',
       });
 
-      router.push(data.redirectPath || '/dashboard/business');
+      const callbackUrl = searchParams.get('callbackUrl');
+      if (callbackUrl) {
+        router.push(callbackUrl);
+      } else {
+        router.push(data.redirectPath || '/dashboard/business');
+      }
       router.refresh();
     } catch (error: any) {
-      console.error(error);
+      captureError('LoginPage', error);
       toast.error('Login Failed', {
         description: error.message || 'Please check your credentials and try again.',
       });
@@ -134,15 +150,33 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 text-center text-sm text-muted-foreground pb-8">
           <div className="flex items-center justify-between w-full text-xs px-2">
-            <Link href="/auth/register" className="text-primary font-semibold hover:underline">
+            <Link
+              href={
+                searchParams.get('callbackUrl')
+                  ? `/auth/register?callbackUrl=${encodeURIComponent(searchParams.get('callbackUrl')!)}${searchParams.get('email') ? `&email=${encodeURIComponent(searchParams.get('email')!)}` : ''}`
+                  : `/auth/register${searchParams.get('email') ? `?email=${encodeURIComponent(searchParams.get('email')!)}` : ''}`
+              }
+              className="text-primary font-semibold hover:underline"
+            >
               Create Account
             </Link>
-            <Link href="#" className="hover:text-primary">
+            <Link
+              href="/auth/forgot-password"
+              className="text-primary font-semibold hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

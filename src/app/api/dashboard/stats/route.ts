@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { requirePermission } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
+import { requirePermission, requireOrganization } from '@/lib/require-permission';
 
 // GET /api/dashboard/stats - Get dashboard statistics
 export async function GET() {
   try {
-    const { user } = await requirePermission('payments:read');
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('payments:read', organizationId);
 
     // Get date ranges
     const now = new Date();
@@ -13,6 +14,8 @@ export async function GET() {
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const whereBase = { organizationId };
 
     // Parallel queries for stats
     const [
@@ -31,18 +34,18 @@ export async function GET() {
     ] = await Promise.all([
       // Total clients
       prisma.client.count({
-        where: { tailorId: user.id },
+        where: whereBase,
       }),
 
       // Total orders
       prisma.order.count({
-        where: { tailorId: user.id },
+        where: whereBase,
       }),
 
       // Pending orders
       prisma.order.count({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] },
         },
       }),
@@ -50,7 +53,7 @@ export async function GET() {
       // Completed orders this month
       prisma.order.count({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           status: 'COMPLETED',
           completedAt: { gte: startOfMonth },
         },
@@ -59,7 +62,7 @@ export async function GET() {
       // Monthly revenue
       prisma.payment.aggregate({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           status: 'COMPLETED',
           paidAt: { gte: startOfMonth },
         },
@@ -69,7 +72,7 @@ export async function GET() {
       // Weekly revenue
       prisma.payment.aggregate({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           status: 'COMPLETED',
           paidAt: { gte: startOfWeek },
         },
@@ -79,7 +82,7 @@ export async function GET() {
       // Today's revenue
       prisma.payment.aggregate({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           status: 'COMPLETED',
           paidAt: { gte: startOfDay },
         },
@@ -88,7 +91,7 @@ export async function GET() {
 
       // Recent orders
       prisma.order.findMany({
-        where: { tailorId: user.id },
+        where: whereBase,
         orderBy: { createdAt: 'desc' },
         take: 5,
         include: {
@@ -101,7 +104,7 @@ export async function GET() {
       // Orders by status
       prisma.order.groupBy({
         by: ['status'],
-        where: { tailorId: user.id },
+        where: whereBase,
         _count: { status: true },
       }),
 
@@ -109,7 +112,7 @@ export async function GET() {
       prisma.payment.groupBy({
         by: ['method'],
         where: {
-          tailorId: user.id,
+          ...whereBase,
           status: 'COMPLETED',
           paidAt: { gte: startOfMonth },
         },
@@ -119,7 +122,7 @@ export async function GET() {
       // Top Garments
       prisma.order.groupBy({
         by: ['garmentType'],
-        where: { tailorId: user.id },
+        where: whereBase,
         _count: { garmentType: true },
         orderBy: { _count: { garmentType: 'desc' } },
         take: 5,
@@ -128,7 +131,7 @@ export async function GET() {
       // Upcoming Appointments
       prisma.appointment.findMany({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           startTime: {
             gte: new Date(new Date().setHours(0, 0, 0, 0)),
             lte: new Date(new Date().setHours(23, 59, 59, 999)),
@@ -158,7 +161,7 @@ export async function GET() {
       months.map(async (m) => {
         const result = await prisma.payment.aggregate({
           where: {
-            tailorId: user.id,
+            ...whereBase,
             status: 'COMPLETED',
             paidAt: { gte: m.start, lte: m.end },
           },
@@ -174,13 +177,13 @@ export async function GET() {
     // Calculate average order value
     const avgOrderValue = await prisma.order.aggregate({
       where: {
-        tailorId: user.id,
+        ...whereBase,
         status: 'COMPLETED',
       },
       _avg: { totalAmount: true },
     });
 
-    // Get unread notifications count
+    // Get unread notifications count (Notifications are user-based, not org-based)
     const unreadNotifications = await prisma.notification.count({
       where: {
         userId: user.id,
@@ -197,7 +200,7 @@ export async function GET() {
     const [prevMonthRevenue, prevMonthClients] = await Promise.all([
       prisma.payment.aggregate({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           status: 'COMPLETED',
           paidAt: { gte: prevMonthStart, lte: prevMonthEnd },
         },
@@ -205,7 +208,7 @@ export async function GET() {
       }),
       prisma.client.count({
         where: {
-          tailorId: user.id,
+          ...whereBase,
           createdAt: { gte: prevMonthStart, lte: prevMonthEnd },
         },
       }),
@@ -214,17 +217,17 @@ export async function GET() {
     // Additional workshop stats
     const readyForFittingOrders = await prisma.order.count({
       where: {
-        tailorId: user.id,
+        ...whereBase,
         status: 'READY_FOR_FITTING',
       },
     });
 
     const revGrowth = prevMonthRevenue._sum.amount
       ? Math.round(
-        ((Number(monthlyRevenue._sum.amount || 0) - Number(prevMonthRevenue._sum.amount)) /
-          Number(prevMonthRevenue._sum.amount)) *
-        100
-      )
+          ((Number(monthlyRevenue._sum.amount || 0) - Number(prevMonthRevenue._sum.amount)) /
+            Number(prevMonthRevenue._sum.amount)) *
+            100
+        )
       : 100;
 
     const clientGrowth = prevMonthClients
@@ -288,13 +291,9 @@ export async function GET() {
   } catch (error) {
     console.error('Get dashboard stats error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch dashboard stats' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch dashboard stats' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }

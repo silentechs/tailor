@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import { notifyAppointmentCreated } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 
@@ -20,21 +20,23 @@ const appointmentSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:read', organizationId);
+
     const { searchParams } = new URL(request.url);
     const start = searchParams.get('start');
     const end = searchParams.get('end');
 
     const appointments = await prisma.appointment.findMany({
       where: {
-        tailorId: user.id,
+        organizationId,
         ...(start && end
           ? {
-            startTime: {
-              gte: new Date(start),
-              lte: new Date(end),
-            },
-          }
+              startTime: {
+                gte: new Date(start),
+                lte: new Date(end),
+              },
+            }
           : {}),
       },
       include: {
@@ -63,15 +65,16 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Get appointments error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch appointments' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch appointments' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('orders:write', organizationId);
     const body = await request.json();
 
     const validation = appointmentSchema.safeParse(body);
@@ -90,6 +93,7 @@ export async function POST(request: Request) {
       data: {
         ...validation.data,
         tailorId: user.id,
+        organizationId,
         startTime: new Date(validation.data.startTime),
         endTime: new Date(validation.data.endTime),
       },
@@ -121,8 +125,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Create appointment error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create appointment' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create appointment' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }

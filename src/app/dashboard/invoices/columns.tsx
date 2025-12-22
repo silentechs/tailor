@@ -93,10 +93,7 @@ export const columns: ColumnDef<Invoice>[] = [
     accessorFn: (row) => row.client?.name || 'Unknown',
     header: 'Client',
     cell: ({ row }) => (
-      <Link
-        href={`/dashboard/clients/${row.original.client?.id}`}
-        className="hover:underline"
-      >
+      <Link href={`/dashboard/clients/${row.original.client?.id}`} className="hover:underline">
         {row.original.client?.name || 'Unknown'}
       </Link>
     ),
@@ -143,9 +140,7 @@ export const columns: ColumnDef<Invoice>[] = [
 
       const isOverdue = new Date(date) < new Date() && row.original.status !== 'PAID';
       return (
-        <span className={isOverdue ? 'text-destructive font-medium' : ''}>
-          {formatDate(date)}
-        </span>
+        <span className={isOverdue ? 'text-destructive font-medium' : ''}>{formatDate(date)}</span>
       );
     },
   },

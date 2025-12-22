@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { fetchApi } from '@/lib/fetch-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -71,7 +72,7 @@ export default function NewClientPage() {
         notes: values.notes || undefined,
       };
 
-      const response = await fetch('/api/clients', {
+      const response = await fetchApi('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

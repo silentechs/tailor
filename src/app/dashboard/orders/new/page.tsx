@@ -21,8 +21,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { MeasurementForm } from '@/components/orders/measurement-form';
-import { useMeasurementDraft } from '@/hooks/use-measurement-draft';
-import { offlineDb } from '@/lib/offline-db';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -37,9 +35,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
-import { cn, GARMENT_TYPE_LABELS } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -47,6 +42,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { fetchApi } from '@/lib/fetch-api';
+import { useCsrf } from '@/hooks/use-csrf';
+import { useMeasurementDraft } from '@/hooks/use-measurement-draft';
+import { offlineDb } from '@/lib/offline-db';
+import { cn, GARMENT_TYPE_LABELS } from '@/lib/utils';
 
 const MATERIAL_SOURCES = [
   { value: 'CLIENT_PROVIDED', label: 'Client Provided' },
@@ -83,6 +85,7 @@ const STEPS = [
 
 export default function NewOrderPage() {
   const router = useRouter();
+  const { csrfToken } = useCsrf();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,9 +139,11 @@ export default function NewOrderPage() {
         measurements: values.measurements,
       };
 
-      const response = await fetch('/api/orders', {
+      const response = await fetchApi('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
 
@@ -292,24 +297,27 @@ export default function NewOrderPage() {
                               ) : clients?.length === 0 ? (
                                 <div className="col-span-2 text-center p-8 text-muted-foreground border rounded-md border-dashed">
                                   No clients found.{' '}
-                                  <span
+                                  <button
+                                    type="button"
                                     className="text-primary cursor-pointer hover:underline"
                                     onClick={() => router.push('/dashboard/clients/new')}
                                   >
                                     Create new client
-                                  </span>
+                                  </button>
                                 </div>
                               ) : (
                                 clients?.map((client: any) => (
-                                  <div
+                                  <button
                                     key={client.id}
+                                    type="button"
                                     className={cn(
-                                      'p-3 rounded-md border cursor-pointer hover:border-primary transition-colors flex items-center gap-3',
+                                      'w-full p-3 rounded-md border cursor-pointer hover:border-primary transition-colors flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                                       field.value === client.id
                                         ? 'border-primary bg-primary/5'
                                         : 'bg-card'
                                     )}
                                     onClick={() => form.setValue('clientId', client.id)}
+                                    aria-pressed={field.value === client.id}
                                   >
                                     <Avatar className="h-8 w-8">
                                       <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
@@ -320,7 +328,7 @@ export default function NewOrderPage() {
                                         {client.phone}
                                       </p>
                                     </div>
-                                  </div>
+                                  </button>
                                 ))
                               )}
                             </div>
@@ -345,19 +353,21 @@ export default function NewOrderPage() {
                         <FormItem>
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                             {Object.entries(GARMENT_TYPE_LABELS).map(([key, label]) => (
-                              <div
+                              <button
                                 key={key}
+                                type="button"
                                 className={cn(
-                                  'p-4 rounded-lg border cursor-pointer flex flex-col items-center justify-center gap-2 text-center transition-all hover:shadow-md',
+                                  'p-4 rounded-lg border cursor-pointer flex flex-col items-center justify-center gap-2 text-center transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                                   field.value === key
                                     ? 'border-primary bg-primary text-primary-foreground shadow-lg scale-105'
                                     : 'bg-card hover:border-primary/50'
                                 )}
                                 onClick={() => form.setValue('garmentType', key)}
+                                aria-pressed={field.value === key}
                               >
                                 <Shirt className="h-6 w-6" />
                                 <span className="text-sm font-medium">{label}</span>
-                              </div>
+                              </button>
                             ))}
                           </div>
                           <FormMessage />
@@ -555,7 +565,7 @@ export default function NewOrderPage() {
                       <span>
                         {
                           GARMENT_TYPE_LABELS[
-                          form.getValues('garmentType') as keyof typeof GARMENT_TYPE_LABELS
+                            form.getValues('garmentType') as keyof typeof GARMENT_TYPE_LABELS
                           ]
                         }
                       </span>

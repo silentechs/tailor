@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import * as dotenv from 'dotenv';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 dotenv.config();
 
@@ -9,6 +9,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
+    exclude: [...configDefaults.exclude, 'src/__tests__/e2e/**'],
     // Using simple pool configuration
     pool: 'threads',
     coverage: {

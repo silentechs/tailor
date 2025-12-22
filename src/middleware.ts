@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-// Security headers to apply to all responses
+// Security headers to apply to responses handled by this middleware
 const SECURITY_HEADERS = {
   'X-Frame-Options': 'DENY',
   'X-Content-Type-Options': 'nosniff',
@@ -9,6 +9,22 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
 };
+
+function applySecurityHeaders(response: NextResponse) {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(key, value);
+  }
+
+  // Add HSTS in production
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload'
+    );
+  }
+
+  return response;
+}
 
 // Routes that don't require authentication
 const publicRoutes = [
@@ -74,7 +90,7 @@ export async function middleware(request: NextRequest) {
     publicRoutes.includes(pathname) || publicPrefixes.some((prefix) => pathname.startsWith(prefix));
 
   if (isPublicRoute) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   // Get session cookie
@@ -84,13 +100,15 @@ export async function middleware(request: NextRequest) {
   if (!sessionToken) {
     // For API routes, return 401
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return applySecurityHeaders(
+        NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      );
     }
 
     // For page routes, redirect to login
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
+    return applySecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
   // For protected routes, we'll validate session on the server component level
@@ -104,23 +122,7 @@ export async function middleware(request: NextRequest) {
     // This middleware just ensures there's a session
   }
 
-  // Add security headers to response
-  const response = NextResponse.next();
-
-  // Apply security headers
-  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
-    response.headers.set(key, value);
-  }
-
-  // Add HSTS in production
-  if (process.env.NODE_ENV === 'production') {
-    response.headers.set(
-      'Strict-Transport-Security',
-      'max-age=31536000; includeSubDomains; preload'
-    );
-  }
-
-  return response;
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireUser } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
 
 // GET /api/notifications - List notifications
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const user = await requireUser();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
@@ -43,8 +43,8 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Get notifications error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch notifications' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch notifications' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 // PUT /api/notifications - Mark all as read
 export async function PUT(_request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const user = await requireUser();
 
     await prisma.notification.updateMany({
       where: { userId: user.id, isRead: false },
@@ -63,8 +63,8 @@ export async function PUT(_request: Request) {
   } catch (error) {
     console.error('Mark all read error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update notifications' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update notifications' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }

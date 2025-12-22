@@ -37,17 +37,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { fetchApi } from '@/lib/fetch-api';
 import { cn, formatCurrency } from '@/lib/utils';
 
 async function getInventory() {
-  const res = await fetch('/api/inventory');
+  const res = await fetchApi('/api/inventory');
   if (!res.ok) throw new Error('Failed to fetch inventory');
   const data = await res.json();
   return data.data;
 }
 
 async function getMovements() {
-  const res = await fetch('/api/inventory/movements?limit=10');
+  const res = await fetchApi('/api/inventory/movements?limit=10');
   if (!res.ok) throw new Error('Failed to fetch movements');
   const data = await res.json();
   return data.data;
@@ -59,7 +60,6 @@ export default function InventoryPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<any>(null);
-
 
   const { data: items, isLoading: isItemsLoading } = useQuery({
     queryKey: ['inventory'],
@@ -85,7 +85,7 @@ export default function InventoryPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/inventory/${id}`, {
+      const res = await fetchApi(`/api/inventory/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete item');
@@ -132,7 +132,6 @@ export default function InventoryPage() {
             Add Item
           </Button>
         </div>
-
       </div>
 
       {/* Stats Overview */}
@@ -348,4 +347,3 @@ export default function InventoryPage() {
     </div>
   );
 }
-

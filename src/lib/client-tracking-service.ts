@@ -230,7 +230,7 @@ export async function submitOrderRating(
   // (OrderRating requires them for relation integrity)
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    select: { tailorId: true, clientId: true }
+    select: { tailorId: true, clientId: true },
   });
 
   if (!order) {

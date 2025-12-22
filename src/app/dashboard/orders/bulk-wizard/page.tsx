@@ -55,6 +55,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { fetchApi } from '@/lib/fetch-api';
 import { cn, GARMENT_TYPE_LABELS } from '@/lib/utils';
 
 // --- Schemas ---
@@ -115,14 +116,14 @@ const STEPS = [
 async function getClients(search: string = '') {
   const params = new URLSearchParams({ pageSize: '100' });
   if (search) params.append('search', search);
-  const res = await fetch(`/api/clients?${params.toString()}`);
+  const res = await fetchApi(`/api/clients?${params.toString()}`);
   if (!res.ok) throw new Error('Failed to fetch clients');
   const data = await res.json();
   return data.data;
 }
 
 async function createClient(data: { name: string; phone: string }) {
-  const res = await fetch('/api/clients', {
+  const res = await fetchApi('/api/clients', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -135,7 +136,7 @@ async function createClient(data: { name: string; phone: string }) {
 }
 
 async function createOrderCollection(data: any) {
-  const res = await fetch('/api/order-collections', {
+  const res = await fetchApi('/api/order-collections', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -148,7 +149,7 @@ async function createOrderCollection(data: any) {
 }
 
 async function saveDraft(data: WizardState) {
-  const res = await fetch('/api/bulk-order-drafts', {
+  const res = await fetchApi('/api/bulk-order-drafts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -584,18 +585,20 @@ export default function BulkOrderWizard() {
                           <FormLabel>Garment Type</FormLabel>
                           <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-1 border rounded-md">
                             {Object.entries(GARMENT_TYPE_LABELS).map(([key, label]) => (
-                              <div
+                              <button
                                 key={key}
+                                type="button"
                                 className={cn(
-                                  'p-2 text-sm rounded cursor-pointer text-center border transition-colors',
+                                  'p-2 text-sm rounded cursor-pointer text-center border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                                   field.value === key
                                     ? 'bg-primary text-primary-foreground border-primary'
                                     : 'hover:bg-muted'
                                 )}
                                 onClick={() => form.setValue('garmentType', key)}
+                                aria-pressed={field.value === key}
                               >
                                 {label}
-                              </div>
+                              </button>
                             ))}
                           </div>
                           <FormMessage />
@@ -858,29 +861,38 @@ export default function BulkOrderWizard() {
             <div className="space-y-4 py-2">
               {/* Common Measurements */}
               <div className="grid grid-cols-2 gap-4">
-                {['Chest', 'Waist', 'Hips', 'Shoulder', 'Sleeve', 'Length'].map((label) => (
-                  <div key={label} className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">{label}</label>
-                    <Input
-                      type="number"
-                      value={measurementValues[label] || ''}
-                      onChange={(e) =>
-                        setMeasurementValues((prev) => ({
-                          ...prev,
-                          [label]: e.target.value,
-                        }))
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                ))}
+                {['Chest', 'Waist', 'Hips', 'Shoulder', 'Sleeve', 'Length'].map((label) => {
+                  const inputId = `measurement-${label.toLowerCase()}`;
+                  return (
+                    <div key={label} className="space-y-1">
+                      <label
+                        htmlFor={inputId}
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        {label}
+                      </label>
+                      <Input
+                        id={inputId}
+                        type="number"
+                        value={measurementValues[label] || ''}
+                        onChange={(e) =>
+                          setMeasurementValues((prev) => ({
+                            ...prev,
+                            [label]: e.target.value,
+                          }))
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               <Separator />
 
               {/* Custom Measurements */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Custom Measurements</label>
+                <p className="text-sm font-medium">Custom Measurements</p>
                 {Object.entries(measurementValues)
                   .filter(
                     ([key]) =>
@@ -918,8 +930,11 @@ export default function BulkOrderWizard() {
 
                 <div className="flex gap-2 items-end pt-2">
                   <div className="flex-1 space-y-1">
-                    <label className="text-xs">New Label</label>
+                    <label htmlFor="new-measurement-label" className="text-xs">
+                      New Label
+                    </label>
                     <Input
+                      id="new-measurement-label"
                       value={newMeasurementLabel}
                       onChange={(e) => setNewMeasurementLabel(e.target.value)}
                       placeholder="e.g. Inseam"
@@ -974,16 +989,22 @@ export default function BulkOrderWizard() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Name</label>
+              <label htmlFor="new-client-name" className="text-sm font-medium">
+                Name
+              </label>
               <Input
+                id="new-client-name"
                 placeholder="Full Name"
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Phone</label>
+              <label htmlFor="new-client-phone" className="text-sm font-medium">
+                Phone
+              </label>
               <Input
+                id="new-client-phone"
                 placeholder="Phone Number"
                 value={newClientPhone}
                 onChange={(e) => setNewClientPhone(e.target.value)}

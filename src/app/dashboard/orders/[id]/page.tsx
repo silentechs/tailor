@@ -42,6 +42,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { MeasurementSketcher } from '@/components/workshop/measurement-sketcher';
 import { OrderTaskBoard } from '@/components/workshop/order-task-board';
 import { downloadInvoicePDF } from '@/lib/pdf-generator';
+import { fetchApi } from '@/lib/fetch-api';
 import {
   formatCurrency,
   formatDate,
@@ -52,7 +53,7 @@ import {
 } from '@/lib/utils';
 
 async function getOrder(id: string) {
-  const res = await fetch(`/api/orders/${id}`);
+  const res = await fetchApi(`/api/orders/${id}`);
   if (!res.ok) {
     throw new Error('Failed to fetch order');
   }
@@ -78,7 +79,7 @@ export default function OrderDetailsPage() {
 
   const statusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
-      const res = await fetch(`/api/orders/${id}`, {
+      const res = await fetchApi(`/api/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -97,7 +98,7 @@ export default function OrderDetailsPage() {
 
   const notifyMutation = useMutation({
     mutationFn: async (type: string) => {
-      const res = await fetch(`/api/orders/${id}/notify`, {
+      const res = await fetchApi(`/api/orders/${id}/notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type }),
@@ -131,7 +132,7 @@ export default function OrderDetailsPage() {
         notes: `Invoice for order ${orderData.orderNumber}`,
       };
 
-      const res = await fetch('/api/invoices', {
+      const res = await fetchApi('/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -199,18 +200,21 @@ export default function OrderDetailsPage() {
                 createdAt: orderData.createdAt,
                 dueDate: orderData.dueDate,
                 status: orderData.status,
-                businessName: orderData.tailor?.businessName || orderData.tailor?.name || 'StitchCraft Ghana',
+                businessName:
+                  orderData.tailor?.businessName || orderData.tailor?.name || 'StitchCraft Ghana',
                 businessPhone: orderData.tailor?.phone,
                 businessEmail: orderData.tailor?.email,
                 clientName: orderData.client?.name,
                 clientPhone: orderData.client?.phone,
                 clientEmail: orderData.client?.email,
-                items: [{
-                  description: `${orderData.garmentType?.replace(/_/g, ' ')} - Custom Tailoring`,
-                  quantity: 1,
-                  unitPrice: Number(orderData.totalAmount),
-                  amount: Number(orderData.totalAmount),
-                }],
+                items: [
+                  {
+                    description: `${orderData.garmentType?.replace(/_/g, ' ')} - Custom Tailoring`,
+                    quantity: 1,
+                    unitPrice: Number(orderData.totalAmount),
+                    amount: Number(orderData.totalAmount),
+                  },
+                ],
                 subtotal: Number(orderData.totalAmount),
                 vatAmount: 0,
                 nhilAmount: 0,
@@ -307,7 +311,7 @@ export default function OrderDetailsPage() {
                   Measurements Used
                 </p>
                 {orderData.measurement?.values &&
-                  Object.keys(orderData.measurement.values).length > 0 ? (
+                Object.keys(orderData.measurement.values).length > 0 ? (
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                     {Object.entries(orderData.measurement.values as Record<string, any>).map(
                       ([key, value]) => (

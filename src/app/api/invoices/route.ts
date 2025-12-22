@@ -1,10 +1,10 @@
 import type { InvoiceStatus, Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { calculateInvoice, type InvoiceLineItem } from '@/lib/ghana-invoice-calculations';
 import { generateInvoiceNumber } from '@/lib/invoice-numbering-system';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 // Validation schema for invoice line item
 const lineItemSchema = z.object({
@@ -28,7 +28,7 @@ const createInvoiceSchema = z.object({
 // GET /api/invoices - List all invoices
 export async function GET(request: Request) {
   try {
-    const { user, organizationId } = await requireOrganization();
+    const { organizationId } = await requireOrganization();
     await requirePermission('invoices:read', organizationId);
 
     const { searchParams } = new URL(request.url);

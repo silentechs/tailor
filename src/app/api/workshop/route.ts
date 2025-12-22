@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:read', organizationId);
 
     const orders = await prisma.order.findMany({
       where: {
-        tailorId: user.id,
+        organizationId,
         status: {
           in: ['CONFIRMED', 'IN_PROGRESS', 'READY_FOR_FITTING', 'FITTING_DONE'],
         },
@@ -39,8 +40,8 @@ export async function GET() {
   } catch (error) {
     console.error('Workshop queue error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch workshop queue' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch workshop queue' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }

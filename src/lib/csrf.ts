@@ -86,7 +86,14 @@ export async function checkCSRF(request: Request): Promise<{ valid: boolean; err
   // Validate CSRF token
   const isValid = await validateCSRFToken(request);
   if (!isValid) {
-    return { valid: false, error: 'Invalid CSRF token' };
+    const cookieStore = await cookies();
+    const hasCookie = !!cookieStore.get(CSRF_COOKIE_NAME);
+    const hasHeader = !!request.headers.get(CSRF_HEADER_NAME);
+    
+    return { 
+      valid: false, 
+      error: `Invalid CSRF token (Cookie: ${hasCookie ? 'present' : 'missing'}, Header: ${hasHeader ? 'present' : 'missing'})` 
+    };
   }
 
   return { valid: true };

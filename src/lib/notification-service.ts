@@ -263,13 +263,7 @@ export async function notifyPaymentReceived(
     // We don't have payment number here easily, so we might need to adjust signature or fetch it
     // For now, using a placeholder or we can pass it in 'data'
     // Better yet, let's update the signature of this function in a separate step or just use "VIEW"
-    await sendReceiptEmail(
-      clientEmail,
-      clientName,
-      'VIEW',
-      amount,
-      receiptUrl
-    );
+    await sendReceiptEmail(clientEmail, clientName, 'VIEW', amount, receiptUrl);
   }
 }
 
@@ -345,12 +339,7 @@ export async function notifyAppointmentReminder(
 
   // Email to Client
   if (clientEmail) {
-    await sendAppointmentReminderEmail(
-      clientEmail,
-      clientName,
-      appointmentType,
-      timeStr
-    );
+    await sendAppointmentReminderEmail(clientEmail, clientName, appointmentType, timeStr);
   }
 }
 

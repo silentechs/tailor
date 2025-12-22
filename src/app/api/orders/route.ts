@@ -1,68 +1,67 @@
-import type { OrderStatus, Prisma } from '@prisma/client';
-import { MaterialSourceType } from '@prisma/client';
-import { NextResponse } from 'next/server';
+import type { MaterialSourceType, OrderStatus, Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { requirePermission, requireOrganization } from '@/lib/require-permission';
+import { secureErrorResponse, secureJsonResponse, withSecurity } from '@/lib/api-security';
+import { logAudit } from '@/lib/audit-service';
 import { generateOrderNumber } from '@/lib/invoice-numbering-system';
+import { captureError } from '@/lib/logger';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 // Validation schema for creating an order
-const createOrderSchema = z.object({
-  clientId: z.string().min(1, 'Client is required'),
-  garmentType: z.enum([
-    'KABA_AND_SLIT',
-    'DASHIKI',
-    'SMOCK_BATAKARI',
-    'KAFTAN',
-    'AGBADA',
-    'COMPLET',
-    'KENTE_CLOTH',
-    'BOUBOU',
-    'SUIT',
-    'DRESS',
-    'SHIRT',
-    'TROUSERS',
-    'SKIRT',
-    'BLOUSE',
-    'OTHER',
-  ]),
-  garmentDescription: z.string().optional().nullable(),
-  styleReference: z.string().optional().nullable(),
-  styleNotes: z.string().optional().nullable(),
-  quantity: z.number().int().positive().default(1),
-  materialSource: z
-    .enum(['CLIENT_PROVIDED', 'TAILOR_PROVIDED', 'SPLIT'])
-    .default('CLIENT_PROVIDED'),
-  materialDetails: z.string().optional().nullable(),
-  materialCost: z.number().nonnegative().optional().nullable(),
-  laborCost: z.number().nonnegative(),
-  totalAmount: z.number().nonnegative().optional(),
-  deadline: z.string().optional().nullable(),
-  collectionId: z.string().optional().nullable(),
-  measurements: z.record(z.string(), z.any()).optional(),
-}).refine(
-  (data) => {
-    if (data.totalAmount !== undefined) {
-      const materialCost = data.materialCost || 0;
-      const calculatedTotal = data.laborCost + materialCost;
-      // Use small epsilon for decimal comparison if needed, though these are likely coming as floats
-      return Math.abs(data.totalAmount - calculatedTotal) < 0.01;
+const createOrderSchema = z
+  .object({
+    clientId: z.string().min(1, 'Client is required'),
+    garmentType: z.enum([
+      'KABA_AND_SLIT',
+      'DASHIKI',
+      'SMOCK_BATAKARI',
+      'KAFTAN',
+      'AGBADA',
+      'COMPLET',
+      'KENTE_CLOTH',
+      'BOUBOU',
+      'SUIT',
+      'DRESS',
+      'SHIRT',
+      'TROUSERS',
+      'SKIRT',
+      'BLOUSE',
+      'OTHER',
+    ]),
+    garmentDescription: z.string().optional().nullable(),
+    styleReference: z.string().optional().nullable(),
+    styleNotes: z.string().optional().nullable(),
+    quantity: z.number().int().positive().default(1),
+    materialSource: z
+      .enum(['CLIENT_PROVIDED', 'TAILOR_PROVIDED', 'SPLIT'])
+      .default('CLIENT_PROVIDED'),
+    materialDetails: z.string().optional().nullable(),
+    materialCost: z.number().nonnegative().optional().nullable(),
+    laborCost: z.number().nonnegative(),
+    totalAmount: z.number().nonnegative().optional(),
+    deadline: z.string().optional().nullable(),
+    collectionId: z.string().optional().nullable(),
+    measurements: z.record(z.string(), z.any()).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.totalAmount !== undefined) {
+        const materialCost = data.materialCost || 0;
+        const calculatedTotal = data.laborCost + materialCost;
+        return Math.abs(data.totalAmount - calculatedTotal) < 0.01;
+      }
+      return true;
+    },
+    {
+      message: 'totalAmount must equal laborCost + materialCost',
+      path: ['totalAmount'],
     }
-    return true;
-  },
-  {
-    message: 'totalAmount must equal laborCost + materialCost',
-    path: ['totalAmount'],
-  }
-);
+  );
 
 // GET /api/orders - List all orders for the current organization
-export async function GET(request: Request) {
+export const GET = withSecurity(async (request: Request) => {
   try {
-    // 1. Get context and ID (ensures user has access to *an* organization)
-    const { user, organizationId } = await requireOrganization();
-
-    // 2. Enforce granular permission for viewing orders
+    const { organizationId } = await requireOrganization();
     await requirePermission('orders:read', organizationId);
 
     const { searchParams } = new URL(request.url);
@@ -74,7 +73,6 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-    // Build where clause
     const where: Prisma.OrderWhereInput = {
       organizationId,
       ...(status && { status: status as OrderStatus }),
@@ -88,10 +86,8 @@ export async function GET(request: Request) {
       }),
     };
 
-    // Get total count
     const total = await prisma.order.count({ where });
 
-    // Get orders with pagination
     const orders = await prisma.order.findMany({
       where,
       orderBy: { [sortBy]: sortOrder as Prisma.SortOrder },
@@ -99,29 +95,18 @@ export async function GET(request: Request) {
       take: pageSize,
       include: {
         client: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true,
-          },
+          select: { id: true, name: true, phone: true, email: true },
         },
         collection: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         },
         _count: {
-          select: {
-            payments: true,
-            messages: true,
-          },
+          select: { payments: true, messages: true },
         },
       },
     });
 
-    return NextResponse.json({
+    return secureJsonResponse({
       success: true,
       data: orders.map((order) => {
         const { _count, ...rest } = order;
@@ -139,154 +124,121 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Get orders error:', error);
-
+    captureError('OrdersAPI:GET', error);
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return secureErrorResponse('Unauthorized', 401);
     }
-
-    return NextResponse.json({ success: false, error: 'Failed to fetch orders' }, { status: 500 });
+    return secureErrorResponse('Failed to fetch orders', 500);
   }
-}
+}, 'orders:list');
 
 // POST /api/orders - Create a new order
-export async function POST(request: Request) {
-  try {
-    // 1. Get context and ID
-    const { user, organizationId } = await requireOrganization();
+export const POST = withSecurity(
+  async (_request: Request, { sanitizedBody }) => {
+    try {
+      const { user, organizationId } = await requireOrganization();
+      await requirePermission('orders:write', organizationId);
 
-    // 2. Enforce permission
-    await requirePermission('orders:write', organizationId);
-    const body = await request.json();
+      const body = sanitizedBody;
 
-    // Validate input
-    const validationResult = createOrderSchema.safeParse(body);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: validationResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const data = validationResult.data;
-
-    // Verify client belongs to this organization
-    const client = await prisma.client.findFirst({
-      where: {
-        id: data.clientId,
-        organizationId,
-      },
-    });
-
-    if (!client) {
-      return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
-    }
-
-    // Verify collection if provided
-    if (data.collectionId) {
-      const collection = await prisma.orderCollection.findFirst({
-        where: {
-          id: data.collectionId,
-          organizationId,
-        },
-      });
-
-      if (!collection) {
-        return NextResponse.json(
-          { success: false, error: 'Order collection not found' },
-          { status: 404 }
-        );
-      }
-    }
-
-    // Generate order number
-    const orderNumber = await generateOrderNumber(user.id);
-
-    // Calculate total
-    const materialCost = data.materialCost || 0;
-    const totalAmount = data.laborCost + materialCost;
-
-    // Create order with measurement snapshot in a transaction
-    const order = await prisma.$transaction(async (tx) => {
-      // 1. Create measurement record if provided
-      let measurementId: string | undefined;
-      if (data.measurements && Object.keys(data.measurements).length > 0) {
-        const measurementRecord = await tx.clientMeasurement.create({
-          data: {
-            clientId: data.clientId,
-            values: data.measurements,
-            notes: `Snapshot for Order ${orderNumber}`,
-          },
-        });
-        measurementId = measurementRecord.id;
+      const validationResult = createOrderSchema.safeParse(body);
+      if (!validationResult.success) {
+        return secureErrorResponse('Validation failed', 400);
       }
 
-      // 2. Create the order
-      const newOrder = await tx.order.create({
-        data: {
-          orderNumber,
-          tailorId: user.id, // Keep as owner for primary relation if needed, but scoping is by org
-          organizationId,
-          clientId: data.clientId,
-          collectionId: data.collectionId,
-          garmentType: data.garmentType,
-          garmentDescription: data.garmentDescription,
-          styleReference: data.styleReference,
-          styleNotes: data.styleNotes,
-          quantity: data.quantity,
-          materialSource: data.materialSource as MaterialSourceType,
-          materialDetails: data.materialDetails,
-          materialCost: materialCost,
-          laborCost: data.laborCost,
-          totalAmount,
-          deadline: data.deadline ? new Date(data.deadline) : null,
-          status: 'PENDING',
-          measurementId,
-        },
-        include: {
-          client: {
-            select: {
-              id: true,
-              name: true,
-              phone: true,
-              email: true,
-            },
-          },
-          measurement: true,
-        },
+      const data = validationResult.data;
+
+      const client = await prisma.client.findFirst({
+        where: { id: data.clientId, organizationId },
       });
 
-      // 3. Update collection count if part of a collection
+      if (!client) {
+        return secureErrorResponse('Client not found', 404);
+      }
+
       if (data.collectionId) {
-        await tx.orderCollection.update({
-          where: { id: data.collectionId },
-          data: {
-            totalOrders: { increment: 1 },
-          },
+        const collection = await prisma.orderCollection.findFirst({
+          where: { id: data.collectionId, organizationId },
         });
+        if (!collection) {
+          return secureErrorResponse('Order collection not found', 404);
+        }
       }
 
-      return newOrder;
-    });
+      const orderNumber = await generateOrderNumber(user.id);
+      const materialCost = data.materialCost || 0;
+      const totalAmount = data.laborCost + materialCost;
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: order,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Create order error:', error);
+      const order = await prisma.$transaction(async (tx) => {
+        let measurementId: string | undefined;
+        if (data.measurements && Object.keys(data.measurements).length > 0) {
+          const measurementRecord = await tx.clientMeasurement.create({
+            data: {
+              clientId: data.clientId,
+              values: data.measurements,
+              notes: `Snapshot for Order ${orderNumber}`,
+            },
+          });
+          measurementId = measurementRecord.id;
+        }
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        const newOrder = await tx.order.create({
+          data: {
+            orderNumber,
+            tailorId: user.id,
+            organizationId,
+            clientId: data.clientId,
+            collectionId: data.collectionId,
+            garmentType: data.garmentType,
+            garmentDescription: data.garmentDescription,
+            styleReference: data.styleReference,
+            styleNotes: data.styleNotes,
+            quantity: data.quantity,
+            materialSource: data.materialSource as MaterialSourceType,
+            materialDetails: data.materialDetails,
+            materialCost: materialCost,
+            laborCost: data.laborCost,
+            totalAmount,
+            deadline: data.deadline ? new Date(data.deadline) : null,
+            status: 'PENDING',
+            measurementId,
+          },
+          include: {
+            client: {
+              select: { id: true, name: true, phone: true, email: true },
+            },
+            measurement: true,
+          },
+        });
+
+        if (data.collectionId) {
+          await tx.orderCollection.update({
+            where: { id: data.collectionId },
+            data: { totalOrders: { increment: 1 } },
+          });
+        }
+
+        return newOrder;
+      });
+
+      // Audit Log
+      await logAudit({
+        userId: user.id,
+        action: 'ORDER_CREATE',
+        resource: 'order',
+        resourceId: order.id,
+        details: { orderNumber: order.orderNumber, clientId: order.clientId, organizationId },
+      });
+
+      return secureJsonResponse({ success: true, data: order }, { status: 201 });
+    } catch (error) {
+      captureError('OrdersAPI:POST', error);
+      if (error instanceof Error && error.message === 'Unauthorized') {
+        return secureErrorResponse('Unauthorized', 401);
+      }
+      return secureErrorResponse('Failed to create order', 500);
     }
-
-    return NextResponse.json({ success: false, error: 'Failed to create order' }, { status: 500 });
-  }
-}
+  },
+  'orders:create',
+  { rateLimit: 'write' }
+);

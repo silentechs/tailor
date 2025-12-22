@@ -118,7 +118,7 @@ export default function PaymentsPage() {
           {methodFilter && (
             <Badge variant="secondary" className="gap-1">
               {PAYMENT_METHODS.find((m) => m.value === methodFilter)?.label}
-              <button onClick={() => setMethodFilter('')}>
+              <button type="button" onClick={() => setMethodFilter('')}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>

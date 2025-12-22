@@ -33,7 +33,7 @@ export type CurrentUser = {
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  const session = await getSession() as any;
+  const session = (await getSession()) as any;
 
   if (!session?.user) {
     return null;
@@ -52,7 +52,10 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
-export async function requireOrganization(): Promise<{ user: CurrentUser; organizationId: string }> {
+export async function requireOrganization(): Promise<{
+  user: CurrentUser;
+  organizationId: string;
+}> {
   const user = await requireUser();
 
   // 1. Get organization from memberships

@@ -22,7 +22,10 @@ export function Topbar() {
   const unreadCount = notificationData?.meta?.unreadCount || 0;
 
   return (
-    <header data-topbar className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 no-print">
+    <header
+      data-topbar
+      className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 no-print"
+    >
       <div className="flex h-16 items-center px-4 md:px-8">
         <div className="flex items-center gap-4 flex-1">
           {/* Mobile Logo */}

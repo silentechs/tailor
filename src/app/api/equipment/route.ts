@@ -1,13 +1,25 @@
 import { NextResponse } from 'next/server';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('inventory:read', organizationId);
+
+    // Get the organization owner's ID to fetch their equipment
+    // (In the future, we should add organizationId to the Equipment model)
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { ownerId: true }
+    });
+
+    if (!org) {
+      throw new Error('Organization not found');
+    }
 
     const equipment = await prisma.equipment.findMany({
-      where: { tailorId: user.id },
+      where: { tailorId: org.ownerId },
       include: {
         maintenance: {
           orderBy: { completedDate: 'desc' },
@@ -24,21 +36,32 @@ export async function GET() {
   } catch (error) {
     console.error('Get equipment error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch equipment' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch equipment' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('inventory:write', organizationId);
+    
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { ownerId: true }
+    });
+
+    if (!org) {
+      throw new Error('Organization not found');
+    }
+
     const body = await request.json();
 
     const item = await prisma.equipment.create({
       data: {
         ...body,
-        tailorId: user.id,
+        tailorId: org.ownerId, // Link to the shop owner
       },
     });
 
@@ -46,8 +69,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Create equipment error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create equipment' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create equipment' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }

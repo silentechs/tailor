@@ -28,10 +28,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { fetchApi } from '@/lib/fetch-api';
 import { cn, formatDate } from '@/lib/utils';
 
 async function getNotifications(filter: string = 'all') {
-  const res = await fetch(`/api/notifications?filter=${filter}`);
+  const res = await fetchApi(`/api/notifications?filter=${filter}`);
   if (!res.ok) throw new Error('Failed to fetch notifications');
   return res.json();
 }
@@ -40,14 +41,14 @@ export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all');
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['notifications', filter],
     queryFn: () => getNotifications(filter),
   });
 
   const markReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/notifications/${id}`, { method: 'PUT' });
+      const res = await fetchApi(`/api/notifications/${id}`, { method: 'PUT' });
       if (!res.ok) throw new Error('Failed to mark as read');
       return res.json();
     },
@@ -58,7 +59,7 @@ export default function NotificationsPage() {
 
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/notifications`, { method: 'PUT' });
+      const res = await fetchApi(`/api/notifications`, { method: 'PUT' });
       if (!res.ok) throw new Error('Failed to mark all as read');
       return res.json();
     },
@@ -70,7 +71,7 @@ export default function NotificationsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+      const res = await fetchApi(`/api/notifications/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete notification');
       return res.json();
     },

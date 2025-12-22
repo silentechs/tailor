@@ -1,11 +1,10 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   Calendar,
   CheckCircle2,
-  ChevronRight,
   Hammer,
   History,
   Loader2,
@@ -13,7 +12,6 @@ import {
   Save,
   Settings,
   Wrench,
-  X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -53,16 +51,17 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { fetchApi } from '@/lib/fetch-api';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 
 async function getEquipment() {
-  const res = await fetch('/api/equipment');
+  const res = await fetchApi('/api/equipment');
   if (!res.ok) throw new Error('Failed to fetch equipment');
   return res.json();
 }
 
 async function getMaintenanceLogs(equipmentId: string) {
-  const res = await fetch(`/api/maintenance?equipmentId=${equipmentId}`);
+  const res = await fetchApi(`/api/maintenance?equipmentId=${equipmentId}`);
   if (!res.ok) throw new Error('Failed to fetch maintenance logs');
   return res.json();
 }
@@ -332,7 +331,7 @@ function AddEquipmentDialog({ trigger }: { trigger?: React.ReactNode }) {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const res = await fetch('/api/equipment', {
+      const res = await fetchApi('/api/equipment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -436,7 +435,7 @@ function AddMaintenanceDialog({
     };
 
     try {
-      const res = await fetch('/api/maintenance', {
+      const res = await fetchApi('/api/maintenance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -485,12 +484,7 @@ function AddMaintenanceDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                placeholder="What was done?"
-                required
-              />
+              <Textarea id="description" name="description" placeholder="What was done?" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="cost">Cost (GHS)</Label>
@@ -538,7 +532,7 @@ function EquipmentSettingsDialog({
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const res = await fetch(`/api/equipment/${equipment.id}`, {
+      const res = await fetchApi(`/api/equipment/${equipment.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -583,11 +577,7 @@ function EquipmentSettingsDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="serialNumber">Serial Number</Label>
-              <Input
-                id="serialNumber"
-                name="serialNumber"
-                defaultValue={equipment.serialNumber}
-              />
+              <Input id="serialNumber" name="serialNumber" defaultValue={equipment.serialNumber} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>

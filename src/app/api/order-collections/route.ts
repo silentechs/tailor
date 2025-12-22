@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requirePermission, requireOrganization } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 import { generateOrderNumber } from '@/lib/utils';
 
@@ -35,13 +35,14 @@ const createCollectionSchema = z.object({
 // GET /api/order-collections - List all collections
 export async function GET(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:read', organizationId);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
 
-    const where = { tailorId: user.id };
+    const where = { organizationId };
 
     const total = await prisma.orderCollection.count({ where });
 
@@ -78,14 +79,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Get collections error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch collections' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch collections' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }
@@ -93,7 +89,8 @@ export async function GET(request: Request) {
 // POST /api/order-collections - Create a new collection
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('orders:write', organizationId);
     const body = await request.json();
 
     const validationResult = createCollectionSchema.safeParse(body);
@@ -117,6 +114,7 @@ export async function POST(request: Request) {
       const collection = await tx.orderCollection.create({
         data: {
           tailorId: user.id,
+          organizationId,
           name: data.name,
           description: data.description,
           deadline: data.deadline ? new Date(data.deadline) : null,
@@ -152,6 +150,7 @@ export async function POST(request: Request) {
           await tx.order.create({
             data: {
               tailorId: user.id,
+              organizationId,
               clientId: orderData.clientId,
               collectionId: collection.id,
               orderNumber,
@@ -190,14 +189,9 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error('Create collection error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     return NextResponse.json(
-      { success: false, error: 'Failed to create collection' },
-      { status: 500 }
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create collection' },
+      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
     );
   }
 }

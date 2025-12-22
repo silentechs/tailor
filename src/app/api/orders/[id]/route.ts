@@ -6,70 +6,75 @@ import { notifyOrderStatusChange } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 
 // Validation schema for updating an order
-const updateOrderSchema = z.object({
-  garmentType: z
-    .enum([
-      'KABA_AND_SLIT',
-      'DASHIKI',
-      'SMOCK_BATAKARI',
-      'KAFTAN',
-      'AGBADA',
-      'COMPLET',
-      'KENTE_CLOTH',
-      'BOUBOU',
-      'SUIT',
-      'DRESS',
-      'SHIRT',
-      'TROUSERS',
-      'SKIRT',
-      'BLOUSE',
-      'OTHER',
-    ])
-    .optional(),
-  garmentDescription: z.string().optional().nullable(),
-  styleReference: z.string().optional().nullable(),
-  styleNotes: z.string().optional().nullable(),
-  quantity: z.number().int().positive().optional(),
-  materialSource: z.enum(['CLIENT_PROVIDED', 'TAILOR_PROVIDED', 'SPLIT']).optional(),
-  materialDetails: z.string().optional().nullable(),
-  materialCost: z.number().nonnegative().optional().nullable(),
-  laborCost: z.number().nonnegative().optional(),
-  totalAmount: z.number().nonnegative().optional(),
-  deadline: z.string().optional().nullable(),
-  status: z
-    .enum([
-      'PENDING',
-      'CONFIRMED',
-      'IN_PROGRESS',
-      'READY_FOR_FITTING',
-      'FITTING_DONE',
-      'COMPLETED',
-      'CANCELLED',
-    ])
-    .optional(),
-  progressPhotos: z.array(z.string()).optional(),
-  progressNotes: z.string().optional().nullable(),
-}).refine(
-  (data) => {
-    // We only validate if both laborCost and materialCost are present in the update
-    // OR if totalAmount is provided and we can compare it with what's provided or existing.
-    // However, the simplest check for an update is to check if totalAmount is provided,
-    // and if so, it must match the sum of whatever laborCost and materialCost are being set to.
-    // If they aren't being set, we'd need the existing values, which we don't have in the schema refinement.
-    // So we'll only validate if totalAmount is provided AND (laborCost OR materialCost) are also provided.
+const updateOrderSchema = z
+  .object({
+    garmentType: z
+      .enum([
+        'KABA_AND_SLIT',
+        'DASHIKI',
+        'SMOCK_BATAKARI',
+        'KAFTAN',
+        'AGBADA',
+        'COMPLET',
+        'KENTE_CLOTH',
+        'BOUBOU',
+        'SUIT',
+        'DRESS',
+        'SHIRT',
+        'TROUSERS',
+        'SKIRT',
+        'BLOUSE',
+        'OTHER',
+      ])
+      .optional(),
+    garmentDescription: z.string().optional().nullable(),
+    styleReference: z.string().optional().nullable(),
+    styleNotes: z.string().optional().nullable(),
+    quantity: z.number().int().positive().optional(),
+    materialSource: z.enum(['CLIENT_PROVIDED', 'TAILOR_PROVIDED', 'SPLIT']).optional(),
+    materialDetails: z.string().optional().nullable(),
+    materialCost: z.number().nonnegative().optional().nullable(),
+    laborCost: z.number().nonnegative().optional(),
+    totalAmount: z.number().nonnegative().optional(),
+    deadline: z.string().optional().nullable(),
+    status: z
+      .enum([
+        'PENDING',
+        'CONFIRMED',
+        'IN_PROGRESS',
+        'READY_FOR_FITTING',
+        'FITTING_DONE',
+        'COMPLETED',
+        'CANCELLED',
+      ])
+      .optional(),
+    progressPhotos: z.array(z.string()).optional(),
+    progressNotes: z.string().optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      // We only validate if both laborCost and materialCost are present in the update
+      // OR if totalAmount is provided and we can compare it with what's provided or existing.
+      // However, the simplest check for an update is to check if totalAmount is provided,
+      // and if so, it must match the sum of whatever laborCost and materialCost are being set to.
+      // If they aren't being set, we'd need the existing values, which we don't have in the schema refinement.
+      // So we'll only validate if totalAmount is provided AND (laborCost OR materialCost) are also provided.
 
-    if (data.totalAmount !== undefined && (data.laborCost !== undefined || data.materialCost !== undefined)) {
-      // Note: This only validates partial updates. If only totalAmount is sent, we can't easily validate here.
-      // But in the route handler we recalculate it anyway.
-      return true; // Skipping complex refinement for partial updates in Zod for now, or just let the handler handle it.
+      if (
+        data.totalAmount !== undefined &&
+        (data.laborCost !== undefined || data.materialCost !== undefined)
+      ) {
+        // Note: This only validates partial updates. If only totalAmount is sent, we can't easily validate here.
+        // But in the route handler we recalculate it anyway.
+        return true; // Skipping complex refinement for partial updates in Zod for now, or just let the handler handle it.
+      }
+      return true;
+    },
+    {
+      message: 'totalAmount must equal laborCost + materialCost',
+      path: ['totalAmount'],
     }
-    return true;
-  },
-  {
-    message: 'totalAmount must equal laborCost + materialCost',
-    path: ['totalAmount'],
-  }
-);
+  );
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -218,7 +223,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
             materialId: { not: null },
             materialQty: { gt: 0 },
             consumedAt: null,
-          }
+          },
         });
 
         if (unconsumedTasks.length > 0) {

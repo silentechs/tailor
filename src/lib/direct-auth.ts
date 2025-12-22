@@ -1,4 +1,3 @@
-import type { Region } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
@@ -78,16 +77,16 @@ export async function getSession() {
               role: true,
               permissions: true,
               organization: {
-                select: { id: true, name: true, slug: true }
-              }
-            }
+                select: { id: true, name: true, slug: true },
+              },
+            },
           },
           ownedOrganizations: {
-            select: { id: true, name: true, slug: true }
+            select: { id: true, name: true, slug: true },
           },
           linkedClientId: true,
           linkedClient: {
-            select: { id: true, name: true }
+            select: { id: true, name: true },
           },
           measurements: true,
         },
@@ -177,7 +176,7 @@ export async function registerUser(data: {
   name: string;
   phone?: string;
   businessName?: string;
-  role: 'TAILOR' | 'SEAMSTRESS' | 'CLIENT';
+  role: 'TAILOR' | 'SEAMSTRESS' | 'CLIENT' | 'WORKER';
   region?: string;
   city?: string;
   trackingToken?: string;
@@ -198,9 +197,9 @@ export async function registerUser(data: {
       where: { token: data.trackingToken },
       include: {
         client: {
-          include: { user: { select: { id: true } } }
-        }
-      }
+          include: { user: { select: { id: true } } },
+        },
+      },
     });
 
     if (!tracking || !tracking.isActive) {
@@ -218,7 +217,7 @@ export async function registerUser(data: {
   const hashedPassword = await hashPassword(data.password);
 
   // Create user
-  const initialStatus = (data.role === 'TAILOR' || data.role === 'SEAMSTRESS') ? 'PENDING' : 'ACTIVE';
+  const initialStatus = data.role === 'TAILOR' || data.role === 'SEAMSTRESS' ? 'PENDING' : 'ACTIVE';
 
   const user = await prisma.user.create({
     data: {
@@ -232,7 +231,6 @@ export async function registerUser(data: {
       linkedClientId,
     },
   });
-
 
   return { success: true, user };
 }

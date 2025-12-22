@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { fetchApi } from '@/lib/fetch-api';
 
 const itemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -101,7 +102,7 @@ export function InventoryItemDialog({ open, onOpenChange, itemToEdit }: Inventor
     formData.append('folder', 'inventory');
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetchApi('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -111,7 +112,7 @@ export function InventoryItemDialog({ open, onOpenChange, itemToEdit }: Inventor
       const data = await res.json();
       setImageUrl(data.url);
       toast.success('Image uploaded');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to upload image');
     } finally {
       setIsUploadingImage(false);
@@ -123,7 +124,7 @@ export function InventoryItemDialog({ open, onOpenChange, itemToEdit }: Inventor
       const url = itemToEdit ? `/api/inventory/${itemToEdit.id}` : '/api/inventory';
       const method = itemToEdit ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await fetchApi(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -168,7 +169,9 @@ export function InventoryItemDialog({ open, onOpenChange, itemToEdit }: Inventor
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             {/* Image Upload Section */}
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none">Item Photo</label>
+              <label htmlFor="inventory-item-photo" className="text-sm font-medium leading-none">
+                Item Photo
+              </label>
               <div className="flex items-center gap-4">
                 <div className="h-24 w-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center overflow-hidden bg-muted/30">
                   {imageUrl ? (
@@ -180,6 +183,7 @@ export function InventoryItemDialog({ open, onOpenChange, itemToEdit }: Inventor
                 </div>
                 <div className="flex flex-col gap-2">
                   <input
+                    id="inventory-item-photo"
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"

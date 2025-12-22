@@ -5,9 +5,9 @@
   --font-body: var(--font-dm-sans);
   --font-sans: var(--font-dm-sans);
 
-  --color-ghana-red: #CE1126;
-  --color-ghana-gold: #FCD116;
-  --color-ghana-green: #006B3F;
+  --color-ghana-red: #ce1126;
+  --color-ghana-gold: #fcd116;
+  --color-ghana-green: #006b3f;
   --color-ghana-black: #000000;
 
   --color-border: hsl(var(--border));
@@ -73,7 +73,7 @@
     max-width: none;
   }
 
-  @media (width >=1400px) {
+  @media (width >= 1400px) {
     max-width: 1400px;
   }
 }
@@ -184,7 +184,6 @@
    Hide navigation and UI elements when printing
    ============================================ */
 @media print {
-
   /* Hide navigation elements */
   nav,
   aside,
@@ -201,90 +200,90 @@
   .command-menu,
   button:not(.print-button),
   .fixed {
-    display: none !important;
+    display: none;
   }
 
   /* Reset page layout for printing */
   body {
-    background: white !important;
-    color: black !important;
-    font-size: 12pt !important;
-    line-height: 1.5 !important;
+    background: white;
+    color: black;
+    font-size: 12pt;
+    line-height: 1.5;
   }
 
   /* Make main content full width */
   main,
   .main-content,
   [data-main-content] {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   /* Print content styling */
   .print-content {
-    display: block !important;
-    width: 100% !important;
-    padding: 20px !important;
+    display: block;
+    width: 100%;
+    padding: 20px;
   }
 
   /* Hide non-essential elements */
   .animate-in,
   .fade-in {
-    animation: none !important;
-    opacity: 1 !important;
+    animation: none;
+    opacity: 1;
   }
 
   /* Ensure tables print nicely */
   table {
-    border-collapse: collapse !important;
-    width: 100% !important;
+    border-collapse: collapse;
+    width: 100%;
   }
 
   th,
   td {
-    border: 1px solid #ddd !important;
-    padding: 8px !important;
-    text-align: left !important;
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
   }
 
   th {
-    background-color: #f5f5f5 !important;
-    font-weight: bold !important;
+    background-color: #f5f5f5;
+    font-weight: bold;
   }
 
   /* Page breaks */
   .page-break-before {
-    page-break-before: always !important;
+    page-break-before: always;
   }
 
   .page-break-after {
-    page-break-after: always !important;
+    page-break-after: always;
   }
 
   .avoid-break {
-    page-break-inside: avoid !important;
+    page-break-inside: avoid;
   }
 
   /* Links - show URL */
   a[href]:after {
-    content: none !important;
+    content: none;
   }
 
   /* Cards for print */
   .card,
   [class*="Card"] {
-    border: 1px solid #ddd !important;
-    box-shadow: none !important;
-    break-inside: avoid !important;
+    border: 1px solid #ddd;
+    box-shadow: none;
+    break-inside: avoid;
   }
 
   /* Badge styling for print */
   .badge,
   [class*="Badge"] {
-    border: 1px solid #999 !important;
-    background: #f5f5f5 !important;
-    color: #333 !important;
+    border: 1px solid #999;
+    background: #f5f5f5;
+    color: #333;
   }
 }

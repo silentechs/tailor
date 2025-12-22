@@ -29,16 +29,33 @@ export function stripHtml(str: string): string {
 export function sanitizeString(str: string | null | undefined): string {
   if (!str) return '';
 
-  return (
-    str
-      .trim()
-      // Remove null bytes
-      .replace(/\0/g, '')
-      // Remove control characters except newlines and tabs
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-      // Limit consecutive whitespace
-      .replace(/\s+/g, ' ')
-  );
+  // 1. Strip HTML tags first
+  const noHtml = stripHtml(str);
+
+  const trimmed = noHtml.trim();
+
+  // 2. Remove ASCII control characters (except tab/newline/carriage return), and DEL.
+  // Tabs/newlines/CR are normalized into spaces, then whitespace is collapsed.
+  let cleaned = '';
+  for (let i = 0; i < trimmed.length; i++) {
+    const code = trimmed.charCodeAt(i);
+
+    // Normalize common whitespace controls into spaces
+    if (code === 0x09 || code === 0x0a || code === 0x0d) {
+      cleaned += ' ';
+      continue;
+    }
+
+    // Strip remaining ASCII control chars + DEL
+    if (code < 0x20 || code === 0x7f) {
+      continue;
+    }
+
+    cleaned += trimmed[i];
+  }
+
+  // 3. Limit consecutive whitespace
+  return cleaned.replace(/\s+/g, ' ');
 }
 
 // Sanitize for display (escape HTML)
