@@ -60,7 +60,7 @@ export function FeedbackButton({
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     className={cn(
-                      'fixed bottom-6 right-6 z-50',
+                      'fixed bottom-safe-fab right-4 z-50 md:right-6 translate-y-[-4.5rem] md:translate-y-0',
                       className
                     )}
                   >

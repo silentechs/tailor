@@ -18,7 +18,7 @@ export function FAB() {
 
   return (
     <div
-      className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-40 flex flex-col items-end gap-4 no-print"
+      className="fixed bottom-safe-fab right-4 md:right-8 z-40 flex flex-col items-end gap-4 no-print"
     >
       <AnimatePresence>
         {open && (

@@ -291,3 +291,21 @@
     color: #333;
   }
 }
+
+/* Mobile Navigation Safe Area - prevents FAB overlap */
+:root {
+  --mobile-nav-height: 4rem; /* 64px - height of mobile nav */
+}
+
+/* Safe area utilities for fixed elements above mobile nav */
+@layer utilities {
+  .bottom-safe-fab {
+    bottom: calc(var(--mobile-nav-height) + 1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  
+  @media (min-width: 768px) {
+    .bottom-safe-fab {
+      bottom: 2rem;
+    }
+  }
+}
