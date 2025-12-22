@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
+import { ClientPicker } from '@/components/ui/client-picker';
 import {
   Dialog,
   DialogContent,
@@ -24,13 +25,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 const invoiceSchema = z.object({
   clientId: z.string().min(1, 'Client is required'),
@@ -46,14 +40,15 @@ interface AddInvoiceDialogProps {
 export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) {
   const queryClient = useQueryClient();
 
-  // Fetch clients for the dropdown
-  const { data: clientsData } = useQuery({
-    queryKey: ['clients-list'],
+  // Fetch clients for the dropdown (with order counts)
+  const { data: clientsData, isLoading: isLoadingClients } = useQuery({
+    queryKey: ['clients-list-with-counts'],
     queryFn: async () => {
-      const res = await fetch('/api/clients');
+      const res = await fetch('/api/clients?pageSize=500&includeOrderCount=true');
       if (!res.ok) throw new Error('Failed to fetch clients');
       return res.json();
     },
+    enabled: open,
   });
 
   const clients = clientsData?.data || [];
@@ -123,25 +118,15 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a client" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {clients.map((client: any) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                      {clients.length === 0 && (
-                        <SelectItem value="none" disabled>
-                          No clients found
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <ClientPicker
+                      clients={clients}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      isLoading={isLoadingClients}
+                      placeholder="Search for a client..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
