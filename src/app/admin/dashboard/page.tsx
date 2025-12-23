@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Activity, ArrowUpRight, CreditCard, Package, TrendingUp, Users, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,43 +14,84 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 
-const STATS = [
-  {
-    label: 'Total Revenue',
-    value: 'GH₵ 42,350',
-    change: '+12.5%',
-    icon: CreditCard,
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-50',
-  },
-  {
-    label: 'Active Tailors',
-    value: '1,284',
-    change: '+4.2%',
-    icon: Users,
-    color: 'text-blue-500',
-    bg: 'bg-blue-50',
-  },
-  {
-    label: 'Total Orders',
-    value: '5,630',
-    change: '+18.1%',
-    icon: Package,
-    color: 'text-amber-500',
-    bg: 'bg-amber-50',
-  },
-  {
-    label: 'Platform Health',
-    value: '99.9%',
-    change: 'Optimal',
-    icon: Zap,
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-  },
-];
+interface DashboardStats {
+  totalRevenue: number;
+  activeTailors: number;
+  totalOrders: number;
+  platformHealth: number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  label: string;
+  user: string;
+  status: string;
+  time: string;
+}
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/admin/dashboard/stats');
+        const json = await res.json();
+        if (json.success) {
+          setStats(json.data.stats);
+          setActivities(json.data.recentActivity);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const statCards = [
+    {
+      label: 'Total Revenue',
+      value: `GH₵ ${(stats?.totalRevenue || 0).toLocaleString()}`,
+      change: '+12.5%', // Hardcoded for now
+      icon: CreditCard,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-50',
+    },
+    {
+      label: 'Active Tailors',
+      value: (stats?.activeTailors || 0).toLocaleString(),
+      change: '+4.2%',
+      icon: Users,
+      color: 'text-blue-500',
+      bg: 'bg-blue-50',
+    },
+    {
+      label: 'Total Orders',
+      value: (stats?.totalOrders || 0).toLocaleString(),
+      change: '+18.1%',
+      icon: Package,
+      color: 'text-amber-500',
+      bg: 'bg-amber-50',
+    },
+    {
+      label: 'Platform Health',
+      value: `${stats?.platformHealth || 99.9}%`,
+      change: 'Optimal',
+      icon: Zap,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+    },
+  ];
+
   return (
     <div className="space-y-10">
       <div className="flex flex-col space-y-2">
@@ -62,13 +104,13 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {STATS.map((stat, idx) => {
+        {statCards.map((stat, idx) => {
           const Icon = stat.icon;
           return (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: isLoading ? 0.5 : 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
             >
               <Card className="border-none shadow-sm hover:shadow-md transition-shadow rounded-3xl overflow-hidden">
@@ -86,7 +128,9 @@ export default function AdminDashboardPage() {
                       {stat.label}
                     </p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-slate-900">{stat.value}</span>
+                      <span className="text-2xl font-black text-slate-900">
+                        {isLoading ? '...' : stat.value}
+                      </span>
                       <span
                         className={cn(
                           'text-[10px] font-bold px-1.5 py-0.5 rounded-full',
@@ -113,9 +157,9 @@ export default function AdminDashboardPage() {
               <Activity className="h-5 w-5 text-primary" />
               Recent Activity
             </CardTitle>
-            <Badge variant="outline" className="rounded-full px-4 h-7 text-xs border-slate-200">
-              View All Logs
-            </Badge>
+            <Button variant="ghost" size="sm" className="rounded-full px-4 text-xs font-bold" asChild>
+              <Link href="/admin/logs">View All Logs</Link>
+            </Button>
           </CardHeader>
           <Table>
             <TableHeader>
@@ -135,30 +179,52 @@ export default function AdminDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[1, 2, 3, 4, 5].map((row) => (
-                <TableRow
-                  key={row}
-                  className="border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group"
-                >
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                        <TrendingUp className="h-4 w-4 text-slate-500" />
+              {isLoading ? (
+                [1, 2, 3].map((i) => (
+                  <TableRow key={i} className="animate-pulse">
+                    <TableCell colSpan={4} className="h-12 bg-slate-50/50 rounded-lg mb-2" />
+                  </TableRow>
+                ))
+              ) : activities.length > 0 ? (
+                activities.map((activity) => (
+                  <TableRow
+                    key={activity.id}
+                    className="border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group"
+                  >
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                          <TrendingUp className="h-4 w-4 text-slate-500" />
+                        </div>
+                        <span className="font-bold text-slate-900 text-sm">{activity.label}</span>
                       </div>
-                      <span className="font-bold text-slate-900 text-sm">New Order Created</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium text-slate-500 text-sm">Kwame Mensah</TableCell>
-                  <TableCell>
-                    <Badge className="bg-emerald-50 text-emerald-600 border-none text-[10px] font-black uppercase">
-                      Success
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right text-xs font-bold text-slate-400">
-                    4m ago
+                    </TableCell>
+                    <TableCell className="font-medium text-slate-500 text-sm truncate max-w-[150px]">
+                      {activity.user}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "border-none text-[10px] font-black uppercase",
+                          activity.status === 'SUCCESS' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                        )}
+                      >
+                        {activity.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-bold text-slate-400">
+                      {formatDistanceToNow(new Date(activity.time), { addSuffix: true })}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-10 text-slate-400 font-medium">
+                    No recent activity found.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </Card>
@@ -204,7 +270,4 @@ export default function AdminDashboardPage() {
   );
 }
 
-// Helper function mock to avoid imports for now
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
-}
+import Link from 'next/link';

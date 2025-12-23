@@ -35,6 +35,21 @@ export function AdminClientLayout({ children }: { children: React.ReactNode }) {
   // Initialize CSRF token
   useCsrf();
 
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (res.ok) {
+        window.location.href = '/auth/login';
+        return;
+      }
+      // Fallback to GET logout if POST fails
+      window.location.href = '/api/auth/logout';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      window.location.href = '/api/auth/logout';
+    }
+  };
+
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
       {/* Sidebar */}
@@ -94,6 +109,7 @@ export function AdminClientLayout({ children }: { children: React.ReactNode }) {
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-slate-400 hover:text-red-500"
+              onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
             </Button>

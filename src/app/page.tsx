@@ -4,6 +4,9 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight,
   CheckCircle2,
+  Globe,
+  Heart,
+  History,
   MessageCircle,
   MessageSquarePlus,
   Scissors,
@@ -66,8 +69,8 @@ export default function LandingPage() {
                   variants={ANIMATIONS.fadeInUp}
                   className="text-xl text-muted-foreground max-w-lg leading-relaxed"
                 >
-                  Transform your fashion business with a digital companion built specifically for
-                  the Ghanaian tailoring workshop.
+                  Transform your fashion business with a digital companion built for Ghanaian
+                  artisans. Sync measurements, track orders live, and showcase your finest work.
                 </motion.p>
 
                 <motion.div
@@ -169,24 +172,113 @@ export default function LandingPage() {
               className="grid md:grid-cols-3 gap-8"
             >
               <FeatureCard
-                title="Smart Order Tracking"
-                description="Monitor every stitch. From initial measurement to final collection, never lose track of a client's garment again."
-                icon={Scissors}
+                title="Live Order Tracking"
+                description="Give your clients peace of mind. Every garment comes with a digital tracking portal where they can watch their masterpiece come to life."
+                icon={History}
                 color="primary"
               />
               <FeatureCard
-                title="Client Measurement Vault"
-                description="Securely store detailed measurements for every client. Access them instantly on any device, even when offline."
-                icon={Smartphone}
+                title="Global Measurement Sync"
+                description="One profile, any workshop. Securely sync measurements between your local records and a client's global StitchCraft profile."
+                icon={Globe}
                 color="gold"
               />
               <FeatureCard
-                title="Business Intelligence"
-                description="Gain insights into your top earners, busy seasons, and material inventory. Make decisions based on real data."
-                icon={TrendingUp}
+                title="The Style Hub"
+                description="A dedicated space for clients to save inspirations, track their collections, and find the next piece for their wardrobe."
+                icon={Heart}
                 color="red"
               />
             </motion.div>
+          </div>
+        </section>
+
+        {/* Client Experience Section */}
+        <section className="py-24 overflow-hidden">
+          <div className="container mx-auto px-4">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div className="order-2 lg:order-1 relative">
+                <div className="absolute inset-0 bg-ghana-gold/20 blur-[100px] -z-10 rounded-full" />
+                <div className="relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl transition-transform duration-500 hover:scale-[1.02]">
+                  <Image
+                    src="/images/landing/tracking-mockup.png"
+                    alt="Live Order Tracking Portal"
+                    width={800}
+                    height={600}
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+                {/* Floating Tracking Badge */}
+                <motion.div
+                  animate={{ y: [0, 10, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute -top-6 -right-6 bg-white p-4 rounded-2xl shadow-xl border hidden md:block"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Latest Update</p>
+                      <p className="text-sm font-bold">Ready for Fitting</p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              <div className="order-1 lg:order-2 space-y-8">
+                <Badge className="bg-ghana-gold/20 text-ghana-gold border-ghana-gold/30 uppercase tracking-widest px-4 py-1">
+                  The Fashion Revolution
+                </Badge>
+                <h2 className="text-4xl md:text-6xl font-bold font-heading">
+                  A Better Way to <br />
+                  <span className="text-primary italic">Experience Fashion.</span>
+                </h2>
+                <div className="space-y-6">
+                  <div className="flex gap-4">
+                    <div className="mt-1 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg">Immersive Tracking</h4>
+                      <p className="text-muted-foreground">
+                        Never wonder about your clothes again. Watch the timeline, see photos of the
+                        process, and know exactly when it's time to fit.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="mt-1 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg">Your Digital Wardrobe</h4>
+                      <p className="text-muted-foreground">
+                        Keep a history of every masterpiece crafted for you. Save inspirations
+                        directly from the Gallery and curate your future style.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="mt-1 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg">Ghana-Wide Discovery</h4>
+                      <p className="text-muted-foreground">
+                        Find verified artisans by region, specialty, or rating. Hire the perfect
+                        hands for your kente, kaftan, or bridal wear.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4">
+                  <Button size="lg" className="h-14 px-8 rounded-2xl font-bold" asChild>
+                    <Link href="/auth/register?role=client">Join as a Client</Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
