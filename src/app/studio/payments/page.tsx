@@ -6,6 +6,7 @@ import { CheckCircle2, CreditCard, Download, History, Loader2, Receipt } from 'l
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -56,7 +57,7 @@ export default function StudioPaymentsPage() {
       window.location.href = json.data.authorization_url;
     } catch (e) {
       console.error(e);
-      alert('Failed to initialize payment');
+      toast.error('Failed to initialize payment. Please try again.');
       setProcessing(null);
     }
   }

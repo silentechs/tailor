@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { requireClient } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
 
+// Maximum designs allowed for free-tier clients
+const MAX_FREE_DESIGNS = 10;
+
 // Schema for uploading a design
 const uploadDesignSchema = z.object({
   images: z.array(z.string()).min(1, 'At least one image is required'),
@@ -48,7 +51,15 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ success: true, data: designs });
+    return NextResponse.json({
+      success: true,
+      data: designs,
+      meta: {
+        count: designs.length,
+        limit: MAX_FREE_DESIGNS,
+        remaining: Math.max(0, MAX_FREE_DESIGNS - designs.length),
+      },
+    });
   } catch (error) {
     console.error('Get designs error:', error);
     if (error instanceof Error && error.message === 'Forbidden') {
@@ -72,6 +83,31 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check design count limit
+    const userWithClients = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { clientProfiles: { select: { id: true } } },
+    });
+
+    const clientIds = userWithClients?.clientProfiles.map((c) => c.id) || [];
+
+    const existingCount = await prisma.clientDesign.count({
+      where: {
+        OR: [{ userId: user.id }, { clientId: { in: clientIds } }],
+      },
+    });
+
+    if (existingCount >= MAX_FREE_DESIGNS) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `You have reached the maximum of ${MAX_FREE_DESIGNS} designs. Please delete some designs to upload new ones.`,
+          code: 'DESIGN_LIMIT_REACHED',
+        },
+        { status: 403 }
+      );
+    }
+
     const { images, notes, garmentType } = validation.data;
 
     const design = await prisma.clientDesign.create({
@@ -83,7 +119,18 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, data: design }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: design,
+        meta: {
+          count: existingCount + 1,
+          limit: MAX_FREE_DESIGNS,
+          remaining: MAX_FREE_DESIGNS - existingCount - 1,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Upload design error:', error);
     if (error instanceof Error && error.message === 'Forbidden') {

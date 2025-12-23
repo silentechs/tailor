@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, MessageSquare, MoreVertical, Phone, Search, Send, User } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, MoreVertical, Phone, Search, Send, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,6 +43,7 @@ export default function MessagesPage() {
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('');
+  const [mobileShowChat, setMobileShowChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations, isLoading: isLoadingConversations } = useQuery({
@@ -86,24 +87,34 @@ export default function MessagesPage() {
     });
   };
 
-  // Select first conversation by default if none selected
-  useEffect(() => {
-    if (conversations && conversations.length > 0 && !selectedOrderId) {
-      setSelectedOrderId(conversations[0].id);
-    }
-  }, [conversations, selectedOrderId]);
+  // Handle conversation selection
+  const handleSelectConversation = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setMobileShowChat(true); // Show chat on mobile when conversation is selected
+  };
+
+  // Handle back button on mobile
+  const handleBackToList = () => {
+    setMobileShowChat(false);
+  };
 
   const selectedConversation = conversations?.find((c: any) => c.id === selectedOrderId);
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col animate-in fade-in duration-500">
-      <div className="mb-4 flex items-center justify-between">
+      <div className={cn(
+        "mb-4 flex items-center justify-between",
+        mobileShowChat && "hidden md:flex"
+      )}>
         <h1 className="text-3xl font-bold font-heading text-primary">Messages</h1>
       </div>
 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden">
-        {/* Conversation List */}
-        <Card className="h-full flex flex-col">
+        {/* Conversation List - hidden on mobile when chat is showing */}
+        <Card className={cn(
+          "h-full flex flex-col",
+          mobileShowChat ? "hidden md:flex" : "flex"
+        )}>
           <div className="p-4 border-b space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -123,7 +134,7 @@ export default function MessagesPage() {
                   <button
                     key={conv.id}
                     type="button"
-                    onClick={() => setSelectedOrderId(conv.id)}
+                    onClick={() => handleSelectConversation(conv.id)}
                     className={cn(
                       'p-4 flex items-start gap-3 border-b hover:bg-muted/50 transition-colors text-left relative',
                       selectedOrderId === conv.id && 'bg-muted/50'
@@ -161,13 +172,25 @@ export default function MessagesPage() {
           </ScrollArea>
         </Card>
 
-        {/* Chat Area */}
-        <Card className="md:col-span-2 h-full flex flex-col overflow-hidden">
+        {/* Chat Area - shown on mobile only when a conversation is selected */}
+        <Card className={cn(
+          "md:col-span-2 h-full flex-col overflow-hidden",
+          mobileShowChat ? "flex" : "hidden md:flex"
+        )}>
           {selectedOrderId ? (
             <>
               {/* Chat Header */}
               <div className="p-4 border-b flex justify-between items-center bg-card z-10">
                 <div className="flex items-center gap-3">
+                  {/* Mobile back button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBackToList}
+                    className="md:hidden"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
                   <Avatar>
                     <AvatarImage src={selectedConversation?.client.profileImage} />
                     <AvatarFallback>{selectedConversation?.client.name.charAt(0)}</AvatarFallback>

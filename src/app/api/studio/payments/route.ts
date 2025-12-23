@@ -5,8 +5,13 @@ import prisma from '@/lib/prisma';
 export async function GET() {
   try {
     const user = await requireUser();
-    if (user.role !== 'CLIENT' || !user.linkedClientId) {
+    if (user.role !== 'CLIENT') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Return empty data if client is not linked to a tailor yet
+    if (!user.linkedClientId) {
+      return NextResponse.json({ success: true, data: { invoices: [], payments: [] } });
     }
 
     const [invoices, payments] = await Promise.all([

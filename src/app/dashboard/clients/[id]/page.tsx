@@ -15,6 +15,8 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ClientDesignUploadDialog } from '@/components/clients/client-design-upload-dialog';
+import { MeasurementSyncDialog } from '@/components/clients/measurement-sync-dialog';
+import { PushToProfileButton } from '@/components/clients/push-to-profile-button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -264,24 +266,21 @@ export default function ClientProfilePage() {
                   </div>
                   <div className="flex gap-2">
                     {clientData.user?.measurements && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          const res = await fetchApi(`/api/clients/${clientData.id}/sync`, {
-                            method: 'POST',
-                          });
-                          if (res.ok) {
-                            window.location.reload();
-                          } else {
-                            // alert('Failed to sync');
-                          }
-                        }}
-                      >
-                        <Scissors className="h-4 w-4 mr-2" />
-                        Sync from Profile
-                      </Button>
+                      <MeasurementSyncDialog
+                        clientId={clientData.id}
+                        clientName={clientData.name}
+                        tailorMeasurements={clientData.measurements}
+                        clientProfileMeasurements={clientData.user.measurements as Record<string, any>}
+                        onSyncComplete={() => window.location.reload()}
+                      />
                     )}
+                    <PushToProfileButton
+                      clientId={clientData.id}
+                      clientName={clientData.name}
+                      measurements={clientData.measurements}
+                      hasLinkedAccount={!!clientData.userId}
+                      onPushComplete={() => window.location.reload()}
+                    />
                     <Button variant="ghost" size="sm">
                       <Edit className="h-4 w-4 mr-2" />
                       Update

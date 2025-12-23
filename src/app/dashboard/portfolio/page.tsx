@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -80,6 +81,7 @@ export default function PortfolioPage() {
   const [_activeTab, setActiveTab] = useState('gallery');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({
     title: '',
     category: '',
@@ -253,10 +255,10 @@ export default function PortfolioPage() {
   // Group by category
   const categoryStats = portfolio
     ? portfolio.reduce((acc: any, item: any) => {
-        const cat = item.category;
-        acc[cat] = (acc[cat] || 0) + 1;
-        return acc;
-      }, {})
+      const cat = item.category;
+      acc[cat] = (acc[cat] || 0) + 1;
+      return acc;
+    }, {})
     : {};
 
   return (
@@ -359,11 +361,7 @@ export default function PortfolioPage() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => {
-                          if (confirm('Are you sure you want to remove this project?')) {
-                            deleteMutation.mutate(item.id);
-                          }
-                        }}
+                        onClick={() => setDeleteConfirmId(item.id)}
                         disabled={deleteMutation.isPending}
                       >
                         {deleteMutation.isPending ? (
@@ -373,6 +371,19 @@ export default function PortfolioPage() {
                         )}
                         Delete
                       </Button>
+                      <ConfirmDialog
+                        open={deleteConfirmId === item.id}
+                        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+                        title="Delete Project"
+                        description="Are you sure you want to remove this project from your portfolio? This action cannot be undone."
+                        confirmText="Delete"
+                        variant="destructive"
+                        onConfirm={() => {
+                          deleteMutation.mutate(item.id);
+                          setDeleteConfirmId(null);
+                        }}
+                        isLoading={deleteMutation.isPending}
+                      />
                     </div>
                   </div>
                   <CardHeader className="p-4 pb-2">
@@ -493,8 +504,8 @@ export default function PortfolioPage() {
               <Select
                 onValueChange={(val) => {
                   const suggestedTags = suggestTagsForGarment(val);
-                  setNewItem({ 
-                    ...newItem, 
+                  setNewItem({
+                    ...newItem,
                     category: val,
                     tags: [...new Set([...newItem.tags, ...suggestedTags])]
                   });

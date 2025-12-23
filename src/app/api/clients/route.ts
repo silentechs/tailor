@@ -139,15 +139,26 @@ export const POST = withSecurity(
         return secureErrorResponse('A client with this phone number already exists', 400);
       }
 
-      // NEW: Check if there is a Global User with this phone number
-      const globalUser = await prisma.user.findFirst({
+      // NEW: Check if there is a Global User with this phone or email
+      let globalUser = await prisma.user.findFirst({
         where: {
           phone: formattedPhone,
           role: 'CLIENT' as UserRole,
         },
       });
 
+      // If no match by phone, try matching by email
+      if (!globalUser && data.email) {
+        globalUser = await prisma.user.findFirst({
+          where: {
+            email: data.email,
+            role: 'CLIENT' as UserRole,
+          },
+        });
+      }
+
       const globalUserWithMeasurements = globalUser as any;
+
 
       // Create client with measurement if provided in a transaction
       const client = await prisma.$transaction(async (tx) => {

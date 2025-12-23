@@ -45,8 +45,12 @@ export function ReceiptStockDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
       });
-      if (!res.ok) throw new Error('Failed to receipt stock');
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        console.error('Receipt stock error:', data);
+        throw new Error(data.error || 'Failed to receipt stock');
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -56,7 +60,8 @@ export function ReceiptStockDialog({
       setRows([makeRow()]);
     },
     onError: (err: any) => {
-      toast.error(err.message);
+      console.error('Receipt stock mutation error:', err);
+      toast.error(err.message || 'Failed to process receipt');
     },
   });
 
@@ -69,11 +74,21 @@ export function ReceiptStockDialog({
   };
 
   const handleSave = () => {
-    const validItems = rows.filter((r) => r.itemId && r.quantity > 0);
-    if (validItems.length === 0) {
-      toast.error('Please add at least one valid item');
+    // Check if at least one item is selected
+    const rowsWithItem = rows.filter((r) => r.itemId);
+    if (rowsWithItem.length === 0) {
+      toast.error('Please select at least one inventory item');
       return;
     }
+
+    // Filter for valid items (has itemId and quantity > 0)
+    const validItems = rows.filter((r) => r.itemId && r.quantity > 0);
+    if (validItems.length === 0) {
+      toast.error('Please enter a quantity greater than 0');
+      return;
+    }
+
+    console.log('Submitting receipt stock:', validItems);
     mutation.mutate(validItems);
   };
 
@@ -114,8 +129,9 @@ export function ReceiptStockDialog({
               <div className="col-span-2">
                 <Input
                   type="number"
+                  min={1}
                   value={row.quantity}
-                  onChange={(e) => updateRow(index, 'quantity', parseFloat(e.target.value))}
+                  onChange={(e) => updateRow(index, 'quantity', parseFloat(e.target.value) || 0)}
                 />
               </div>
               <div className="col-span-3">

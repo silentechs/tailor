@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Scissors, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
@@ -26,6 +27,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { KENTE_PATTERNS } from '@/lib/design-system';
 import { fetchApi } from '@/lib/fetch-api';
 
@@ -45,16 +47,24 @@ const registerSchema = z
     path: ['confirmPassword'],
   });
 
+type UserType = 'tailor' | 'client';
+
 function RegisterContent() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const trackingToken = searchParams.get('token');
-  const isClientRegistration = !!trackingToken;
 
-  // Check if this is a worker registration (via invitation)
+  // Determine initial user type from URL params
+  const trackingToken = searchParams.get('token');
+  const roleParam = searchParams.get('role');
   const callbackUrl = searchParams.get('callbackUrl');
   const isWorkerRegistration = callbackUrl?.includes('/auth/accept-invitation');
+
+  // If tracking token present → forced client, if role=client param → default to client
+  const isInvitedClient = !!trackingToken;
+  const initialUserType: UserType = isInvitedClient || roleParam === 'client' ? 'client' : 'tailor';
+
+  const [userType, setUserType] = useState<UserType>(initialUserType);
 
   const emailParam = searchParams.get('email');
 
@@ -80,9 +90,8 @@ function RegisterContent() {
     setIsLoading(true);
     try {
       // Determine the registration role
-      let role: 'TAILOR' | 'CLIENT' | 'WORKER' = 'TAILOR';
-      if (isClientRegistration) role = 'CLIENT';
-      else if (isWorkerRegistration) role = 'WORKER';
+      let role: 'TAILOR' | 'CLIENT' | 'WORKER' = userType === 'client' ? 'CLIENT' : 'TAILOR';
+      if (isWorkerRegistration) role = 'WORKER';
 
       const response = await fetchApi('/api/auth/register', {
         method: 'POST',
@@ -114,9 +123,9 @@ function RegisterContent() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      if (isClientRegistration) {
-        toast.success('Registration Successful!', {
-          description: 'Your account is linked and ready. Please sign in to access your Studio.',
+      if (role === 'CLIENT') {
+        toast.success('Welcome to StitchCraft!', {
+          description: 'Your Studio is ready. Redirecting to login...',
         });
       } else {
         toast.success('Account Created!', {
@@ -124,14 +133,13 @@ function RegisterContent() {
         });
       }
 
-      // Redirect to Login page to authenticate
-      // Pass the callbackUrl so they are returned to the correct place (e.g. Accept Invitation) after logging in
+      // Redirect to Login page
       const callbackParam = searchParams?.get('callbackUrl');
       const loginUrl = new URL('/auth/login', window.location.href);
       if (callbackParam) {
         loginUrl.searchParams.set('callbackUrl', callbackParam);
       }
-      loginUrl.searchParams.set('email', values.email); // Pre-fill email on login page too
+      loginUrl.searchParams.set('email', values.email);
 
       router.push(loginUrl.pathname + loginUrl.search);
     } catch (error: any) {
@@ -153,14 +161,47 @@ function RegisterContent() {
 
       <Card className="w-full max-w-md shadow-2xl border-primary/10 relative z-10 overflow-hidden my-8">
         <div className="h-2 w-full bg-gradient-to-r from-[var(--color-ghana-green)] via-[var(--color-ghana-gold)] to-[var(--color-ghana-red)]" />
-        <CardHeader className="space-y-1 text-center pt-8">
+        <CardHeader className="space-y-4 text-center pt-8">
           <CardTitle className="text-3xl font-heading font-bold text-primary">
-            {isClientRegistration ? 'Join the Studio' : 'Join StitchCraft'}
+            Join StitchCraft
           </CardTitle>
+
+          {/* Role Toggle - Only show if not invited via token or worker */}
+          {!isInvitedClient && !isWorkerRegistration && (
+            <div className="flex gap-2 p-1.5 bg-muted/50 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setUserType('tailor')}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300',
+                  userType === 'tailor'
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
+              >
+                <Scissors className="h-4 w-4" />
+                I'm a Tailor
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserType('client')}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300',
+                  userType === 'client'
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
+              >
+                <User className="h-4 w-4" />
+                I'm a Client
+              </button>
+            </div>
+          )}
+
           <CardDescription>
-            {isClientRegistration
-              ? 'Access your private tailoring portal'
-              : 'Create your tailor profile'}
+            {userType === 'client'
+              ? 'Create your account to discover and save designs'
+              : 'Create your tailor profile and grow your business'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -186,7 +227,10 @@ function RegisterContent() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="tailor@example.com" {...field} />
+                      <Input
+                        placeholder={userType === 'client' ? 'you@example.com' : 'tailor@example.com'}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -241,6 +285,18 @@ function RegisterContent() {
               >
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
+
+              {/* Info text based on role */}
+              {userType === 'tailor' && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Tailor accounts require admin approval before activation.
+                </p>
+              )}
+              {userType === 'client' && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Your account will be ready instantly after signup.
+                </p>
+              )}
             </form>
           </Form>
         </CardContent>

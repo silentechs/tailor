@@ -61,11 +61,18 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
+    // Parse purchaseDate if provided (comes as string from form)
+    const data = {
+      name: body.name,
+      brand: body.brand || null,
+      model: body.model || null,
+      serialNumber: body.serialNumber || null,
+      purchaseDate: body.purchaseDate ? new Date(body.purchaseDate) : null,
+      tailorId: org.ownerId, // Link to the shop owner
+    };
+
     const item = await prisma.equipment.create({
-      data: {
-        ...body,
-        tailorId: org.ownerId, // Link to the shop owner
-      },
+      data,
     });
 
     return NextResponse.json({ success: true, data: item }, { status: 201 });

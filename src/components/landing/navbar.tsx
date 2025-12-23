@@ -14,6 +14,7 @@ export function Navbar() {
     { name: 'Features', href: '/#features' },
     { name: 'Gallery', href: '/gallery' },
     { name: 'Find a Tailor', href: '/discover' },
+    { name: 'Client Portal', href: '/auth/register?role=client' },
   ];
 
   return (

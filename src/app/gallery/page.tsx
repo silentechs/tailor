@@ -1,10 +1,11 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { MapPin, Scissors, Search, Sparkles, User } from 'lucide-react';
+import { Heart, MapPin, Scissors, Search, Sparkles, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { KenteBackground } from '@/components/landing/kente-background';
 import { Navbar } from '@/components/landing/navbar';
 import { Badge } from '@/components/ui/badge';
@@ -102,6 +103,25 @@ export default function GalleryPage() {
               Discover the future of high-fashion tailoring. From hand-woven Kente to precision-cut
               architecture.
             </p>
+
+            {/* Signup prompt for non-logged users */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-ghana-gold/10 border border-ghana-gold/20"
+            >
+              <Heart className="h-4 w-4 text-ghana-gold" />
+              <span className="text-sm font-medium text-foreground">
+                Save your favorite designs
+              </span>
+              <Link
+                href="/auth/register?role=client"
+                className="text-sm font-bold text-primary hover:underline"
+              >
+                Create Account →
+              </Link>
+            </motion.div>
           </div>
 
           {/* Filter Bar */}
@@ -150,15 +170,15 @@ export default function GalleryPage() {
                   selectedArtisan !== 'ALL' ||
                   selectedRegion !== 'ALL' ||
                   search) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetFilters}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    Reset Filters
-                  </Button>
-                )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetFilters}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Reset Filters
+                    </Button>
+                  )}
               </div>
             </div>
 
@@ -170,11 +190,10 @@ export default function GalleryPage() {
                   onClick={() => setFilter(type)}
                   className={`
                                         px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-300
-                                        ${
-                                          filter === type
-                                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted border border-transparent hover:border-primary/20'
-                                        }
+                                        ${filter === type
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted border border-transparent hover:border-primary/20'
+                    }
                                     `}
                 >
                   {type === 'ALL' ? 'Everything' : GARMENT_TYPE_LABELS[type] || type}
@@ -191,57 +210,85 @@ export default function GalleryPage() {
             <AnimatePresence mode="popLayout">
               {isLoading
                 ? Array.from({ length: 8 }, (_, i) => `skeleton-${i}`).map((key) => (
-                    <div key={key} className="break-inside-avoid">
-                      <Skeleton className="aspect-[3/4] w-full rounded-[2.5rem]" />
-                    </div>
-                  ))
+                  <div key={key} className="break-inside-avoid">
+                    <Skeleton className="aspect-[3/4] w-full rounded-[2.5rem]" />
+                  </div>
+                ))
                 : filteredItems.map((item: GalleryItem) => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.4 }}
-                      className="break-inside-avoid group relative"
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.4 }}
+                    className="break-inside-avoid group relative"
+                  >
+                    {/* Save to Style Hub button */}
+                    <Button
+                      size="icon"
+                      className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary hover:scale-110"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          const res = await fetch('/api/studio/wishlist', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ portfolioItemId: item.id }),
+                          });
+                          const data = await res.json();
+                          if (data.action === 'added') {
+                            toast.success('Saved to Style Hub!');
+                          } else if (data.action === 'removed') {
+                            toast.info('Removed from Style Hub');
+                          } else if (!data.success) {
+                            toast.error('Sign in to save inspirations');
+                          }
+                        } catch {
+                          toast.error('Sign in to save inspirations');
+                        }
+                      }}
                     >
-                      <Link href={`/showcase/${item.tailorUsername}`}>
-                        <Card className="group relative overflow-hidden border-none bg-accent/5 shadow-none cursor-pointer rounded-[2.5rem]">
-                          <div className="relative aspect-[3/4] overflow-hidden transition-all duration-700 group-hover:shadow-2xl">
-                            <Image
-                              src={item.image}
-                              alt={item.title}
-                              fill
-                              className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8">
-                              <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 space-y-4">
-                                <div className="flex flex-wrap gap-2">
-                                  <Badge className="bg-primary/90 text-white border-none shadow-sm backdrop-blur uppercase text-[10px] font-black tracking-widest px-3 py-1">
-                                    {GARMENT_TYPE_LABELS[item.category] || item.category}
-                                  </Badge>
-                                  <div className="flex items-center gap-1 bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase">
-                                    <MapPin className="h-3 w-3" />
-                                    {GHANA_REGIONS[item.region] || item.region}
-                                  </div>
+                      <Heart className="h-5 w-5" />
+                    </Button>
+                    <Link href={`/showcase/${item.tailorUsername}`}>
+                      <Card className="group relative overflow-hidden border-none bg-accent/5 shadow-none cursor-pointer rounded-[2.5rem]">
+                        <div className="relative aspect-[3/4] overflow-hidden transition-all duration-700 group-hover:shadow-2xl">
+                          <Image
+                            src={item.image}
+                            alt={item.title}
+                            fill
+                            className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8">
+                            <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 space-y-4">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge className="bg-primary/90 text-white border-none shadow-sm backdrop-blur uppercase text-[10px] font-black tracking-widest px-3 py-1">
+                                  {GARMENT_TYPE_LABELS[item.category] || item.category}
+                                </Badge>
+                                <div className="flex items-center gap-1 bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase">
+                                  <MapPin className="h-3 w-3" />
+                                  {GHANA_REGIONS[item.region] || item.region}
                                 </div>
-                                <div>
-                                  <h3 className="text-2xl font-bold text-white font-heading leading-tight tracking-tight">
-                                    {item.title}
-                                  </h3>
-                                  <p className="text-ghana-gold text-sm font-black flex items-center gap-2 mt-1">
-                                    <User className="h-3 w-3" />
-                                    {item.tailor}
-                                  </p>
-                                </div>
+                              </div>
+                              <div>
+                                <h3 className="text-2xl font-bold text-white font-heading leading-tight tracking-tight">
+                                  {item.title}
+                                </h3>
+                                <p className="text-ghana-gold text-sm font-black flex items-center gap-2 mt-1">
+                                  <User className="h-3 w-3" />
+                                  {item.tailor}
+                                </p>
                               </div>
                             </div>
                           </div>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  ))}
+                        </div>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                ))}
             </AnimatePresence>
           </motion.div>
 

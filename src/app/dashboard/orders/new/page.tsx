@@ -14,6 +14,7 @@ import {
   Ruler,
   Shirt,
   User,
+  UserPlus,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -256,9 +257,21 @@ export default function NewOrderPage() {
                 className="space-y-6"
               >
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Select Client</CardTitle>
-                    <CardDescription>Search and select a client for this order.</CardDescription>
+                  <CardHeader className="flex flex-row items-start justify-between">
+                    <div>
+                      <CardTitle>Select Client</CardTitle>
+                      <CardDescription>Search and select a client for this order.</CardDescription>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push('/dashboard/clients/new')}
+                      className="shrink-0"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      New Client
+                    </Button>
                   </CardHeader>
                   <CardContent>
                     <FormField
@@ -603,7 +616,7 @@ export default function NewOrderPage() {
                       <span>
                         {
                           GARMENT_TYPE_LABELS[
-                            form.getValues('garmentType') as keyof typeof GARMENT_TYPE_LABELS
+                          form.getValues('garmentType') as keyof typeof GARMENT_TYPE_LABELS
                           ]
                         }
                       </span>

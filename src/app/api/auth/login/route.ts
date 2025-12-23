@@ -73,7 +73,12 @@ export async function POST(request: Request) {
     await createSession(authResult.user.id, userAgent, ipAddress);
 
     // Determine redirect path based on role
-    const redirectPath = authResult.user.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard';
+    let redirectPath = '/dashboard';
+    if (authResult.user.role === 'ADMIN') {
+      redirectPath = '/admin/dashboard';
+    } else if (authResult.user.role === 'CLIENT') {
+      redirectPath = '/studio';
+    }
 
     return NextResponse.json(
       {

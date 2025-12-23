@@ -76,11 +76,15 @@ function LoginContent() {
         description: 'You have successfully logged in.',
       });
 
+      // Validate callbackUrl - only use if it's a valid internal path
       const callbackUrl = searchParams.get('callbackUrl');
-      if (callbackUrl) {
+      const validPaths = ['/dashboard', '/studio', '/admin', '/auth/accept-invitation'];
+      const isValidCallback = callbackUrl && validPaths.some(p => callbackUrl.startsWith(p));
+
+      if (isValidCallback) {
         router.push(callbackUrl);
       } else {
-        router.push(data.redirectPath || '/dashboard/business');
+        router.push(data.redirectPath || '/dashboard');
       }
       router.refresh();
     } catch (error: any) {

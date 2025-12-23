@@ -97,7 +97,25 @@ export default function PortfolioItemPage() {
             variant="ghost"
             size="icon"
             className="rounded-full bg-white/20 text-white hover:bg-white/30"
-            onClick={() => toast.success('Saved to inspirations')}
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/studio/wishlist', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ portfolioItemId: project.id }),
+                });
+                const data = await res.json();
+                if (data.action === 'added') {
+                  toast.success('Saved to Style Hub!');
+                } else if (data.action === 'removed') {
+                  toast.info('Removed from Style Hub');
+                } else if (!data.success) {
+                  toast.error('Sign in to save inspirations');
+                }
+              } catch {
+                toast.error('Sign in to save inspirations');
+              }
+            }}
           >
             <Heart className="h-5 w-5" />
           </Button>

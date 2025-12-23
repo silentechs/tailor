@@ -49,6 +49,8 @@ import {
   INVOICE_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
 } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useState } from 'react';
 
 async function getInvoice(id: string) {
   const res = await fetchApi(`/api/invoices/${id}`);
@@ -66,6 +68,7 @@ export default function InvoiceDetailPage() {
   const router = useRouter();
   const id = params?.id as string;
   const queryClient = useQueryClient();
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const {
     data: invoice,
@@ -481,16 +484,12 @@ export default function InvoiceDetailPage() {
               )}
             </CardContent>
             {invoice.status === 'DRAFT' && (
-              <CardFooter>
+              <CardFooter className="flex-col gap-2">
                 <Button
                   variant="destructive"
                   size="sm"
                   className="w-full"
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this draft invoice?')) {
-                      deleteMutation.mutate();
-                    }
-                  }}
+                  onClick={() => setDeleteConfirm(true)}
                   disabled={deleteMutation.isPending}
                 >
                   {deleteMutation.isPending ? (
@@ -500,6 +499,19 @@ export default function InvoiceDetailPage() {
                   )}
                   Delete Draft
                 </Button>
+                <ConfirmDialog
+                  open={deleteConfirm}
+                  onOpenChange={setDeleteConfirm}
+                  title="Delete Draft Invoice"
+                  description="Are you sure you want to delete this draft invoice? This action cannot be undone."
+                  confirmText="Delete"
+                  variant="destructive"
+                  onConfirm={() => {
+                    deleteMutation.mutate();
+                    setDeleteConfirm(false);
+                  }}
+                  isLoading={deleteMutation.isPending}
+                />
               </CardFooter>
             )}
           </Card>

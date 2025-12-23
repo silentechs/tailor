@@ -38,6 +38,7 @@ import {
 import { fetchApi } from '@/lib/fetch-api';
 import { PERMISSIONS, type Permission, ROLE_PERMISSIONS } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 export default function TeamPage() {
   const queryClient = useQueryClient();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -48,6 +49,10 @@ export default function TeamPage() {
   const [editingMember, setEditingMember] = useState<any>(null);
   const [editRole, setEditRole] = useState('');
   const [editPermissions, setEditPermissions] = useState<Permission[]>([]);
+
+  // Confirmation dialogs state
+  const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState(false);
 
   // 1. Fetch current user & organization context
   const { data: userData } = useQuery({
@@ -493,15 +498,24 @@ export default function TeamPage() {
                             variant="ghost"
                             size="sm"
                             className="h-8 rounded-full font-bold text-destructive hover:text-destructive hover:bg-destructive/10 px-4"
-                            onClick={() => {
-                              if (confirm('Are you sure you want to revoke this invitation?')) {
-                                revokeMutation.mutate(invite.id);
-                              }
-                            }}
+                            onClick={() => setRevokeConfirmId(invite.id)}
                             disabled={revokeMutation.isPending}
                           >
                             Revoke
                           </Button>
+                          <ConfirmDialog
+                            open={revokeConfirmId === invite.id}
+                            onOpenChange={(open) => !open && setRevokeConfirmId(null)}
+                            title="Revoke Invitation"
+                            description="Are you sure you want to revoke this invitation? The recipient will no longer be able to join your organization."
+                            confirmText="Revoke"
+                            variant="destructive"
+                            onConfirm={() => {
+                              revokeMutation.mutate(invite.id);
+                              setRevokeConfirmId(null);
+                            }}
+                            isLoading={revokeMutation.isPending}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -590,18 +604,23 @@ export default function TeamPage() {
                   type="button"
                   variant="ghost"
                   className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        'Review Access: This will permanently remove the member from your organization.'
-                      )
-                    ) {
-                      removeMemberMutation.mutate(editingMember.id);
-                    }
-                  }}
+                  onClick={() => setRemoveMemberConfirm(true)}
                 >
                   Remove Member
                 </Button>
+                <ConfirmDialog
+                  open={removeMemberConfirm}
+                  onOpenChange={setRemoveMemberConfirm}
+                  title="Remove Team Member"
+                  description="This will permanently remove the member from your organization. They will lose access to all organization resources."
+                  confirmText="Remove Member"
+                  variant="destructive"
+                  onConfirm={() => {
+                    removeMemberMutation.mutate(editingMember.id);
+                    setRemoveMemberConfirm(false);
+                  }}
+                  isLoading={removeMemberMutation.isPending}
+                />
                 <Button type="submit" disabled={updateMemberMutation.isPending}>
                   {updateMemberMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>

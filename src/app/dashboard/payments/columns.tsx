@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -26,7 +27,9 @@ export type Payment = {
   method: string;
   status: string;
   paidAt: string;
+  orderId: string | null;
   client: {
+    id: string;
     name: string;
   };
   order: {
@@ -59,14 +62,27 @@ export const columns: ColumnDef<Payment>[] = [
   {
     accessorKey: 'paymentNumber',
     header: 'Payment #',
-    cell: ({ row }) => (
-      <div className="font-mono font-medium text-primary">{row.getValue('paymentNumber')}</div>
-    ),
+    cell: ({ row }) => {
+      return (
+        <div className="font-mono font-medium text-primary">{row.getValue('paymentNumber')}</div>
+      );
+    },
   },
   {
     id: 'clientName',
     accessorFn: (row) => row.client?.name || 'Unknown',
     header: 'Client',
+    cell: ({ row }) => {
+      const payment = row.original;
+      if (payment.client?.id) {
+        return (
+          <Link href={`/dashboard/clients/${payment.client.id}`} className="hover:underline">
+            {payment.client.name}
+          </Link>
+        );
+      }
+      return <span>{payment.client?.name || 'Unknown'}</span>;
+    },
   },
   {
     accessorKey: 'amount',
@@ -105,6 +121,7 @@ export const columns: ColumnDef<Payment>[] = [
   {
     id: 'actions',
     cell: ({ row }) => {
+      const payment = row.original;
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -115,7 +132,11 @@ export const columns: ColumnDef<Payment>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>View Details</DropdownMenuItem>
+            {payment.orderId && (
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/orders/${payment.orderId}`}>View Order</Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem>Download Receipt</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

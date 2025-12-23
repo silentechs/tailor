@@ -1,11 +1,22 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Image as ImageIcon, Loader2, Plus, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Image as ImageIcon, Loader2, Plus, Trash2, UploadCloud } from 'lucide-react';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -42,7 +53,6 @@ const GARMENT_TYPES = [
   { value: 'TROUSERS', label: 'Trousers' },
   { value: 'SKIRT', label: 'Skirt' },
   { value: 'BLOUSE', label: 'Blouse' },
-  { value: 'BLOUSE', label: 'Blouse' },
   { value: 'OTHER', label: 'Other' },
 ];
 
@@ -54,7 +64,14 @@ interface ClientDesign {
   createdAt: string;
 }
 
+interface DesignMeta {
+  count: number;
+  limit: number;
+  remaining: number;
+}
+
 export default function StudioDesignsPage() {
+  const queryClient = useQueryClient();
   const {
     data: designsData,
     isLoading,
@@ -75,6 +92,11 @@ export default function StudioDesignsPage() {
   const [notes, setNotes] = useState('');
   const [garmentType, setGarmentType] = useState('OTHER');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [designToDelete, setDesignToDelete] = useState<ClientDesign | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -117,7 +139,18 @@ export default function StudioDesignsPage() {
         }),
       });
 
-      if (!designRes.ok) throw new Error('Failed to save design');
+      const designResult = await designRes.json();
+
+      if (!designRes.ok) {
+        if (designResult.code === 'DESIGN_LIMIT_REACHED') {
+          toast.error('Design Limit Reached', {
+            description: designResult.error,
+          });
+        } else {
+          throw new Error('Failed to save design');
+        }
+        return;
+      }
 
       toast.success('Design added successfully!');
       setIsDialogOpen(false);
@@ -131,6 +164,36 @@ export default function StudioDesignsPage() {
     }
   };
 
+  const handleDeleteClick = (design: ClientDesign) => {
+    setDesignToDelete(design);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!designToDelete) return;
+
+    try {
+      setDeleting(true);
+      const res = await fetchApi(`/api/client/designs/${designToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete design');
+      }
+
+      toast.success('Design deleted successfully');
+      setDeleteDialogOpen(false);
+      setDesignToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['client', 'designs'] });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete design. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const resetForm = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
@@ -139,7 +202,8 @@ export default function StudioDesignsPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const designs = designsData?.data || [];
+  const designs: ClientDesign[] = designsData?.data || [];
+  const meta: DesignMeta | undefined = designsData?.meta;
 
   if (isLoading) {
     return (
@@ -148,6 +212,9 @@ export default function StudioDesignsPage() {
       </div>
     );
   }
+
+  const isAtLimit = meta && meta.remaining === 0;
+  const isNearLimit = meta && meta.remaining <= 2 && meta.remaining > 0;
 
   return (
     <div className="space-y-12 pb-20">
@@ -159,17 +226,53 @@ export default function StudioDesignsPage() {
           <h1 className="text-5xl md:text-7xl font-black font-heading tracking-tighter uppercase italic leading-none">
             Your <br /> Designs.
           </h1>
+          {meta && (
+            <div className="mt-4 flex items-center gap-3">
+              <Badge
+                variant="outline"
+                className={cn(
+                  'rounded-full px-3 py-1 font-bold text-[10px] uppercase tracking-widest',
+                  isAtLimit
+                    ? 'border-red-500/50 text-red-400'
+                    : isNearLimit
+                      ? 'border-amber-500/50 text-amber-400'
+                      : 'border-white/10 text-zinc-500'
+                )}
+              >
+                {meta.count} / {meta.limit} Designs
+              </Badge>
+              {isNearLimit && (
+                <span className="text-amber-400 text-[10px] font-bold uppercase tracking-widest">
+                  {meta.remaining} slots remaining
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div>
           <Dialog
             open={isDialogOpen}
             onOpenChange={(open) => {
+              if (isAtLimit && open) {
+                toast.error('Design Limit Reached', {
+                  description: 'Delete some designs to upload new ones.',
+                });
+                return;
+              }
               setIsDialogOpen(open);
               if (!open) resetForm();
             }}
           >
             <DialogTrigger asChild>
-              <Button className="rounded-2xl h-14 bg-ghana-gold text-ghana-black hover:bg-ghana-gold/90 font-black uppercase tracking-widest text-[10px] px-8">
+              <Button
+                className={cn(
+                  'rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] px-8',
+                  isAtLimit
+                    ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                    : 'bg-ghana-gold text-ghana-black hover:bg-ghana-gold/90'
+                )}
+                disabled={isAtLimit}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Design
               </Button>
@@ -270,12 +373,27 @@ export default function StudioDesignsPage() {
         </div>
       </header>
 
+      {/* Limit Warning Banner */}
+      {isAtLimit && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 flex items-center gap-4">
+          <AlertTriangle className="h-6 w-6 text-red-400 flex-shrink-0" />
+          <div>
+            <p className="font-bold text-red-400">Design Limit Reached</p>
+            <p className="text-sm text-red-300/70">
+              You have reached the maximum of {meta?.limit} designs. Delete some designs to upload
+              new ones.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         <AnimatePresence>
-          {designs.map((design: ClientDesign, _idx: number) => (
+          {designs.map((design: ClientDesign) => (
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               key={design.id}
               layout
               className="group relative bg-zinc-900 border border-white/5 rounded-[2.5rem] overflow-hidden"
@@ -294,6 +412,15 @@ export default function StudioDesignsPage() {
                     {design.garmentType ? design.garmentType.replace(/_/g, ' ') : 'Design'}
                   </span>
                 </div>
+
+                {/* Delete Button */}
+                <button
+                  onClick={() => handleDeleteClick(design)}
+                  className="absolute top-4 left-4 h-10 w-10 bg-red-500/80 hover:bg-red-500 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Delete design"
+                >
+                  <Trash2 className="h-4 w-4 text-white" />
+                </button>
               </div>
 
               <div className="p-6">
@@ -327,6 +454,34 @@ export default function StudioDesignsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-zinc-950 border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white font-heading uppercase">
+              Delete Design?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
+              This action cannot be undone. The design will be permanently removed from your
+              portfolio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-zinc-800 border-white/10 text-white hover:bg-zinc-700">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

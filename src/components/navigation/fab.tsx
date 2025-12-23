@@ -3,12 +3,17 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { FileText, Plus, Scissors, UserPlus } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ANIMATIONS } from '@/lib/design-system';
 
 export function FAB() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Hide FAB on messages page on mobile to avoid overlapping with send button
+  const isMessagesPage = pathname?.startsWith('/dashboard/messages');
 
   const actions = [
     { name: 'New Order', icon: Scissors, href: '/dashboard/orders/new' },
@@ -18,7 +23,7 @@ export function FAB() {
 
   return (
     <div
-      className="fixed bottom-safe-fab right-4 md:right-8 z-40 flex flex-col items-end gap-4 no-print"
+      className={`fixed bottom-safe-fab right-4 md:right-8 z-40 flex-col items-end gap-4 no-print ${isMessagesPage ? 'hidden md:flex' : 'flex'}`}
     >
       <AnimatePresence>
         {open && (

@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/table';
 import { fetchApi } from '@/lib/fetch-api';
 import { cn, formatCurrency } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 async function getInventory() {
   const res = await fetchApi('/api/inventory');
@@ -60,6 +61,7 @@ export default function InventoryPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [itemToEdit, setItemToEdit] = useState<any>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data: items, isLoading: isItemsLoading } = useQuery({
     queryKey: ['inventory'],
@@ -289,7 +291,7 @@ export default function InventoryPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -303,17 +305,26 @@ export default function InventoryPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-red-600"
-                            onClick={() => {
-                              if (confirm('Are you sure you want to delete this item?')) {
-                                deleteMutation.mutate(item.id);
-                              }
-                            }}
+                            onClick={() => setDeleteConfirmId(item.id)}
                           >
                             <Trash className="mr-2 h-4 w-4" />
                             Delete Item
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      <ConfirmDialog
+                        open={deleteConfirmId === item.id}
+                        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+                        title="Delete Inventory Item"
+                        description="Are you sure you want to delete this item? This action cannot be undone."
+                        confirmText="Delete"
+                        variant="destructive"
+                        onConfirm={() => {
+                          deleteMutation.mutate(item.id);
+                          setDeleteConfirmId(null);
+                        }}
+                        isLoading={deleteMutation.isPending}
+                      />
                     </TableCell>
                   </TableRow>
                 );

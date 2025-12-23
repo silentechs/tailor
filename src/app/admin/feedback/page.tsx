@@ -46,6 +46,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Types
 interface Feedback {
@@ -111,6 +112,8 @@ export default function AdminFeedbackPage() {
   const [responseText, setResponseText] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [statusCounts, setStatusCounts] = React.useState<Record<string, number>>({});
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   // Fetch feedbacks
   const fetchFeedbacks = React.useCallback(async () => {
@@ -190,8 +193,7 @@ export default function AdminFeedbackPage() {
 
   // Delete feedback
   const deleteFeedback = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this feedback?')) return;
-
+    setIsDeleting(true);
     try {
       const response = await fetch(`/api/feedback/${id}`, {
         method: 'DELETE',
@@ -207,6 +209,9 @@ export default function AdminFeedbackPage() {
       }
     } catch (error) {
       toast.error('Failed to delete feedback');
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmId(null);
     }
   };
 
@@ -404,7 +409,7 @@ export default function AdminFeedbackPage() {
                             className="h-8 w-8 rounded-lg text-red-500 hover:text-red-600"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteFeedback(feedback.id);
+                              setDeleteConfirmId(feedback.id);
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -589,7 +594,7 @@ export default function AdminFeedbackPage() {
                 <Button
                   variant="ghost"
                   className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                  onClick={() => deleteFeedback(selectedFeedback.id)}
+                  onClick={() => setDeleteConfirmId(selectedFeedback.id)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
@@ -664,6 +669,18 @@ export default function AdminFeedbackPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+        title="Delete Feedback"
+        description="Are you sure you want to delete this feedback? This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        onConfirm={() => deleteConfirmId && deleteFeedback(deleteConfirmId)}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
