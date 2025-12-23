@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { fetchApi } from '@/lib/fetch-api';
 import { offlineDb } from '@/lib/offline-db';
 
 export function useOfflineSync() {
@@ -31,7 +32,7 @@ export function useOfflineSync() {
 
     setIsSyncing(true);
     try {
-      const response = await fetch('/api/measurements/sync', {
+      const response = await fetchApi('/api/measurements/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ measurements: unsynced }),

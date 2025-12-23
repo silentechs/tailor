@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { fetchApi } from '@/lib/fetch-api';
 
 interface PortfolioItem {
   id: string;
@@ -31,7 +32,7 @@ export function usePortfolioMutation() {
 
   const createMutation = useMutation({
     mutationFn: async (newItem: Partial<PortfolioItem>) => {
-      const res = await fetch('/api/portfolio', {
+      const res = await fetchApi('/api/portfolio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newItem),
@@ -53,7 +54,7 @@ export function usePortfolioMutation() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/portfolio/${id}`, {
+      const res = await fetchApi(`/api/portfolio/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete item');
@@ -70,7 +71,7 @@ export function usePortfolioMutation() {
 
   const togglePublicMutation = useMutation({
     mutationFn: async ({ id, isPublic }: { id: string; isPublic: boolean }) => {
-      const res = await fetch(`/api/portfolio/${id}`, {
+      const res = await fetchApi(`/api/portfolio/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPublic }),

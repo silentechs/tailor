@@ -83,7 +83,7 @@ export default function NewClientPage() {
 
     setIsLookingUp(true);
     try {
-      const res = await fetch('/api/clients/lookup', {
+      const res = await fetchApi('/api/clients/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
