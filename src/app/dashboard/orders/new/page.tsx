@@ -69,6 +69,7 @@ const orderSchema = z.object({
   dueDate: z.date().min(new Date(1900, 0, 1), 'A due date is required.'),
   amount: z.string().min(1, 'Amount is required'),
   deposit: z.string().optional(),
+  measurementUnit: z.enum(['CM', 'INCH']).default('CM'),
   // Measurements is a record of string keys and any values (numeric strings or numbers)
   measurements: z.record(z.string(), z.any()).optional(),
 });
@@ -117,6 +118,7 @@ export default function NewOrderPage() {
       garmentType: '',
       amount: '',
       deposit: '',
+      measurementUnit: 'CM',
     },
   });
 
@@ -151,7 +153,9 @@ export default function NewOrderPage() {
         deadline: values.dueDate.toISOString(),
         // Parse amount safely - remove any non-numeric characters except decimal point
         laborCost: parseFloat(values.amount.toString().replace(/[^0-9.]/g, '')),
+        deposit: values.deposit ? parseFloat(values.deposit.toString().replace(/[^0-9.]/g, '')) : 0,
         measurements: values.measurements,
+        measurementUnit: values.measurementUnit,
       };
 
       const response = await fetchApi('/api/orders', {

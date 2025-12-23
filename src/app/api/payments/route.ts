@@ -20,6 +20,7 @@ const createPaymentSchema = z.object({
     'MOBILE_MONEY_VODAFONE',
     'MOBILE_MONEY_AIRTELTIGO',
     'BANK_TRANSFER',
+    'PAYSTACK',
   ]),
   mobileNumber: z.string().optional().nullable(),
   transactionId: z.string().optional().nullable(),

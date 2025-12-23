@@ -233,8 +233,8 @@ export default function DiscoverPage() {
               <div className="space-y-4">
                 <h3 className="text-3xl font-bold font-heading">No Artisans Found</h3>
                 <p className="text-muted-foreground font-medium max-w-sm mx-auto text-lg leading-relaxed">
-                  We couldn't find any certified artisans matching your current selection. Maybe try
-                  another region?
+                  We couldn't find any certified artisans matching your search. Try removing your location
+                  filter or using a broader search term.
                 </p>
               </div>
               <Button
@@ -258,7 +258,7 @@ export default function DiscoverPage() {
           </div>
           <p className="text-muted-foreground text-sm font-medium">
             Elevating Ghana's Fashion Ecosystem. © {new Date().getFullYear()} Silentech Solution
-            Limited.
+            Enterprise.
           </p>
         </div>
       </footer>

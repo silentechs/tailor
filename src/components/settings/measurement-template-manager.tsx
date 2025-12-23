@@ -25,7 +25,7 @@ export function MeasurementTemplateManager() {
   const [newFields, setNewFields] = useState<string[]>([]);
   const [fieldInput, setFieldInput] = useState('');
 
-  const { data: templates, isLoading } = useQuery({
+  const { data: templates, isLoading, isError } = useQuery({
     queryKey: ['measurement-templates'],
     queryFn: getTemplates,
   });
@@ -73,6 +73,9 @@ export function MeasurementTemplateManager() {
   };
 
   if (isLoading) return <Loader2 className="h-8 w-8 animate-spin mx-auto my-12" />;
+
+  // Ensure templates is always an array
+  const templateList = Array.isArray(templates) ? templates : [];
 
   return (
     <div className="space-y-6">
@@ -150,7 +153,12 @@ export function MeasurementTemplateManager() {
           )}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {templates?.map((template: any) => (
+            {isError && (
+              <p className="text-sm text-muted-foreground col-span-full">
+                Unable to load templates. Please try again.
+              </p>
+            )}
+            {templateList.map((template: any) => (
               <div
                 key={template.id || template.name}
                 className="p-4 border rounded-xl hover:border-primary/50 transition-colors group relative"

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from './prisma';
+import { slugify } from './utils';
 
 // Cookie configuration
 const SESSION_COOKIE_NAME = 'sc_session';
@@ -216,20 +217,62 @@ export async function registerUser(data: {
   // Hash password
   const hashedPassword = await hashPassword(data.password);
 
-  // Create user
+  // Create user and organization in a transaction
   const initialStatus = data.role === 'TAILOR' || data.role === 'SEAMSTRESS' ? 'PENDING' : 'ACTIVE';
 
-  const user = await prisma.user.create({
-    data: {
-      email: data.email.toLowerCase(),
-      password: hashedPassword,
-      name: data.name,
-      phone: data.phone,
-      businessName: data.businessName,
-      role: data.role as any,
-      status: initialStatus,
-      linkedClientId,
-    },
+  const user = await prisma.$transaction(async (tx) => {
+    // 1. Create the user
+    const newUser = await tx.user.create({
+      data: {
+        email: data.email.toLowerCase(),
+        password: hashedPassword,
+        name: data.name,
+        phone: data.phone,
+        businessName: data.businessName,
+        role: data.role as any,
+        status: initialStatus,
+        linkedClientId,
+        region: data.region as any,
+        city: data.city,
+      },
+    });
+
+    // 2. Create organization if the user is a Tailor or Seamstress
+    if (data.role === 'TAILOR' || data.role === 'SEAMSTRESS') {
+      const orgName = data.businessName || `${data.name}'s Workshop`;
+      let baseSlug = slugify(orgName);
+
+      // Ensure slug uniqueness
+      let slug = baseSlug;
+      let counter = 1;
+      let existingOrg = await tx.organization.findUnique({ where: { slug } });
+      while (existingOrg) {
+        slug = `${baseSlug}-${counter}`;
+        existingOrg = await tx.organization.findUnique({ where: { slug } });
+        counter++;
+      }
+
+      const organization = await tx.organization.create({
+        data: {
+          name: orgName,
+          slug,
+          ownerId: newUser.id,
+          region: data.region as any,
+          city: data.city,
+        },
+      });
+
+      // 3. Create the organization membership for the owner
+      await tx.organizationMember.create({
+        data: {
+          organizationId: organization.id,
+          userId: newUser.id,
+          role: 'MANAGER', // Owners are Managers by default
+        },
+      });
+    }
+
+    return newUser;
   });
 
   return { success: true, user };

@@ -35,11 +35,11 @@ export default function StudioMeasurementsPage() {
 
       let y = 60;
       doc.setFontSize(14);
-      doc.text('Current Measurements (CM):', 20, 50);
+      doc.text(`Current Measurements (${latest.unit || 'CM'}):`, 20, 50);
       doc.setFontSize(12);
 
       Object.entries(values).forEach(([key, val]: [string, any]) => {
-        doc.text(`${key}: ${val} cm`, 20, y);
+        doc.text(`${key}: ${val} ${latest.unit?.toLowerCase() || 'cm'}`, 20, y);
         y += 10;
       });
 
@@ -132,7 +132,7 @@ export default function StudioMeasurementsPage() {
                     </p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black font-heading text-white">{val}</span>
-                      <span className="text-xs font-bold text-zinc-500">CM</span>
+                      <span className="text-xs font-bold text-zinc-500">{latest.unit || 'CM'}</span>
                     </div>
                   </motion.div>
                 ))}

@@ -385,7 +385,7 @@ export default function ShowcasePageClient() {
             </Link>
           </div>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-8">
-            © {new Date().getFullYear()} Silentech Solution Limited. All Rights Reserved.
+            © {new Date().getFullYear()} Silentech Solution Enterprise. All Rights Reserved.
           </p>
         </div>
       </footer>

@@ -140,8 +140,8 @@ export function getEmailLayout(content: string, options: { subject: string; preh
           ${content}
         </div>
         <div class="footer">
-          <p>You received this email from ${APP_NAME}, a product of Silentech Solution Limited.</p>
-          <p>© ${new Date().getFullYear()} Silentech Solution Limited. Proudly Made in Ghana. 🇬🇭</p>
+          <p>You received this email from ${APP_NAME}, a product of Silentech Solution Enterprise.</p>
+          <p>© ${new Date().getFullYear()} Silentech Solution Enterprise. Proudly Made in Ghana. 🇬🇭</p>
           <p style="font-size: 11px; color: #999; margin-top: 15px;">
             If you have any questions, please reply to this email or visit our website.
           </p>

@@ -29,6 +29,11 @@ export type CurrentUser = {
       slug: string;
     };
   }[];
+  ownedOrganizations?: {
+    id: string;
+    name: string;
+    slug: string;
+  }[];
   measurements?: Record<string, any>;
 };
 

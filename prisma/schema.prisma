@@ -187,6 +187,7 @@ model Client {
   city               String?
   notes              String?
   profileImage       String?
+  gender             String?               // NEW: Client gender
   isLead             Boolean               @default(false)
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
@@ -612,6 +613,7 @@ model ClientMeasurement {
   clientId   String
   templateId String?
   values     Json
+  unit       MeasurementUnit      @default(CM) // NEW: Measurement unit
   sketch     String?              @db.Text
   notes        String?
   clientSideId String?              @unique
@@ -623,6 +625,11 @@ model ClientMeasurement {
   orders     Order[]
 
   @@index([clientId])
+}
+
+enum MeasurementUnit {
+  CM
+  INCH
 }
 
 model Appointment {
@@ -919,7 +926,7 @@ enum Region {
   NORTHERN
   UPPER_EAST
   UPPER_WEST
-  BRONG_AHAFO
+  BONO
   BONO_EAST
   AHAFO
   WESTERN_NORTH

@@ -2,7 +2,7 @@ import type { MaterialSourceType, OrderStatus, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { secureErrorResponse, secureJsonResponse, withSecurity } from '@/lib/api-security';
 import { logAudit } from '@/lib/audit-service';
-import { generateOrderNumber } from '@/lib/invoice-numbering-system';
+import { generateOrderNumber, generatePaymentNumber } from '@/lib/invoice-numbering-system';
 import { captureError } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
@@ -39,9 +39,11 @@ const createOrderSchema = z
     materialCost: z.number().nonnegative().optional().nullable(),
     laborCost: z.number().nonnegative(),
     totalAmount: z.number().nonnegative().optional(),
+    deposit: z.number().nonnegative().optional().default(0), // NEW: Initial deposit
     deadline: z.string().optional().nullable(),
     collectionId: z.string().optional().nullable(),
     measurements: z.record(z.string(), z.any()).optional(),
+    measurementUnit: z.enum(['CM', 'INCH']).optional().default('CM'),
   })
   .refine(
     (data) => {
@@ -168,6 +170,7 @@ export const POST = withSecurity(
       const orderNumber = await generateOrderNumber(user.id);
       const materialCost = data.materialCost || 0;
       const totalAmount = data.laborCost + materialCost;
+      const deposit = data.deposit || 0;
 
       const order = await prisma.$transaction(async (tx) => {
         let measurementId: string | undefined;
@@ -176,6 +179,7 @@ export const POST = withSecurity(
             data: {
               clientId: data.clientId,
               values: data.measurements,
+              unit: data.measurementUnit as any,
               notes: `Snapshot for Order ${orderNumber}`,
             },
           });
@@ -199,6 +203,7 @@ export const POST = withSecurity(
             materialCost: materialCost,
             laborCost: data.laborCost,
             totalAmount,
+            paidAmount: deposit, // Set initial paid amount from deposit
             deadline: data.deadline ? new Date(data.deadline) : null,
             status: 'PENDING',
             measurementId,
@@ -210,6 +215,24 @@ export const POST = withSecurity(
             measurement: true,
           },
         });
+
+        if (deposit > 0) {
+          const paymentNumber = await generatePaymentNumber(user.id);
+          await tx.payment.create({
+            data: {
+              paymentNumber,
+              tailorId: user.id,
+              organizationId,
+              clientId: data.clientId,
+              orderId: newOrder.id,
+              amount: deposit,
+              method: 'CASH', // Default to cash for initial deposit in wizard
+              status: 'COMPLETED',
+              notes: `Initial deposit for Order ${orderNumber}`,
+              paidAt: new Date(),
+            },
+          });
+        }
 
         if (data.collectionId) {
           await tx.orderCollection.update({

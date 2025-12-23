@@ -315,7 +315,7 @@ export const GHANA_REGIONS: Record<string, string> = {
   NORTHERN: 'Northern',
   UPPER_EAST: 'Upper East',
   UPPER_WEST: 'Upper West',
-  BRONG_AHAFO: 'Brong Ahafo',
+  BONO: 'Bono',
   BONO_EAST: 'Bono East',
   AHAFO: 'Ahafo',
   WESTERN_NORTH: 'Western North',

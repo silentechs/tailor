@@ -502,7 +502,7 @@ export default function LandingPage() {
                 <span className="text-xl font-bold font-heading tracking-tight">StitchCraft</span>
               </div>
               <p className="text-muted-foreground max-w-xs">
-                A product of **Silentech Solution Limited**. Built with ❤️ in Ghana for the next
+                A product of **Silentech Solution Enterprise**. Built with ❤️ in Ghana for the next
                 generation of fashion entrepreneurs in Africa.
               </p>
             </div>
@@ -560,7 +560,7 @@ export default function LandingPage() {
           </div>
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-12 border-t">
             <p className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} Silentech Solution Limited. High-craft management for
+              © {new Date().getFullYear()} Silentech Solution Enterprise. High-craft management for
               high-craft fashion.
             </p>
             <div className="flex gap-6">

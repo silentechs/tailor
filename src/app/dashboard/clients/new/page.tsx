@@ -37,6 +37,7 @@ const clientSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().regex(phoneRegex, 'Invalid Ghana phone number'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
+  gender: z.string().optional(),
   address: z.string().optional(),
   region: z.string().optional(),
   city: z.string().optional(),
@@ -62,6 +63,7 @@ export default function NewClientPage() {
       name: '',
       phone: '',
       email: '',
+      gender: '',
       address: '',
       region: '',
       city: '',
@@ -128,6 +130,7 @@ export default function NewClientPage() {
       const payload = {
         ...values,
         email: values.email || undefined,
+        gender: values.gender || undefined,
         address: values.address || undefined,
         region: values.region || undefined,
         city: values.city || undefined,
@@ -249,6 +252,29 @@ export default function NewClientPage() {
                     <FormControl>
                       <Input type="email" placeholder="ama@example.com" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

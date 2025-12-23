@@ -27,6 +27,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { detectMeasurementAnomalies, getMeasurementHint } from '@/lib/ai-logic';
 import { offlineDb } from '@/lib/offline-db';
@@ -50,6 +57,8 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
   const [customFields, setCustomFields] = useState<string[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
+
+  const watchedUnit = useWatch({ control, name: 'measurementUnit' }) || 'CM';
 
   // Voice Dictation State
   const [dictationTarget, setDictationTarget] = useState<string | null>(null);
@@ -182,9 +191,26 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-          {template?.name || 'Standard'} Measurements
-        </h3>
+        <div className="flex items-center gap-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            {template?.name || 'Standard'} Measurements
+          </h3>
+          <FormField
+            control={control}
+            name="measurementUnit"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value || 'CM'}>
+                <SelectTrigger className="h-8 w-24 rounded-full bg-muted/50 border-none text-[10px] font-bold">
+                  <SelectValue placeholder="Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CM">CM (Centimeters)</SelectItem>
+                  <SelectItem value="INCH">IN (Inches)</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
         <div className="flex gap-2">
           {lastMeasurement && (
             <Button
@@ -328,7 +354,7 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
                         onFocus={() => isListening && setDictationTarget(field)}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium">
-                        IN
+                        {watchedUnit}
                       </span>
                     </div>
                   </FormControl>

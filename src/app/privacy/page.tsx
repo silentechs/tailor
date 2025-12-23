@@ -22,7 +22,7 @@ export default function PrivacyPage() {
 
             <article className="prose prose-slate prose-lg max-w-none text-slate-600 leading-relaxed font-medium">
               <p>
-                At **StitchCraft Ghana**, a product of **Silentech Solution Limited**, we respect
+                At **StitchCraft Ghana**, a product of **Silentech Solution Enterprise**, we respect
                 the ancient craft of tailoring and the modern boundaries of digital privacy. This
                 policy outlines how we handle your business and personal data.
               </p>

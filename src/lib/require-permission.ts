@@ -1,6 +1,7 @@
 import { type CurrentUser, requireUser } from './direct-current-user';
 import { type Permission, ROLE_PERMISSIONS } from './permissions';
 import prisma from './prisma';
+import { slugify } from './utils';
 // import { Organization } from '@prisma/client';
 
 /**
@@ -113,6 +114,7 @@ export async function requireOrgMember(organizationId: string) {
 /**
  * Ensures the user has an active organization and returns its context.
  * Used for general dashboard data fetching where specific workforce permissions aren't yet refined.
+ * For TAILOR/SEAMSTRESS users without an organization, one is auto-created.
  */
 export async function requireOrganization(): Promise<{
   user: CurrentUser;
@@ -127,9 +129,59 @@ export async function requireOrganization(): Promise<{
   }
 
   // 2. Fallback to owned organization for TAILORs
-  const ownedOrg = (user as any).ownedOrganizations?.[0];
+  const ownedOrg = user.ownedOrganizations?.[0];
   if (ownedOrg) {
     return { user, organizationId: ownedOrg.id };
+  }
+
+  // 3. Auto-create organization for TAILOR/SEAMSTRESS without one (legacy accounts)
+  if (user.role === 'TAILOR' || user.role === 'SEAMSTRESS') {
+    // Check DB directly in case session is stale
+    const existingOrg = await prisma.organization.findFirst({
+      where: { ownerId: user.id },
+    });
+
+    if (existingOrg) {
+      return { user, organizationId: existingOrg.id };
+    }
+
+    // Auto-create organization for legacy users
+    const orgName = user.businessName || `${user.name}'s Workshop`;
+    let baseSlug = slugify(orgName);
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Ensure slug uniqueness
+    let slugExists = await prisma.organization.findUnique({ where: { slug } });
+    while (slugExists) {
+      slug = `${baseSlug}-${counter}`;
+      slugExists = await prisma.organization.findUnique({ where: { slug } });
+      counter++;
+    }
+
+    const organization = await prisma.$transaction(async (tx) => {
+      const newOrg = await tx.organization.create({
+        data: {
+          name: orgName,
+          slug,
+          ownerId: user.id,
+          region: user.region as any,
+          city: user.city,
+        },
+      });
+
+      await tx.organizationMember.create({
+        data: {
+          organizationId: newOrg.id,
+          userId: user.id,
+          role: 'MANAGER',
+        },
+      });
+
+      return newOrg;
+    });
+
+    return { user, organizationId: organization.id };
   }
 
   throw new Error('Unauthorized');

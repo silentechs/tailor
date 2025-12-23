@@ -286,6 +286,14 @@ export default function GalleryPage() {
                           </div>
                         </div>
                       </Card>
+                      {/* Permanent labels below the card for better UX */}
+                      <div className="mt-4 px-4">
+                        <h3 className="text-lg font-bold font-heading truncate">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5 font-medium">
+                          <Scissors className="h-3.5 w-3.5 text-primary" />
+                          {item.tailor}
+                        </p>
+                      </div>
                     </Link>
                   </motion.div>
                 ))}

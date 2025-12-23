@@ -23,7 +23,7 @@ export default function TermsPage() {
             <article className="prose prose-slate prose-lg max-w-none text-slate-600 leading-relaxed font-medium">
               <p>
                 Welcome to **StitchCraft**. By accessing or using our platform, which is owned and
-                operated by **Silentech Solution Limited**, you agree to be bound by these terms. If
+                operated by **Silentech Solution Enterprise**, you agree to be bound by these terms. If
                 you do not agree, please do not use the service.
               </p>
 
@@ -31,7 +31,7 @@ export default function TermsPage() {
                 1. License to Use
               </h2>
               <p>
-                Silentech Solution Limited grants you a non-transferable, non-exclusive license to
+                Silentech Solution Enterprise grants you a non-transferable, non-exclusive license to
                 use the StitchCraft platform for your professional tailoring or fashion business
                 operations within the Republic of Ghana and beyond.
               </p>
@@ -66,7 +66,7 @@ export default function TermsPage() {
               </h2>
               <p>
                 "StitchCraft", the "Heritage Tech" design system, and all associated branding are
-                the intellectual property of **Silentech Solution Limited**. You retain ownership of
+                the intellectual property of **Silentech Solution Enterprise**. You retain ownership of
                 your customer data and photos, but grant us a license to host and display them as
                 requested via the Showcase features.
               </p>
