@@ -87,7 +87,10 @@ export function useSpeechRecognition({
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error);
+      // Don't show confusing technical error in console for common permission/canceled issues
+      if (event.error !== 'not-allowed' && event.error !== 'aborted') {
+        console.error('Speech recognition error:', event.error);
+      }
       setIsListening(false);
       onError?.(event.error);
     };

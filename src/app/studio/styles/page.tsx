@@ -94,8 +94,8 @@ export default function StudioStyleHubPage() {
                   </h3>
                   <div className="flex items-center gap-2 text-zinc-500 mt-2">
                     <MapPin className="h-3 w-3" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">
-                      {item.portfolioItem.organization.name}
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                      {item.portfolioItem.organization?.name || item.portfolioItem.tailor?.businessName || 'Bespoke Artisan'}
                     </span>
                   </div>
                 </div>
@@ -118,7 +118,7 @@ export default function StudioStyleHubPage() {
                   asChild
                   className="flex-1 bg-white/5 hover:bg-white/10 border-white/5 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
                 >
-                  <Link href={`/showcase/${item.portfolioItem.tailor?.showcaseUsername || '#'}`}>
+                  <Link href={item.portfolioItem.tailor?.showcaseUsername ? `/showcase/${item.portfolioItem.tailor.showcaseUsername}` : '#'}>
                     View Tailor
                   </Link>
                 </Button>
