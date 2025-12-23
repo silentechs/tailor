@@ -72,15 +72,48 @@ export async function checkCSRF(request: Request): Promise<{ valid: boolean; err
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
   const host = request.headers.get('host');
-  const appUrl = process.env.APP_URL || `https://${host}`;
-
-  // Verify origin matches our app
-  if (origin && !origin.startsWith(appUrl) && !origin.startsWith('http://localhost')) {
-    return { valid: false, error: 'Invalid origin' };
+  
+  // Build list of allowed origins
+  const allowedOrigins: string[] = [
+    'http://localhost:3000',
+    'http://localhost',
+  ];
+  
+  // Add configured APP_URL
+  if (process.env.APP_URL) {
+    allowedOrigins.push(process.env.APP_URL);
+  }
+  
+  // Add NEXT_PUBLIC_APP_URL
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    allowedOrigins.push(process.env.NEXT_PUBLIC_APP_URL);
+  }
+  
+  // Add host-based URL (with and without www)
+  if (host) {
+    allowedOrigins.push(`https://${host}`);
+    allowedOrigins.push(`http://${host}`);
+    // Handle www/non-www variants
+    if (host.startsWith('www.')) {
+      allowedOrigins.push(`https://${host.slice(4)}`);
+    } else {
+      allowedOrigins.push(`https://www.${host}`);
+    }
   }
 
-  if (referer && !referer.startsWith(appUrl) && !referer.startsWith('http://localhost')) {
-    return { valid: false, error: 'Invalid referer' };
+  // Helper to check if URL starts with any allowed origin
+  const isAllowedOrigin = (url: string | null): boolean => {
+    if (!url) return true; // No origin/referer is OK
+    return allowedOrigins.some(allowed => url.startsWith(allowed));
+  };
+
+  // Verify origin matches our app
+  if (origin && !isAllowedOrigin(origin)) {
+    return { valid: false, error: `Invalid origin: ${origin}` };
+  }
+
+  if (referer && !isAllowedOrigin(referer)) {
+    return { valid: false, error: `Invalid referer: ${referer}` };
   }
 
   // Validate CSRF token
