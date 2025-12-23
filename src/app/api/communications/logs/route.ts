@@ -5,12 +5,18 @@ import { requireOrganization, requirePermission } from '@/lib/require-permission
 // GET /api/communications/logs - Get SMS and Email notification logs
 export async function GET() {
   try {
-    const { organizationId } = await requireOrganization();
+    const { user, organizationId } = await requireOrganization();
     await requirePermission('settings:read', organizationId);
 
-    // TODO: Add organizationId/tailorId to notification logs in schema.prisma
-    // For now, we fetch recent logs. In a production multi-tenant app,
-    // these MUST be filtered by organizationId.
+    // SECURITY: These log tables are not tenant-scoped in the schema yet.
+    // Until they are, only allow platform admins to view global delivery logs.
+    if (user.role !== 'ADMIN') {
+      return NextResponse.json({
+        success: true,
+        data: { sms: [], emails: [] },
+        meta: { restricted: true },
+      });
+    }
 
     const [sms, emails] = await Promise.all([
       prisma.smsNotification.findMany({

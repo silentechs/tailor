@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const updateInventorySchema = z.object({
   name: z.string().optional(),
@@ -20,7 +20,8 @@ type RouteParams = { params: Promise<{ id: string }> };
 // PUT /api/inventory/[id] - Update inventory item
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('inventory:write', organizationId);
     const { id } = await params;
     const body = await request.json();
 
@@ -33,11 +34,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     // Verify ownership
-    const existingItem = await prisma.inventoryItem.findUnique({
-      where: { id },
+    const existingItem = await prisma.inventoryItem.findFirst({
+      where: { id, organizationId },
     });
 
-    if (!existingItem || existingItem.tailorId !== user.id) {
+    if (!existingItem) {
       return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
     }
 
@@ -52,6 +53,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
         await tx.inventoryMovement.create({
           data: {
             tailorId: user.id,
+            organizationId,
             itemId: id,
             type: 'ADJUSTMENT',
             quantity: Math.abs(diff),
@@ -78,14 +80,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
 // DELETE /api/inventory/[id] - Delete (or deactivate) inventory item
 export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('inventory:write', organizationId);
     const { id } = await params;
 
-    const existingItem = await prisma.inventoryItem.findUnique({
-      where: { id },
+    const existingItem = await prisma.inventoryItem.findFirst({
+      where: { id, organizationId },
+      select: { id: true },
     });
 
-    if (!existingItem || existingItem.tailorId !== user.id) {
+    if (!existingItem) {
       return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
     }
 

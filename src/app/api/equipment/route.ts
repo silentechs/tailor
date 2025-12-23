@@ -7,19 +7,21 @@ export async function GET() {
     const { organizationId } = await requireOrganization();
     await requirePermission('inventory:read', organizationId);
 
-    // Get the organization owner's ID to fetch their equipment
-    // (In the future, we should add organizationId to the Equipment model)
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { ownerId: true },
-    });
-
-    if (!org) {
-      throw new Error('Organization not found');
-    }
-
     const equipment = await prisma.equipment.findMany({
-      where: { tailorId: org.ownerId },
+      where: {
+        OR: [
+          { organizationId },
+          { 
+            organizationId: null,
+            // Fallback for legacy data linked via owner
+            tailor: {
+              ownedOrganizations: {
+                some: { id: organizationId }
+              }
+            }
+          }
+        ]
+      },
       include: {
         maintenance: {
           orderBy: { completedDate: 'desc' },
@@ -50,15 +52,6 @@ export async function POST(request: Request) {
     const { user, organizationId } = await requireOrganization();
     await requirePermission('inventory:write', organizationId);
 
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { ownerId: true },
-    });
-
-    if (!org) {
-      throw new Error('Organization not found');
-    }
-
     const body = await request.json();
 
     // Parse purchaseDate if provided (comes as string from form)
@@ -68,7 +61,8 @@ export async function POST(request: Request) {
       model: body.model || null,
       serialNumber: body.serialNumber || null,
       purchaseDate: body.purchaseDate ? new Date(body.purchaseDate) : null,
-      tailorId: org.ownerId, // Link to the shop owner
+      tailorId: user.id,
+      organizationId, // Link to the current organization
     };
 
     const item = await prisma.equipment.create({

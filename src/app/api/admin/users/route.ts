@@ -1,6 +1,6 @@
 import type { Prisma, UserRole, UserStatus } from '@prisma/client';
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/direct-current-user';
+import { requireAdmin } from '@/lib/require-permission';
 import prisma from '@/lib/prisma';
 
 // GET /api/admin/users - List all users (admin only)

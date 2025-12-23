@@ -4,7 +4,11 @@ import prisma from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    const _user = await requireUser();
+    const user = await requireUser();
+    // This endpoint is part of the client portal flow; require a linked CLIENT session.
+    if (user.role !== 'CLIENT' || !user.linkedClientId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
     const { searchParams } = new URL(req.url);
     const reference = searchParams.get('reference');
 
@@ -54,6 +58,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
+    // SECURITY: Ensure the order belongs to the current client (avoid cross-client payment attribution)
+    if (order.clientId !== user.linkedClientId) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    }
+
     // Idempotency check: if payment already recorded
     const existingPayment = await prisma.payment.findFirst({
       where: { transactionId: reference },
@@ -77,6 +86,7 @@ export async function GET(req: NextRequest) {
         data: {
           paymentNumber: `PAY-${Date.now()}`,
           tailorId: order.tailorId,
+          organizationId: order.organizationId ?? undefined,
           clientId: order.clientId,
           orderId: order.id,
           amount: paidAmount,

@@ -52,38 +52,6 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
-export async function requireOrganization(): Promise<{
-  user: CurrentUser;
-  organizationId: string;
-}> {
-  const user = await requireUser();
-
-  // 1. Get organization from memberships
-  const membership = user.memberships?.[0];
-  if (membership) {
-    return { user, organizationId: membership.organization.id };
-  }
-
-  // 2. Fallback to owned organization for TAILORs who might not have membership yet
-  // (though our migration script should have created memberships)
-  const ownedOrg = (user as any).ownedOrganizations?.[0];
-  if (ownedOrg) {
-    return { user, organizationId: ownedOrg.id };
-  }
-
-  throw new Error('Organization context required');
-}
-
-export async function requireAdmin(): Promise<CurrentUser> {
-  const user = await requireUser();
-
-  if (user.role !== 'ADMIN') {
-    throw new Error('Forbidden');
-  }
-
-  return user;
-}
-
 export async function requireActiveTailor(): Promise<CurrentUser> {
   const user = await requireUser();
 

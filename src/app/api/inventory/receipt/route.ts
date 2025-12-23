@@ -25,6 +25,23 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { items } = receiptSchema.parse(body);
 
+    // SECURITY: Ensure every item belongs to the current organization (never trust raw IDs from the client)
+    const itemIds = Array.from(new Set(items.map((i) => i.itemId)));
+    const existingItems = await prisma.inventoryItem.findMany({
+      where: {
+        id: { in: itemIds },
+        organizationId,
+      },
+      select: { id: true },
+    });
+
+    if (existingItems.length !== itemIds.length) {
+      return NextResponse.json(
+        { success: false, error: 'One or more inventory items were not found' },
+        { status: 404 }
+      );
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const movements = [];
       const updates = [];
@@ -35,6 +52,7 @@ export async function POST(request: Request) {
           tx.inventoryMovement.create({
             data: {
               tailorId: user.id,
+              organizationId,
               itemId: item.itemId,
               type: 'RECEIPT',
               quantity: item.quantity,
@@ -45,8 +63,8 @@ export async function POST(request: Request) {
 
         // 2. Update stock level
         updates.push(
-          tx.inventoryItem.update({
-            where: { id: item.itemId },
+          tx.inventoryItem.updateMany({
+            where: { id: item.itemId, organizationId },
             data: {
               quantity: { increment: item.quantity },
               unitCost: item.unitPrice ?? undefined,

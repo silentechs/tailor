@@ -132,6 +132,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
 
+    // SECURITY: If linked to an order, ensure the order belongs to this organization (and client)
+    if (data.orderId) {
+      const order = await prisma.order.findFirst({
+        where: { id: data.orderId, organizationId, clientId: data.clientId },
+        select: { id: true },
+      });
+
+      if (!order) {
+        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+      }
+    }
+
     // Generate invoice number
     const invoiceNumber = await generateInvoiceNumber(user.id);
 

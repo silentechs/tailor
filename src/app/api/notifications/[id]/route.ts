@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireActiveTailor } from '@/lib/direct-current-user';
+import { requireUser } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -7,7 +7,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 // PUT /api/notifications/[id] - Mark a single notification as read
 export async function PUT(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const user = await requireUser();
     const { id } = await params;
 
     const notification = await prisma.notification.findUnique({
@@ -39,7 +39,7 @@ export async function PUT(_request: Request, { params }: RouteParams) {
 // DELETE /api/notifications/[id] - Delete a notification
 export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
+    const user = await requireUser();
     const { id } = await params;
 
     const notification = await prisma.notification.findUnique({

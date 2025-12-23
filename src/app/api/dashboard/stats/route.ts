@@ -6,7 +6,15 @@ import { requireOrganization, requirePermission } from '@/lib/require-permission
 export async function GET() {
   try {
     const { user, organizationId } = await requireOrganization();
-    await requirePermission('payments:read', organizationId);
+    
+    // Check if user has financial permissions
+    let hasFinancialAccess = false;
+    try {
+      await requirePermission('payments:read', organizationId);
+      hasFinancialAccess = true;
+    } catch (e) {
+      // User doesn't have financial access, we'll return zeroed financial stats
+    }
 
     // Get date ranges
     const now = new Date();
@@ -22,6 +30,7 @@ export async function GET() {
       totalClients,
       totalOrders,
       pendingOrders,
+      inProgressOrders,
       completedOrders,
       monthlyRevenue,
       weeklyRevenue,
@@ -42,11 +51,19 @@ export async function GET() {
         where: whereBase,
       }),
 
-      // Pending orders
+      // Pending orders (not yet started)
       prisma.order.count({
         where: {
           ...whereBase,
-          status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] },
+          status: { in: ['PENDING', 'CONFIRMED'] },
+        },
+      }),
+
+      // In-progress orders (actively being worked on)
+      prisma.order.count({
+        where: {
+          ...whereBase,
+          status: 'IN_PROGRESS',
         },
       }),
 
@@ -60,34 +77,40 @@ export async function GET() {
       }),
 
       // Monthly revenue
-      prisma.payment.aggregate({
-        where: {
-          ...whereBase,
-          status: 'COMPLETED',
-          paidAt: { gte: startOfMonth },
-        },
-        _sum: { amount: true },
-      }),
+      hasFinancialAccess
+        ? prisma.payment.aggregate({
+            where: {
+              ...whereBase,
+              status: 'COMPLETED',
+              paidAt: { gte: startOfMonth },
+            },
+            _sum: { amount: true },
+          })
+        : Promise.resolve({ _sum: { amount: null } }),
 
       // Weekly revenue
-      prisma.payment.aggregate({
-        where: {
-          ...whereBase,
-          status: 'COMPLETED',
-          paidAt: { gte: startOfWeek },
-        },
-        _sum: { amount: true },
-      }),
+      hasFinancialAccess
+        ? prisma.payment.aggregate({
+            where: {
+              ...whereBase,
+              status: 'COMPLETED',
+              paidAt: { gte: startOfWeek },
+            },
+            _sum: { amount: true },
+          })
+        : Promise.resolve({ _sum: { amount: null } }),
 
       // Today's revenue
-      prisma.payment.aggregate({
-        where: {
-          ...whereBase,
-          status: 'COMPLETED',
-          paidAt: { gte: startOfDay },
-        },
-        _sum: { amount: true },
-      }),
+      hasFinancialAccess
+        ? prisma.payment.aggregate({
+            where: {
+              ...whereBase,
+              status: 'COMPLETED',
+              paidAt: { gte: startOfDay },
+            },
+            _sum: { amount: true },
+          })
+        : Promise.resolve({ _sum: { amount: null } }),
 
       // Recent orders
       prisma.order.findMany({
@@ -109,15 +132,17 @@ export async function GET() {
       }),
 
       // Payments by method
-      prisma.payment.groupBy({
-        by: ['method'],
-        where: {
-          ...whereBase,
-          status: 'COMPLETED',
-          paidAt: { gte: startOfMonth },
-        },
-        _sum: { amount: true },
-      }),
+      hasFinancialAccess
+        ? prisma.payment.groupBy({
+            by: ['method'],
+            where: {
+              ...whereBase,
+              status: 'COMPLETED',
+              paidAt: { gte: startOfMonth },
+            },
+            _sum: { amount: true },
+          })
+        : Promise.resolve([]),
 
       // Top Garments
       prisma.order.groupBy({
@@ -157,31 +182,35 @@ export async function GET() {
       });
     }
 
-    const revenueTrend = await Promise.all(
-      months.map(async (m) => {
-        const result = await prisma.payment.aggregate({
+    const revenueTrend = hasFinancialAccess
+      ? await Promise.all(
+          months.map(async (m) => {
+            const result = await prisma.payment.aggregate({
+              where: {
+                ...whereBase,
+                status: 'COMPLETED',
+                paidAt: { gte: m.start, lte: m.end },
+              },
+              _sum: { amount: true },
+            });
+            return {
+              month: m.label,
+              revenue: Number(result._sum.amount || 0),
+            };
+          })
+        )
+      : months.map((m) => ({ month: m.label, revenue: 0 }));
+
+    // Calculate average order value
+    const avgOrderValue = hasFinancialAccess
+      ? await prisma.order.aggregate({
           where: {
             ...whereBase,
             status: 'COMPLETED',
-            paidAt: { gte: m.start, lte: m.end },
           },
-          _sum: { amount: true },
-        });
-        return {
-          month: m.label,
-          revenue: Number(result._sum.amount || 0),
-        };
-      })
-    );
-
-    // Calculate average order value
-    const avgOrderValue = await prisma.order.aggregate({
-      where: {
-        ...whereBase,
-        status: 'COMPLETED',
-      },
-      _avg: { totalAmount: true },
-    });
+          _avg: { totalAmount: true },
+        })
+      : { _avg: { totalAmount: null } };
 
     // Get unread notifications count (Notifications are user-based, not org-based)
     const unreadNotifications = await prisma.notification.count({
@@ -198,14 +227,16 @@ export async function GET() {
     prevMonthEnd.setDate(0);
 
     const [prevMonthRevenue, prevMonthClients] = await Promise.all([
-      prisma.payment.aggregate({
-        where: {
-          ...whereBase,
-          status: 'COMPLETED',
-          paidAt: { gte: prevMonthStart, lte: prevMonthEnd },
-        },
-        _sum: { amount: true },
-      }),
+      hasFinancialAccess
+        ? prisma.payment.aggregate({
+            where: {
+              ...whereBase,
+              status: 'COMPLETED',
+              paidAt: { gte: prevMonthStart, lte: prevMonthEnd },
+            },
+            _sum: { amount: true },
+          })
+        : Promise.resolve({ _sum: { amount: null } }),
       prisma.client.count({
         where: {
           ...whereBase,
@@ -222,17 +253,15 @@ export async function GET() {
       },
     });
 
-    const revGrowth = prevMonthRevenue._sum.amount
-      ? Math.round(
-          ((Number(monthlyRevenue._sum.amount || 0) - Number(prevMonthRevenue._sum.amount)) /
-            Number(prevMonthRevenue._sum.amount)) *
-            100
-        )
-      : 100;
+    const currentRevenue = Number(monthlyRevenue._sum.amount || 0);
+    const previousRevenue = Number(prevMonthRevenue._sum.amount || 0);
+    const revGrowth = previousRevenue > 0
+      ? Math.round(((currentRevenue - previousRevenue) / previousRevenue) * 100)
+      : (currentRevenue > 0 ? 100 : 0);
 
-    const clientGrowth = prevMonthClients
+    const clientGrowth = prevMonthClients > 0
       ? Math.round(((totalClients - prevMonthClients) / prevMonthClients) * 100)
-      : totalClients * 100;
+      : (totalClients > 0 ? 100 : 0);
 
     return NextResponse.json({
       success: true,
@@ -241,6 +270,7 @@ export async function GET() {
           totalClients,
           totalOrders,
           pendingOrders,
+          inProgressOrders,
           completedOrdersThisMonth: completedOrders,
           unreadNotifications,
           clientGrowth: clientGrowth > 0 ? `+${clientGrowth}%` : `${clientGrowth}%`,
@@ -291,12 +321,20 @@ export async function GET() {
   } catch (error) {
     console.error('Get dashboard stats error:', error);
 
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch dashboard stats';
+    let status = 500;
+    if (errorMessage.includes('Unauthorized')) {
+      status = 401;
+    } else if (errorMessage.includes('Forbidden')) {
+      status = 403;
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch dashboard stats',
+        error: errorMessage,
       },
-      { status: error instanceof Error && error.message.includes('Forbidden') ? 403 : 500 }
+      { status }
     );
   }
 }

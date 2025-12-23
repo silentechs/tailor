@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '@/lib/direct-current-user';
+import { requireAdmin } from '@/lib/require-permission';
 import { sendApprovalEmail, sendRejectionEmail } from '@/lib/email-service';
 import prisma from '@/lib/prisma';
 

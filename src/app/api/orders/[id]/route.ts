@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logAudit } from '@/lib/audit-service';
-import { requireActiveTailor } from '@/lib/direct-current-user';
 import { notifyOrderStatusChange } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 // Validation schema for updating an order
 const updateOrderSchema = z
@@ -81,13 +81,14 @@ type RouteParams = { params: Promise<{ id: string }> };
 // GET /api/orders/[id] - Get a single order
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
     const { id } = await params;
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:read', organizationId);
 
     const order = await prisma.order.findFirst({
       where: {
         id,
-        tailorId: user.id,
+        organizationId,
       },
       include: {
         client: {
@@ -157,8 +158,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error('Get order error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json({ success: false, error: 'Failed to fetch order' }, { status: 500 });
@@ -168,15 +173,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
 // PUT /api/orders/[id] - Update an order
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
     const { id } = await params;
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('orders:write', organizationId);
     const body = await request.json();
 
     // Verify order belongs to this tailor
     const existingOrder = await prisma.order.findFirst({
       where: {
         id,
-        tailorId: user.id,
+        organizationId,
       },
       include: {
         client: true,
@@ -219,6 +225,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
         const unconsumedTasks = await prisma.orderTask.findMany({
           where: {
             orderId: id,
+            organizationId,
             status: { not: 'COMPLETED' },
             materialId: { not: null },
             materialQty: { gt: 0 },
@@ -233,6 +240,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
               await tx.inventoryMovement.create({
                 data: {
                   tailorId: user.id,
+                  organizationId,
                   itemId: task.materialId!,
                   orderId: id,
                   type: 'ISSUE',
@@ -242,12 +250,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
               });
 
               // Decrement stock
-              await tx.inventoryItem.update({
-                where: { id: task.materialId! },
+              const updated = await tx.inventoryItem.updateMany({
+                where: { id: task.materialId!, organizationId },
                 data: {
                   quantity: { decrement: Number(task.materialQty) },
                 },
               });
+              if (updated.count !== 1) {
+                throw new Error('Material not found');
+              }
 
               // Mark task as consumed and completed
               await tx.orderTask.update({
@@ -265,8 +276,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       if (newStatus === 'CANCELLED') {
         // Update collection count if part of a collection
         if (existingOrder.collectionId) {
-          await prisma.orderCollection.update({
-            where: { id: existingOrder.collectionId },
+          await prisma.orderCollection.updateMany({
+            where: { id: existingOrder.collectionId, organizationId },
             data: { totalOrders: { decrement: 1 } },
           });
         }
@@ -316,8 +327,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
       // Update collection completed count
       if (newStatus === 'COMPLETED' && existingOrder.collectionId) {
-        await prisma.orderCollection.update({
-          where: { id: existingOrder.collectionId },
+        await prisma.orderCollection.updateMany({
+          where: { id: existingOrder.collectionId, organizationId },
           data: { completedOrders: { increment: 1 } },
         });
       }
@@ -346,8 +357,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error('Update order error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json({ success: false, error: 'Failed to update order' }, { status: 500 });
@@ -357,14 +372,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
 // DELETE /api/orders/[id] - Delete an order
 export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
     const { id } = await params;
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:delete', organizationId);
 
     // Verify order belongs to this tailor
     const existingOrder = await prisma.order.findFirst({
       where: {
         id,
-        tailorId: user.id,
+        organizationId,
       },
     });
 
@@ -389,8 +405,8 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     // Update collection count if part of a collection
     if (existingOrder.collectionId) {
-      await prisma.orderCollection.update({
-        where: { id: existingOrder.collectionId },
+      await prisma.orderCollection.updateMany({
+        where: { id: existingOrder.collectionId, organizationId },
         data: {
           totalOrders: { decrement: 1 },
           ...(existingOrder.status === 'COMPLETED' && {
@@ -412,8 +428,12 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error('Delete order error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json({ success: false, error: 'Failed to delete order' }, { status: 500 });

@@ -7,7 +7,7 @@ const createTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'),
-  materialId: z.string().nullable().optional(),
+  materialId: z.string().min(1).nullable().optional(),
   materialQty: z.number().nullable().optional(),
 });
 
@@ -71,6 +71,13 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
+    if (validation.data.materialQty != null && !validation.data.materialId) {
+      return NextResponse.json(
+        { success: false, error: 'materialId is required when materialQty is provided' },
+        { status: 400 }
+      );
+    }
+
     // Verify order belongs to organization
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -78,6 +85,20 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (!order || order.organizationId !== organizationId) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    }
+
+    // SECURITY: If material is referenced, verify it belongs to this organization
+    if (validation.data.materialId) {
+      const material = await prisma.inventoryItem.findFirst({
+        where: { id: validation.data.materialId, organizationId, isActive: true },
+        select: { id: true },
+      });
+      if (!material) {
+        return NextResponse.json(
+          { success: false, error: 'Material not found' },
+          { status: 404 }
+        );
+      }
     }
 
     const task = await prisma.orderTask.create({

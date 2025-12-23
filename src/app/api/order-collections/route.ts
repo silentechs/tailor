@@ -111,6 +111,21 @@ export async function POST(request: Request) {
 
     const data = validationResult.data;
 
+    // SECURITY: Validate all referenced clients belong to this organization (prevents cross-tenant linking)
+    if (data.orders && data.orders.length > 0) {
+      const clientIds = Array.from(new Set(data.orders.map((o) => o.clientId)));
+      const existingClients = await prisma.client.count({
+        where: { id: { in: clientIds }, organizationId },
+      });
+
+      if (existingClients !== clientIds.length) {
+        return NextResponse.json(
+          { success: false, error: 'One or more clients were not found' },
+          { status: 404 }
+        );
+      }
+    }
+
     // Use transaction to create collection and orders
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create Collection

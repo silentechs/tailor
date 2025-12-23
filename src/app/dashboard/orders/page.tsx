@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Filter, Layers, Loader2, Plus, Scissors, X } from 'lucide-react';
+import { Filter, HelpCircle, Layers, Loader2, Plus, Scissors, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -92,9 +92,18 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold font-heading text-primary">Orders Management</h1>
-          <p className="text-muted-foreground">Track individual orders and bulk collections.</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold font-heading text-primary">Orders Management</h1>
+            <p className="text-muted-foreground">Track individual orders and bulk collections.</p>
+          </div>
+          <Link
+            href="/dashboard/help/orders"
+            className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+            title="View Orders Help Guide"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Link>
         </div>
       </div>
 

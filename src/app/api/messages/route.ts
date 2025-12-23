@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const sendMessageSchema = z.object({
   orderId: z.string().min(1),
@@ -18,11 +18,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:read', organizationId);
 
     // Verify ownership
     const order = await prisma.order.findFirst({
-      where: { id: orderId, tailorId: user.id },
+      where: { id: orderId, organizationId },
     });
 
     if (!order) {
@@ -52,7 +53,8 @@ export async function GET(request: Request) {
 // POST /api/messages - Send a message
 export async function POST(request: Request) {
   try {
-    const user = await requireActiveTailor();
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('orders:read', organizationId);
     const body = await request.json();
 
     const validationResult = sendMessageSchema.safeParse(body);
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
 
     // Verify order
     const order = await prisma.order.findFirst({
-      where: { id: orderId, tailorId: user.id },
+      where: { id: orderId, organizationId },
     });
 
     if (!order) {

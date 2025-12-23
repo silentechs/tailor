@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
-import { requireActiveTailor } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 // GET /api/order-collections/[id] - Get a specific collection
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:read', organizationId);
     const { id } = await params;
 
-    const collection = await prisma.orderCollection.findUnique({
-      where: {
-        id,
-        tailorId: user.id,
-      },
+    const collection = await prisma.orderCollection.findFirst({
+      where: { id, organizationId },
       include: {
         orders: {
           include: {
@@ -42,15 +40,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 // DELETE /api/order-collections/[id] - Delete a collection (and optionally its orders)
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:write', organizationId);
     const { id } = await params;
 
     // Check if collection exists and belongs to user
-    const collection = await prisma.orderCollection.findUnique({
-      where: {
-        id,
-        tailorId: user.id,
-      },
+    const collection = await prisma.orderCollection.findFirst({
+      where: { id, organizationId },
     });
 
     if (!collection) {

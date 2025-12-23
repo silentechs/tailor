@@ -6,12 +6,14 @@ import {
   Calendar,
   CheckCircle2,
   ChevronRight,
+  HelpCircle,
   Loader2,
   MapPin,
   Package,
   Search,
   Star,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -102,13 +104,22 @@ export default function StudioOrdersPage() {
   return (
     <div className="space-y-12">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-5xl font-black font-heading uppercase tracking-tighter italic">
-            Garment Tracker
-          </h1>
-          <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mt-2">
-            Real-time status of your bespoke commissions
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-5xl font-black font-heading uppercase tracking-tighter italic">
+              Garment Tracker
+            </h1>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mt-2">
+              Real-time status of your bespoke commissions
+            </p>
+          </div>
+          <Link
+            href="/studio/help/tracking"
+            className="p-3 rounded-2xl bg-white/5 text-ghana-gold hover:bg-white/10 transition-colors border border-white/5"
+            title="View Tracking Help Guide"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Link>
         </div>
         <div className="relative w-full max-w-xs group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 group-focus-within:text-ghana-gold transition-colors" />
@@ -227,7 +238,7 @@ export default function StudioOrdersPage() {
 
                   {orders
                     .find((o: any) => o.id === selectedOrder)
-                    .timeline.map((step: any, idx: number) => (
+                    .timeline.map((step: any, _idx: number) => (
                       <div key={`${step.label}-${step.date ?? ''}`} className="flex gap-8 group">
                         <div className="relative z-10 mt-1.5 transition-transform duration-300 group-hover:scale-125">
                           {step.completed ? (

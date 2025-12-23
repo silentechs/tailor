@@ -3,7 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
-import { Loader2, Send, ShoppingBag } from 'lucide-react';
+import { HelpCircle, Loader2, Send, ShoppingBag } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -95,11 +96,20 @@ export default function StudioMessagesPage() {
     <div className="flex h-[calc(100vh-140px)] gap-6 max-h-[800px]">
       {/* Sidebar Threads List */}
       <div className="w-80 flex flex-col gap-4">
-        <div className="px-2">
-          <h1 className="text-2xl font-black uppercase italic tracking-tighter text-white">
-            Messages
-          </h1>
-          <p className="text-sm text-zinc-400">Chat with your tailors.</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+              Messages
+            </h1>
+            <p className="text-sm text-zinc-400">Chat with your tailors.</p>
+          </div>
+          <Link
+            href="/studio/help/messages"
+            className="p-1.5 rounded-lg bg-white/5 text-ghana-gold hover:bg-white/10 transition-colors border border-white/5"
+            title="View Messaging Guide"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Link>
         </div>
 
         <ScrollArea className="flex-1 pr-4">

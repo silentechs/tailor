@@ -99,6 +99,10 @@ model Organization {
   invoices        Invoice[]
   payments        Payment[]
   inventoryItems  InventoryItem[]
+  inventoryMovements InventoryMovement[]
+  equipment       Equipment[]
+  maintenanceRecords MaintenanceRecord[]
+  auditLogs       AuditLog[]
   measurementTemplates MeasurementTemplate[]
   portfolioItems  PortfolioItem[]
   orderCollections OrderCollection[]
@@ -674,73 +678,89 @@ model InventoryItem {
 }
 
 model InventoryMovement {
-  id        String                @id @default(cuid())
-  tailorId  String
-  itemId    String
-  orderId   String?
-  type      InventoryMovementType
-  quantity  Decimal               @db.Decimal(10, 2)
-  reason    String?
-  createdAt DateTime              @default(now())
-  item      InventoryItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  order     Order?                @relation(fields: [orderId], references: [id])
-  tailor    User                  @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  id             String                @id @default(cuid())
+  organizationId String?
+  tailorId       String
+  itemId         String
+  orderId        String?
+  type           InventoryMovementType
+  quantity       Decimal               @db.Decimal(10, 2)
+  reason         String?
+  createdAt      DateTime              @default(now())
+  
+  organization Organization?       @relation(fields: [organizationId], references: [id])
+  item         InventoryItem         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  order        Order?                @relation(fields: [orderId], references: [id])
+  tailor       User                  @relation(fields: [tailorId], references: [id], onDelete: Cascade)
 
   @@index([tailorId])
+  @@index([organizationId])
   @@index([itemId])
   @@index([orderId])
 }
 
 model Equipment {
-  id           String              @id @default(cuid())
-  tailorId     String
-  name         String
-  brand        String?
-  model        String?
-  serialNumber String?
-  purchaseDate DateTime?
-  status       String              @default("ACTIVE")
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id             String              @id @default(cuid())
+  organizationId String?
+  tailorId       String
+  name           String
+  brand          String?
+  model          String?
+  serialNumber   String?
+  purchaseDate   DateTime?
+  status         String              @default("ACTIVE")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  
+  organization Organization?       @relation(fields: [organizationId], references: [id])
   tailor       User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   maintenance  MaintenanceRecord[]
 
   @@index([tailorId])
+  @@index([organizationId])
 }
 
 model MaintenanceRecord {
-  id            String            @id @default(cuid())
-  tailorId      String
-  equipmentId   String
-  type          MaintenanceType   @default(ROUTINE)
-  status        MaintenanceStatus @default(COMPLETED)
-  scheduledDate DateTime?
-  completedDate DateTime          @default(now())
-  description   String
-  cost          Decimal?          @db.Decimal(10, 2)
-  notes         String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  equipment     Equipment         @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  tailor        User              @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  id             String            @id @default(cuid())
+  organizationId String?
+  tailorId       String
+  equipmentId    String
+  type           MaintenanceType   @default(ROUTINE)
+  status         MaintenanceStatus @default(COMPLETED)
+  scheduledDate  DateTime?
+  completedDate  DateTime          @default(now())
+  description    String
+  cost           Decimal?          @db.Decimal(10, 2)
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  
+  organization Organization?       @relation(fields: [organizationId], references: [id])
+  equipment    Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  tailor       User                @relation(fields: [tailorId], references: [id], onDelete: Cascade)
 
   @@index([tailorId])
+  @@index([organizationId])
   @@index([equipmentId])
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String
-  resource   String
-  resourceId String?
-  details    Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  user       User?    @relation(fields: [userId], references: [id])
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  action         String
+  resource       String
+  resourceId     String?
+  details        Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  user           User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([organizationId])
   @@index([resource, resourceId])
   @@index([createdAt])
 }

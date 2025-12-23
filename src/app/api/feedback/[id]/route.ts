@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/direct-current-user';
+import { requireAdmin } from '@/lib/require-permission';
 import { sendFeedbackResponseEmail } from '@/lib/email-service';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';

@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Edit,
   Filter,
+  HelpCircle,
   Loader2,
   MoreVertical,
   Package,
@@ -13,6 +14,7 @@ import {
   Search,
   Trash,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { InventoryItemDialog } from '@/components/inventory/add-item-dialog';
@@ -20,6 +22,7 @@ import { ReceiptStockDialog } from '@/components/inventory/receipt-stock-dialog'
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +42,6 @@ import {
 } from '@/components/ui/table';
 import { fetchApi } from '@/lib/fetch-api';
 import { cn, formatCurrency } from '@/lib/utils';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 async function getInventory() {
   const res = await fetchApi('/api/inventory');
@@ -118,11 +120,20 @@ export default function InventoryPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-heading text-primary">Inventory Control</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage fabric, thread, and workshop supplies.
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-4xl font-bold font-heading text-primary">Inventory Control</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage fabric, thread, and workshop supplies.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/help/inventory"
+            className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+            title="View Inventory Help Guide"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Link>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => setIsReceiptOpen(true)}>

@@ -39,11 +39,15 @@ const mockPrisma = {
     update: vi.fn(),
     delete: vi.fn(),
     count: vi.fn(),
+    aggregate: vi.fn(),
+    groupBy: vi.fn(),
   },
   payment: {
     create: vi.fn(),
     findUnique: vi.fn(),
     findMany: vi.fn(),
+    aggregate: vi.fn(),
+    groupBy: vi.fn(),
   },
   organization: {
     create: vi.fn(),
@@ -68,6 +72,13 @@ const mockPrisma = {
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+  },
+  notification: {
+    count: vi.fn(),
+    findMany: vi.fn(),
+  },
+  appointment: {
+    findMany: vi.fn(),
   },
   clientDesign: {
     create: vi.fn(),

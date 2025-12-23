@@ -1,10 +1,10 @@
 import type { InvoiceStatus } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
 import { calculateInvoice, type InvoiceLineItem } from '@/lib/ghana-invoice-calculations';
 import { notifyInvoiceSent } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { formatCurrency } from '@/lib/utils';
 
 // Validation schema for updating an invoice
@@ -29,13 +29,14 @@ const updateInvoiceSchema = z.object({
 // GET /api/invoices/[id] - Get single invoice
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireActiveTailor();
     const { id } = await params;
+    const { organizationId } = await requireOrganization();
+    await requirePermission('invoices:read', organizationId);
 
     const invoice = await prisma.invoice.findFirst({
       where: {
         id,
-        tailorId: user.id,
+        organizationId,
       },
       include: {
         client: {
@@ -93,8 +94,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   } catch (error) {
     console.error('Get invoice error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json({ success: false, error: 'Failed to fetch invoice' }, { status: 500 });
@@ -104,8 +109,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 // PUT /api/invoices/[id] - Update invoice
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireActiveTailor();
     const { id } = await params;
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('invoices:write', organizationId);
     const body = await request.json();
 
     const validationResult = updateInvoiceSchema.safeParse(body);
@@ -124,7 +130,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Verify invoice exists and belongs to tailor
     const existingInvoice = await prisma.invoice.findFirst({
-      where: { id, tailorId: user.id },
+      where: { id, organizationId },
     });
 
     if (!existingInvoice) {
@@ -201,8 +207,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   } catch (error) {
     console.error('Update invoice error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json(
@@ -215,12 +225,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 // DELETE /api/invoices/[id] - Delete invoice
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireActiveTailor();
     const { id } = await params;
+    const { organizationId } = await requireOrganization();
+    await requirePermission('invoices:write', organizationId);
 
     // Verify invoice exists and belongs to tailor
     const existingInvoice = await prisma.invoice.findFirst({
-      where: { id, tailorId: user.id },
+      where: { id, organizationId },
     });
 
     if (!existingInvoice) {
@@ -246,8 +257,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   } catch (error) {
     console.error('Delete invoice error:', error);
 
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.includes('Forbidden')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json(

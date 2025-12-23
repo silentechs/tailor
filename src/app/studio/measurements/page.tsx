@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
-import { CheckCircle, FileText, History, Info, Loader2, Ruler } from 'lucide-react';
+import { CheckCircle, FileText, HelpCircle, History, Info, Loader2, Ruler } from 'lucide-react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,13 +69,22 @@ export default function StudioMeasurementsPage() {
   return (
     <div className="space-y-12 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-        <div>
-          <span className="text-secondary font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
-            Precision Control
-          </span>
-          <h1 className="text-5xl md:text-7xl font-black font-heading tracking-tighter uppercase italic leading-none">
-            Fitting <br /> Profile.
-          </h1>
+        <div className="flex items-center gap-4">
+          <div>
+            <span className="text-secondary font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
+              Precision Control
+            </span>
+            <h1 className="text-5xl md:text-7xl font-black font-heading tracking-tighter uppercase italic leading-none">
+              Fitting <br /> Profile.
+            </h1>
+          </div>
+          <Link
+            href="/studio/help/measurements"
+            className="p-3 rounded-2xl bg-white/5 text-ghana-gold hover:bg-white/10 transition-colors border border-white/5 self-end mb-2"
+            title="View Measurements Help Guide"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Link>
         </div>
         <div className="flex items-center gap-4">
           <MeasurementDialog initialValues={values} />

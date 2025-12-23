@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, UserPlus } from 'lucide-react';
+import { HelpCircle, Loader2, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
@@ -45,9 +45,18 @@ export default function ClientsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold font-heading text-primary">Client Directory</h1>
-          <p className="text-muted-foreground">Manage your client base and measurements.</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold font-heading text-primary">Client Directory</h1>
+            <p className="text-muted-foreground">Manage your client base and measurements.</p>
+          </div>
+          <Link
+            href="/dashboard/help/clients"
+            className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+            title="View Clients Help Guide"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           <ExportDropdown apiEndpoint="/api/clients/export" filename="clients" />

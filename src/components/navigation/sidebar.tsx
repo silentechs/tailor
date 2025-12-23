@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileText,
   Globe,
+  HelpCircle,
   Image as ImageIcon,
   Layers,
   LayoutDashboard,
@@ -177,6 +178,17 @@ export function Sidebar({ className, user, ...props }: SidebarProps) {
           href: '/dashboard/settings',
           icon: Settings,
           required: ['settings:read'],
+        },
+      ],
+    },
+    {
+      title: 'Resources',
+      items: [
+        {
+          name: 'Help Center',
+          href: '/dashboard/help',
+          icon: HelpCircle,
+          required: [],
         },
       ],
     },

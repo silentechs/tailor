@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const updateTaskSchema = z.object({
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
@@ -9,7 +9,7 @@ const updateTaskSchema = z.object({
   description: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
   assignedTo: z.string().optional(),
-  materialId: z.string().nullable().optional(),
+  materialId: z.string().min(1).nullable().optional(),
   materialQty: z.number().nullable().optional(),
 });
 
@@ -18,8 +18,10 @@ type RouteParams = { params: Promise<{ id: string; taskId: string }> };
 // PATCH /api/orders/[id]/tasks/[taskId] - Update a task
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
-    const { taskId } = await params;
+    const { user, organizationId } = await requireOrganization();
+    await requirePermission('tasks:write', organizationId);
+
+    const { id: orderId, taskId } = await params;
     const body = await request.json();
 
     const validation = updateTaskSchema.safeParse(body);
@@ -30,11 +32,32 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       );
     }
 
-    const existingTask = await prisma.orderTask.findUnique({
-      where: { id: taskId },
+    if (validation.data.materialQty != null && validation.data.materialId == null) {
+      return NextResponse.json(
+        { success: false, error: 'materialId is required when materialQty is provided' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: If material is referenced, verify it belongs to this organization
+    if (validation.data.materialId) {
+      const material = await prisma.inventoryItem.findFirst({
+        where: { id: validation.data.materialId, organizationId, isActive: true },
+        select: { id: true },
+      });
+      if (!material) {
+        return NextResponse.json(
+          { success: false, error: 'Material not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    const existingTask = await prisma.orderTask.findFirst({
+      where: { id: taskId, orderId, organizationId },
     });
 
-    if (!existingTask || existingTask.tailorId !== user.id) {
+    if (!existingTask) {
       return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
     }
 
@@ -58,6 +81,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           await tx.inventoryMovement.create({
             data: {
               tailorId: user.id,
+              organizationId,
               itemId: matId,
               orderId: existingTask.orderId,
               type: 'ISSUE',
@@ -67,14 +91,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           });
 
           // 2. Decrement inventory item quantity
-          await tx.inventoryItem.update({
-            where: { id: matId },
+          const updated = await tx.inventoryItem.updateMany({
+            where: { id: matId, organizationId },
             data: {
               quantity: {
                 decrement: Number(matQty),
               },
             },
           });
+          if (updated.count !== 1) {
+            throw new Error('Material not found');
+          }
 
           data.consumedAt = new Date();
         }
@@ -97,14 +124,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 // DELETE /api/orders/[id]/tasks/[taskId] - Delete a task
 export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
-    const user = await requireActiveTailor();
-    const { taskId } = await params;
+    const { organizationId } = await requireOrganization();
+    await requirePermission('tasks:write', organizationId);
 
-    const existingTask = await prisma.orderTask.findUnique({
-      where: { id: taskId },
+    const { id: orderId, taskId } = await params;
+
+    const existingTask = await prisma.orderTask.findFirst({
+      where: { id: taskId, orderId, organizationId },
     });
 
-    if (!existingTask || existingTask.tailorId !== user.id) {
+    if (!existingTask) {
       return NextResponse.json({ success: false, error: 'Task not found' }, { status: 404 });
     }
 

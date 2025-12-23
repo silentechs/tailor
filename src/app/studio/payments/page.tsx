@@ -2,11 +2,20 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { CheckCircle2, CreditCard, Download, History, Loader2, Receipt } from 'lucide-react';
+import {
+  CheckCircle2,
+  CreditCard,
+  Download,
+  HelpCircle,
+  History,
+  Loader2,
+  Receipt,
+} from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -65,13 +74,22 @@ export default function StudioPaymentsPage() {
   return (
     <div className="space-y-12 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-        <div>
-          <span className="text-ghana-gold font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
-            Financial Terminal
-          </span>
-          <h1 className="text-5xl md:text-8xl font-black font-heading tracking-tighter uppercase italic leading-none">
-            Settlement <br /> Hub.
-          </h1>
+        <div className="flex items-center gap-4">
+          <div>
+            <span className="text-ghana-gold font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
+              Financial Terminal
+            </span>
+            <h1 className="text-5xl md:text-8xl font-black font-heading tracking-tighter uppercase italic leading-none">
+              Settlement <br /> Hub.
+            </h1>
+          </div>
+          <Link
+            href="/studio/help/payments"
+            className="p-3 rounded-2xl bg-white/5 text-ghana-gold hover:bg-white/10 transition-colors border border-white/5 mb-1 self-end"
+            title="View Payment Guide"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Link>
         </div>
         <div className="flex flex-col items-end">
           <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-2">

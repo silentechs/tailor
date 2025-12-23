@@ -90,6 +90,7 @@ export async function POST(request: Request) {
       const movement = await tx.inventoryMovement.create({
         data: {
           tailorId: user.id,
+          organizationId,
           itemId,
           orderId,
           type,

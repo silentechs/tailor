@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  HelpCircle,
   History,
   LayoutDashboard,
   LogOut,
@@ -66,6 +67,16 @@ export function StudioSidebar({ className }: { className?: string }) {
       </nav>
 
       <div className="pt-8 mt-8 border-t border-white/10 space-y-4">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-4 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl py-6"
+          asChild
+        >
+          <Link href="/studio/help">
+            <HelpCircle className="h-5 w-5" />
+            <span className="font-bold">Help Center</span>
+          </Link>
+        </Button>
         <Button
           variant="ghost"
           className="w-full justify-start gap-4 text-zinc-400 hover:text-white hover:bg-white/5 rounded-2xl py-6"

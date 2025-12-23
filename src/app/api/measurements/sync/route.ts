@@ -57,15 +57,45 @@ export const POST = withSecurity(
             continue;
           }
 
-          // Upsert based on clientSideId to prevent duplicates
-          const record = await prisma.clientMeasurement.upsert({
+          // SECURITY: Avoid cross-org collisions on globally-unique clientSideId.
+          // We only allow updating an existing record if it belongs to the same client AND org.
+          const existing = await prisma.clientMeasurement.findUnique({
             where: { clientSideId: m.clientSideId },
-            update: {
-              values: m.values,
-              notes: m.notes,
-              sketch: m.sketch,
+            select: {
+              id: true,
+              clientId: true,
+              client: {
+                select: { organizationId: true },
+              },
             },
-            create: {
+          });
+
+          if (existing) {
+            const existingOrgId = existing.client?.organizationId ?? null;
+            if (existing.clientId !== m.clientId || existingOrgId !== organizationId) {
+              results.push({
+                clientSideId: m.clientSideId,
+                status: 'error',
+                error: 'Measurement conflict',
+              });
+              continue;
+            }
+
+            const record = await prisma.clientMeasurement.update({
+              where: { id: existing.id },
+              data: {
+                values: m.values,
+                notes: m.notes,
+                sketch: m.sketch,
+              },
+            });
+
+            results.push({ clientSideId: m.clientSideId, serverId: record.id, status: 'synced' });
+            continue;
+          }
+
+          const record = await prisma.clientMeasurement.create({
+            data: {
               clientSideId: m.clientSideId,
               clientId: m.clientId,
               templateId: m.templateId,

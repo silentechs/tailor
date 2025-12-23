@@ -2,8 +2,9 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Heart, Loader2, MapPin, Share2 } from 'lucide-react';
+import { Heart, HelpCircle, Loader2, MapPin, Share2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -30,13 +31,22 @@ export default function StudioStyleHubPage() {
   return (
     <div className="space-y-12 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-        <div>
-          <span className="text-ghana-gold font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
-            Visual Library
-          </span>
-          <h1 className="text-5xl md:text-8xl font-black font-heading tracking-tighter uppercase italic leading-none">
-            Style <br /> Hub.
-          </h1>
+        <div className="flex items-center gap-4">
+          <div>
+            <span className="text-ghana-gold font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
+              Visual Library
+            </span>
+            <h1 className="text-5xl md:text-8xl font-black font-heading tracking-tighter uppercase italic leading-none">
+              Style <br /> Hub.
+            </h1>
+          </div>
+          <Link
+            href="/studio/help/styles"
+            className="p-3 rounded-2xl bg-white/5 text-ghana-gold hover:bg-white/10 transition-colors border border-white/5 mb-2 self-end"
+            title="View Style Hub Guide"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Link>
         </div>
         <div className="max-w-xs text-right">
           <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs leading-loose">
@@ -56,13 +66,14 @@ export default function StudioStyleHubPage() {
           >
             {/* Image Container */}
             <div className="aspect-[4/5] overflow-hidden relative">
-              <img
+              <Image
                 src={
                   item.portfolioItem.images[0] ||
                   'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=800'
                 }
                 alt={item.portfolioItem.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ghana-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -95,7 +106,9 @@ export default function StudioStyleHubPage() {
                   <div className="flex items-center gap-2 text-zinc-500 mt-2">
                     <MapPin className="h-3 w-3" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                      {item.portfolioItem.organization?.name || item.portfolioItem.tailor?.businessName || 'Bespoke Artisan'}
+                      {item.portfolioItem.organization?.name ||
+                        item.portfolioItem.tailor?.businessName ||
+                        'Bespoke Artisan'}
                     </span>
                   </div>
                 </div>
@@ -118,7 +131,13 @@ export default function StudioStyleHubPage() {
                   asChild
                   className="flex-1 bg-white/5 hover:bg-white/10 border-white/5 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
                 >
-                  <Link href={item.portfolioItem.tailor?.showcaseUsername ? `/showcase/${item.portfolioItem.tailor.showcaseUsername}` : '#'}>
+                  <Link
+                    href={
+                      item.portfolioItem.tailor?.showcaseUsername
+                        ? `/showcase/${item.portfolioItem.tailor.showcaseUsername}`
+                        : '#'
+                    }
+                  >
                     View Tailor
                   </Link>
                 </Button>

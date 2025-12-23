@@ -121,6 +121,22 @@ export const POST = withSecurity(
         }
       }
 
+      // Verify invoice if provided (SECURITY: never trust cross-org IDs)
+      let invoice = null;
+      if (data.invoiceId) {
+        invoice = await prisma.invoice.findFirst({
+          where: { id: data.invoiceId, organizationId },
+        });
+
+        if (!invoice) {
+          return secureErrorResponse('Invoice not found', 404);
+        }
+
+        if (invoice.clientId !== data.clientId) {
+          return secureErrorResponse('Invoice does not match client', 400);
+        }
+      }
+
       // Generate payment number
       const paymentNumber = await generatePaymentNumber(user.id);
 
@@ -159,24 +175,18 @@ export const POST = withSecurity(
       }
 
       // Update invoice if linked
-      if (data.invoiceId) {
-        const invoice = await prisma.invoice.findUnique({
-          where: { id: data.invoiceId },
+      if (invoice) {
+        const newPaidAmount = Number(invoice.paidAmount) + data.amount;
+        const newStatus = newPaidAmount >= Number(invoice.totalAmount) ? 'PAID' : invoice.status;
+
+        await prisma.invoice.updateMany({
+          where: { id: invoice.id, organizationId },
+          data: {
+            paidAmount: newPaidAmount,
+            status: newStatus,
+            ...(newStatus === 'PAID' && { paidAt: new Date() }),
+          },
         });
-
-        if (invoice) {
-          const newPaidAmount = Number(invoice.paidAmount) + data.amount;
-          const newStatus = newPaidAmount >= Number(invoice.totalAmount) ? 'PAID' : invoice.status;
-
-          await prisma.invoice.update({
-            where: { id: data.invoiceId },
-            data: {
-              paidAmount: newPaidAmount,
-              status: newStatus,
-              ...(newStatus === 'PAID' && { paidAt: new Date() }),
-            },
-          });
-        }
       }
 
       // Send notification

@@ -2,8 +2,17 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Image as ImageIcon, Loader2, Plus, Trash2, UploadCloud } from 'lucide-react';
+import {
+  AlertTriangle,
+  HelpCircle,
+  Image as ImageIcon,
+  Loader2,
+  Plus,
+  Trash2,
+  UploadCloud,
+} from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -220,12 +229,23 @@ export default function StudioDesignsPage() {
     <div className="space-y-12 pb-20">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
         <div>
-          <span className="text-secondary font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
-            Personal Portfolio
-          </span>
-          <h1 className="text-5xl md:text-7xl font-black font-heading tracking-tighter uppercase italic leading-none">
-            Your <br /> Designs.
-          </h1>
+          <div className="flex items-center gap-4">
+            <div>
+              <span className="text-secondary font-black uppercase tracking-[0.3em] text-[10px] mb-4 block">
+                Personal Portfolio
+              </span>
+              <h1 className="text-5xl md:text-7xl font-black font-heading tracking-tighter uppercase italic leading-none">
+                Your <br /> Designs.
+              </h1>
+            </div>
+            <Link
+              href="/studio/help/designs"
+              className="p-3 rounded-2xl bg-white/5 text-ghana-gold hover:bg-white/10 transition-colors border border-white/5 mb-2 self-end"
+              title="View Design Library Guide"
+            >
+              <HelpCircle className="h-6 w-6" />
+            </Link>
+          </div>
           {meta && (
             <div className="mt-4 flex items-center gap-3">
               <Badge
@@ -415,6 +435,7 @@ export default function StudioDesignsPage() {
 
                 {/* Delete Button */}
                 <button
+                  type="button"
                   onClick={() => handleDeleteClick(design)}
                   className="absolute top-4 left-4 h-10 w-10 bg-red-500/80 hover:bg-red-500 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Delete design"

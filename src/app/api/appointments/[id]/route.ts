@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireActiveTailor } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
+import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
 const updateSchema = z.object({
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).optional(),
@@ -13,7 +13,8 @@ const updateSchema = z.object({
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireActiveTailor();
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:write', organizationId);
     const body = await request.json();
     const { id } = await params;
 
@@ -23,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const appointment = await prisma.appointment.findFirst({
-      where: { id, tailorId: user.id },
+      where: { id, organizationId },
     });
 
     if (!appointment) {
@@ -51,11 +52,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireActiveTailor();
     const { id } = await params;
+    const { organizationId } = await requireOrganization();
+    await requirePermission('orders:write', organizationId);
 
     const appointment = await prisma.appointment.findFirst({
-      where: { id, tailorId: user.id },
+      where: { id, organizationId },
     });
 
     if (!appointment) {

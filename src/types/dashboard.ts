@@ -5,11 +5,13 @@
 
 export interface DashboardOverview {
   totalClients: number;
+  totalOrders: number;
   clientGrowth: string;
   pendingOrders: number;
   inProgressOrders: number;
   readyForFittingOrders: number;
   completedOrdersThisMonth: number;
+  unreadNotifications: number;
 }
 
 export interface DashboardRevenue {

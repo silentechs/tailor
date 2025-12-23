@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  HelpCircle,
   Loader2,
   Scissors,
   ShoppingBag,
@@ -20,12 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn, formatCurrency } from '@/lib/utils';
-import type {
-  DashboardStats,
-  METRIC_COLOR_MAP,
-  MetricCardProps,
-  RecentOrder,
-} from '@/types/dashboard';
+import type { DashboardStats, MetricCardProps, RecentOrder } from '@/types/dashboard';
 
 async function getDashboardStats(): Promise<DashboardStats> {
   const res = await fetch('/api/dashboard/stats');
@@ -57,27 +53,43 @@ export default function BusinessDashboardPage() {
 
   if (error) {
     return (
-      <div className="text-center py-20 bg-red-50/50 rounded-2xl border border-red-100">
-        <p className="text-red-600 font-bold">Error loading dashboard stats.</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-4 text-sm font-bold text-red-700 underline"
-        >
-          Try again
-        </button>
-      </div>
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle className="text-base">Dashboard unavailable</CardTitle>
+          <CardDescription>
+            We couldn’t load your stats right now. If this is a brand new workspace, it may simply
+            be empty.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button type="button" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
+
+  const isEmptyWorkshop =
+    (stats?.overview?.totalClients ?? 0) === 0 && (stats?.overview?.totalOrders ?? 0) === 0;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-heading text-primary">Business Intelligence</h1>
-          <p className="text-muted-foreground mt-1">
-            Real-time performance and operational insights.
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-4xl font-bold font-heading text-primary">Business Intelligence</h1>
+            <p className="text-muted-foreground mt-1">
+              Real-time performance and operational insights.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/help/analytics"
+            className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+            title="View Analytics Help Guide"
+          >
+            <HelpCircle className="h-6 w-6" />
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           <Badge
@@ -89,6 +101,23 @@ export default function BusinessDashboardPage() {
           </Badge>
         </div>
       </div>
+
+      {isEmptyWorkshop && (
+        <Card className="border-dashed bg-muted/10">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">No workshop data yet</CardTitle>
+            <CardDescription>Start by adding a client or creating your first order.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-2">
+            <Button asChild>
+              <Link href="/dashboard/clients/new">Add client</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/orders/new">Create order</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Metrics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

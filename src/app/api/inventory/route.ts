@@ -105,6 +105,7 @@ export async function POST(request: Request) {
         await tx.inventoryMovement.create({
           data: {
             tailorId: user.id, // The specific user who made the adjustment
+            organizationId,
             itemId: newItem.id,
             type: 'ADJUSTMENT',
             quantity: validation.data.quantity,
