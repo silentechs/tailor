@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { fetchApi } from '@/lib/fetch-api';
 
 const paymentSchema = z.object({
   amount: z.string().min(1, 'Amount is required'),
@@ -69,7 +70,7 @@ export function PaymentDialog({ order, open, onOpenChange }: PaymentDialogProps)
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof paymentSchema>) => {
-      const res = await fetch('/api/payments', {
+      const res = await fetchApi('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

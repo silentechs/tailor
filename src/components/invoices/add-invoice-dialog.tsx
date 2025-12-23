@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { fetchApi } from '@/lib/fetch-api';
 
 const invoiceSchema = z.object({
   clientId: z.string().min(1, 'Client is required'),
@@ -80,7 +81,7 @@ export function AddInvoiceDialog({ open, onOpenChange }: AddInvoiceDialogProps) 
         template: 'modern',
       };
 
-      const res = await fetch('/api/invoices', {
+      const res = await fetchApi('/api/invoices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
