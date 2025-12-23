@@ -69,7 +69,7 @@ const orderSchema = z.object({
   dueDate: z.date().min(new Date(1900, 0, 1), 'A due date is required.'),
   amount: z.string().min(1, 'Amount is required'),
   deposit: z.string().optional(),
-  measurementUnit: z.enum(['CM', 'INCH']).default('CM'),
+  measurementUnit: z.enum(['CM', 'INCH']),
   // Measurements is a record of string keys and any values (numeric strings or numbers)
   measurements: z.record(z.string(), z.any()).optional(),
 });
