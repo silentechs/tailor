@@ -2,7 +2,7 @@ import type { InvoiceStatus } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { calculateInvoice, type InvoiceLineItem } from '@/lib/ghana-invoice-calculations';
-import { notifyInvoiceSent } from '@/lib/notification-service';
+import { notifyInvoiceSent, notifyClientInvoiceSent } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { formatCurrency } from '@/lib/utils';
@@ -183,6 +183,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             name: true,
             phone: true,
             email: true,
+            userId: true,
           },
         },
       },
@@ -190,6 +191,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // If status changed to SENT, trigger notification
     if (data.status === 'SENT' && existingInvoice.status !== 'SENT') {
+      // Notify tailor
       await notifyInvoiceSent(
         user.id,
         invoice.client.phone,
@@ -198,6 +200,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         invoice.invoiceNumber,
         formatCurrency(Number(invoice.totalAmount))
       );
+
+      // Notify client (in-app) if they have a linked account
+      if (invoice.client.userId) {
+        await notifyClientInvoiceSent(
+          invoice.client.userId,
+          invoice.invoiceNumber,
+          formatCurrency(Number(invoice.totalAmount)),
+          user.businessName || user.name
+        );
+      }
     }
 
     return NextResponse.json({

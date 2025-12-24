@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from './prisma';
 import { slugify } from './utils';
+import { getLocationFromIP } from './geolocation';
 
 // Cookie configuration
 const SESSION_COOKIE_NAME = 'sc_session';
@@ -16,12 +17,12 @@ export async function createSession(
   userId: string,
   userAgent?: string,
   ipAddress?: string
-): Promise<string> {
+): Promise<{ token: string; sessionId: string }> {
   const token = uuidv4();
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
 
-  await prisma.session.create({
+  const session = await prisma.session.create({
     data: {
       userId,
       token,
@@ -41,12 +42,51 @@ export async function createSession(
     path: '/',
   });
 
-  return token;
+  return { token, sessionId: session.id };
+}
+
+/**
+ * Update session with geolocation data (called asynchronously after login)
+ */
+export async function updateSessionGeolocation(sessionId: string, ipAddress?: string) {
+  if (!ipAddress) return;
+
+  try {
+    const location = await getLocationFromIP(ipAddress);
+
+    if (location.country || location.city) {
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          country: location.country,
+          city: location.city,
+          region: location.region,
+          countryCode: location.countryCode,
+        },
+      });
+    }
+  } catch (error) {
+    // Log but don't fail - geolocation is optional
+    console.warn('Failed to update session geolocation:', error);
+  }
 }
 
 export async function getSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const cookieToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+
+  // Also check for Authorization header (Bearer token)
+  let token = cookieToken;
+
+  if (!token) {
+    const { headers } = await import('next/headers');
+    const headerList = await headers();
+    const authHeader = headerList.get('authorization');
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
 
   if (!token) return null;
 

@@ -162,17 +162,22 @@ enum InvitationStatus {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  userAgent String?
-  ipAddress String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  userId      String
+  token       String   @unique
+  expiresAt   DateTime
+  userAgent   String?
+  ipAddress   String?
+  country     String?
+  city        String?
+  region      String?
+  countryCode String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([userId])
+  @@index([createdAt])
 }
 
 model Client {
@@ -786,6 +791,35 @@ model VoiceLog {
   tailor     User     @relation(fields: [tailorId], references: [id], onDelete: Cascade)
 
   @@index([tailorId])
+}
+
+// Self-hosted analytics tracking
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  sessionId   String?  // Browser session ID (anonymous)
+  userId      String?  // Authenticated user ID (if logged in)
+  eventType   String   // page_view, click, scroll, custom
+  eventName   String?  // Button name, link text, custom event name
+  path        String   // Page path (e.g., /dashboard, /studio)
+  referrer    String?  // Previous page or external referrer
+  userAgent   String?
+  ipAddress   String?
+  country     String?
+  city        String?
+  countryCode String?
+  deviceType  String?  // mobile, tablet, desktop
+  browser     String?  // Chrome, Safari, Firefox, etc.
+  os          String?  // Windows, macOS, iOS, Android
+  duration    Int?     // Time on page in seconds (for page_view)
+  metadata    Json?    // Additional event-specific data
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([eventType])
+  @@index([path])
+  @@index([createdAt])
+  @@index([country])
 }
 
 enum UserRole {

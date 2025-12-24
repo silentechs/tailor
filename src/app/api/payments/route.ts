@@ -1,9 +1,9 @@
 import type { PaymentMethod, Prisma } from '@prisma/client';
-import { z } from 'zod';
+import { registry, z } from '@/lib/api-docs';
 import { secureErrorResponse, secureJsonResponse, withSecurity } from '@/lib/api-security';
 import { logAudit } from '@/lib/audit-service';
 import { generatePaymentNumber } from '@/lib/invoice-numbering-system';
-import { notifyPaymentReceived } from '@/lib/notification-service';
+import { notifyPaymentReceived, notifyClientPaymentReceived } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { formatCurrency } from '@/lib/utils';
@@ -27,6 +27,69 @@ const createPaymentSchema = z.object({
   bankName: z.string().optional().nullable(),
   accountNumber: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+});
+
+// Register Payment Schema
+registry.register('Payment', createPaymentSchema);
+
+// Register GET /payments
+registry.registerPath({
+  method: 'get',
+  path: '/payments',
+  summary: 'List all payments',
+  description: 'Returns a paginated list of payments.',
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Success',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            data: z.array(z.any()),
+            pagination: z.object({
+              page: z.number(),
+              pageSize: z.number(),
+              total: z.number(),
+              totalPages: z.number(),
+            }),
+          }),
+        },
+      },
+    },
+  },
+});
+
+// Register POST /payments
+registry.registerPath({
+  method: 'post',
+  path: '/payments',
+  summary: 'Record a payment',
+  description: 'Records a new payment for a client/order/invoice.',
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: createPaymentSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'Payment recorded successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            data: z.any(),
+          }),
+        },
+      },
+    },
+    400: { description: 'Validation failed' },
+  },
 });
 
 // GET /api/payments - List all payments
@@ -161,7 +224,10 @@ export const POST = withSecurity(
         },
         include: {
           client: {
-            select: { name: true, phone: true, email: true },
+            select: { name: true, phone: true, email: true, userId: true },
+          },
+          order: {
+            select: { orderNumber: true },
           },
         },
       });
@@ -205,7 +271,7 @@ export const POST = withSecurity(
         }
       }
 
-      // Send notification
+      // Send notification to tailor
       await notifyPaymentReceived(
         user.id,
         client.phone,
@@ -215,6 +281,16 @@ export const POST = withSecurity(
         user.notifySms,
         user.notifyEmail
       );
+
+      // Send in-app notification to client if they have a linked account
+      if (payment.client.userId && payment.order?.orderNumber) {
+        await notifyClientPaymentReceived(
+          payment.client.userId,
+          formatCurrency(data.amount),
+          payment.order.orderNumber,
+          user.businessName || user.name
+        );
+      }
 
       // Audit Log
       await logAudit({

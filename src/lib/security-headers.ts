@@ -5,7 +5,7 @@
 
 export const SECURITY_HEADERS: Record<string, string> = {
   // Prevent clickjacking
-  'X-Frame-Options': 'DENY',
+  'X-Frame-Options': 'SAMEORIGIN',
 
   // Prevent MIME type sniffing
   'X-Content-Type-Options': 'nosniff',
@@ -28,7 +28,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
     "connect-src 'self' https:",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
     "form-action 'self'",
     "base-uri 'self'",
     "object-src 'none'",

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authenticateUser, createSession } from '@/lib/direct-auth';
+import { authenticateUser, createSession, updateSessionGeolocation } from '@/lib/direct-auth';
 import prisma from '@/lib/prisma';
 import { checkRateLimit, RATE_LIMIT_CONFIGS, rateLimitedResponse } from '@/lib/rate-limiter';
 import { sanitizeEmail } from '@/lib/sanitize';
@@ -70,7 +70,12 @@ export async function POST(request: Request) {
     }
 
     // Create session
-    await createSession(authResult.user.id, userAgent, ipAddress);
+    const { sessionId } = await createSession(authResult.user.id, userAgent, ipAddress);
+
+    // Trigger async geolocation lookup (don't await - non-blocking)
+    updateSessionGeolocation(sessionId, ipAddress).catch(err => {
+      console.warn('Async geolocation update failed:', err);
+    });
 
     // Determine redirect path based on role
     let redirectPath = '/dashboard';
@@ -106,3 +111,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

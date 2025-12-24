@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { notifyAppointmentCreated } from '@/lib/notification-service';
+import { notifyAppointmentCreated, notifyClientAppointmentCreated } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
@@ -32,11 +32,11 @@ export async function GET(request: Request) {
         organizationId,
         ...(start && end
           ? {
-              startTime: {
-                gte: new Date(start),
-                lte: new Date(end),
-              },
-            }
+            startTime: {
+              gte: new Date(start),
+              lte: new Date(end),
+            },
+          }
           : {}),
       },
       include: {
@@ -101,12 +101,20 @@ export async function POST(request: Request) {
         endTime: new Date(validation.data.endTime),
       },
       include: {
-        client: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            userId: true,
+          },
+        },
         order: true,
       },
     });
 
-    // Send notification (Email/SMS)
+    // Send notification (Email/SMS) to tailor
     await notifyAppointmentCreated(
       user.id,
       appointment.client.phone,
@@ -117,6 +125,20 @@ export async function POST(request: Request) {
       appointment.location || undefined,
       appointment.notes || undefined
     );
+
+    // Send in-app notification to client if they have a linked account
+    if (appointment.client.userId) {
+      const dateStr = appointment.startTime.toLocaleDateString();
+      const timeStr = appointment.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      await notifyClientAppointmentCreated(
+        appointment.client.userId,
+        appointment.type,
+        dateStr,
+        timeStr,
+        user.businessName || user.name,
+        appointment.location || undefined
+      );
+    }
 
     return NextResponse.json(
       {

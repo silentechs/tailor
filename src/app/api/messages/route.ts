@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { notifyClientNewMessage } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
@@ -64,9 +65,14 @@ export async function POST(request: Request) {
 
     const { orderId, message } = validationResult.data;
 
-    // Verify order
+    // Verify order and get client info
     const order = await prisma.order.findFirst({
       where: { id: orderId, organizationId },
+      include: {
+        client: {
+          select: { userId: true },
+        },
+      },
     });
 
     if (!order) {
@@ -83,6 +89,15 @@ export async function POST(request: Request) {
         isRead: true, // Read by sender obviously
       },
     });
+
+    // Notify client (in-app) if they have a linked account
+    if (order.client.userId) {
+      await notifyClientNewMessage(
+        order.client.userId,
+        order.orderNumber,
+        user.businessName || user.name
+      );
+    }
 
     return NextResponse.json({ success: true, data: newMessage }, { status: 201 });
   } catch (error) {

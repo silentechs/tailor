@@ -1,5 +1,4 @@
 import type { Region, UserRole } from '@prisma/client';
-import { z } from 'zod';
 import { secureErrorResponse, secureJsonResponse, withSecurity } from '@/lib/api-security';
 import { logAudit } from '@/lib/audit-service';
 import { createTrackingToken } from '@/lib/client-tracking-service';
@@ -8,25 +7,93 @@ import { notifyNewClient } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
 import { formatGhanaPhone, isValidGhanaPhone } from '@/lib/utils';
+import { registry, z as zod } from '@/lib/api-docs';
 
 // Validation schema for creating a client
-const createClientSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z.string().refine((val) => isValidGhanaPhone(val), 'Invalid Ghana phone number'),
-  email: z.string().email('Invalid email').optional().nullable(),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
-  address: z.string().optional().nullable(),
-  region: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  measurements: z
+const createClientSchema = zod.object({
+  name: zod.string().min(2, 'Name must be at least 2 characters').openapi({ example: 'John Doe' }),
+  phone: zod.string().refine((val) => isValidGhanaPhone(val), 'Invalid Ghana phone number').openapi({ example: '+233201234567' }),
+  email: zod.string().email('Invalid email').optional().nullable().openapi({ example: 'john@example.com' }),
+  gender: zod.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+  address: zod.string().optional().nullable(),
+  region: zod.string().optional().nullable(),
+  city: zod.string().optional().nullable(),
+  notes: zod.string().optional().nullable(),
+  measurements: zod
     .object({
-      values: z.record(z.string(), z.any()),
-      clientSideId: z.string().optional(),
+      values: zod.record(zod.string(), zod.any()),
+      clientSideId: zod.string().optional(),
     })
     .optional(),
-  generateTrackingToken: z.boolean().optional().default(false),
+  generateTrackingToken: zod.boolean().optional().default(false),
 });
+
+// Register the Schema and Paths (guarded for Next.js Dev mode)
+try {
+  registry.register('Client', createClientSchema);
+
+  // Register the GET route
+  registry.registerPath({
+    method: 'get',
+    path: '/clients',
+    summary: 'List all clients',
+    description: 'Returns a paginated list of clients for the current organization.',
+    security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+    responses: {
+      200: {
+        description: 'Success',
+        content: {
+          'application/json': {
+            schema: zod.object({
+              success: zod.boolean(),
+              data: zod.array(zod.any()),
+              pagination: zod.object({
+                page: zod.number(),
+                pageSize: zod.number(),
+                total: zod.number(),
+                totalPages: zod.number(),
+              }),
+            }),
+          },
+        },
+      },
+    },
+  });
+
+  // Register the POST route
+  registry.registerPath({
+    method: 'post',
+    path: '/clients',
+    summary: 'Create a new client',
+    description: 'Creates a new client in the system. Optionally generates a tracking token.',
+    security: [{ cookieAuth: [] }],
+    request: {
+      body: {
+        content: {
+          'application/json': {
+            schema: createClientSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Client created successfully',
+        content: {
+          'application/json': {
+            schema: zod.object({
+              success: zod.boolean(),
+              data: zod.any(),
+            }),
+          },
+        },
+      },
+      400: { description: 'Validation failed or client already exists' },
+    },
+  });
+} catch (e) {
+  // Ignore already registered error in HMR/Dev
+}
 
 // GET /api/clients - List all clients for the current organization
 export const GET = withSecurity(

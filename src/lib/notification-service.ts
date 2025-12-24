@@ -424,3 +424,130 @@ export async function notifyLowInventory(
     data: { itemName, currentQuantity, minQuantity },
   });
 }
+
+// ============================================
+// Client-Facing Notifications
+// These notify the CLIENT user (not tailor)
+// ============================================
+
+/**
+ * Notify client about order status change (in-app notification)
+ */
+export async function notifyClientOrderStatusChange(
+  clientUserId: string,
+  orderNumber: string,
+  newStatus: string,
+  tailorName: string
+): Promise<void> {
+  const statusMessages: Record<string, { title: string; message: string }> = {
+    CONFIRMED: {
+      title: 'Order Confirmed',
+      message: `Your order ${orderNumber} has been confirmed by ${tailorName}.`,
+    },
+    IN_PROGRESS: {
+      title: 'Work Started',
+      message: `${tailorName} has started working on your order ${orderNumber}.`,
+    },
+    READY_FOR_FITTING: {
+      title: 'Ready for Fitting',
+      message: `Your order ${orderNumber} is ready for fitting! Contact ${tailorName} to schedule.`,
+    },
+    FITTING_DONE: {
+      title: 'Fitting Complete',
+      message: `Fitting for order ${orderNumber} is done. Final touches in progress.`,
+    },
+    COMPLETED: {
+      title: 'Order Completed!',
+      message: `Great news! Your order ${orderNumber} is complete and ready for pickup.`,
+    },
+    DELIVERED: {
+      title: 'Order Delivered',
+      message: `Your order ${orderNumber} has been delivered. Thank you for choosing ${tailorName}!`,
+    },
+  };
+
+  const config = statusMessages[newStatus];
+  if (!config) return;
+
+  await createNotification({
+    userId: clientUserId,
+    type: 'ORDER_UPDATE',
+    title: config.title,
+    message: config.message,
+    data: { orderNumber, status: newStatus, tailorName },
+  });
+}
+
+/**
+ * Notify client about payment received (in-app notification)
+ */
+export async function notifyClientPaymentReceived(
+  clientUserId: string,
+  amount: string,
+  orderNumber: string,
+  tailorName: string
+): Promise<void> {
+  await createNotification({
+    userId: clientUserId,
+    type: 'PAYMENT_RECEIVED',
+    title: 'Payment Confirmed',
+    message: `Your payment of ${amount} for order ${orderNumber} has been received. Thank you!`,
+    data: { amount, orderNumber, tailorName },
+  });
+}
+
+/**
+ * Notify client about new appointment (in-app notification)
+ */
+export async function notifyClientAppointmentCreated(
+  clientUserId: string,
+  appointmentType: string,
+  dateStr: string,
+  timeStr: string,
+  tailorName: string,
+  location?: string
+): Promise<void> {
+  await createNotification({
+    userId: clientUserId,
+    type: 'SYSTEM',
+    title: 'Appointment Scheduled',
+    message: `Your ${appointmentType.toLowerCase()} with ${tailorName} is scheduled for ${dateStr} at ${timeStr}.${location ? ` Location: ${location}` : ''}`,
+    data: { appointmentType, date: dateStr, time: timeStr, tailorName, location },
+  });
+}
+
+/**
+ * Notify client about invoice sent (in-app notification)
+ */
+export async function notifyClientInvoiceSent(
+  clientUserId: string,
+  invoiceNumber: string,
+  amount: string,
+  tailorName: string
+): Promise<void> {
+  await createNotification({
+    userId: clientUserId,
+    type: 'SYSTEM',
+    title: 'Invoice Received',
+    message: `Invoice ${invoiceNumber} for ${amount} from ${tailorName}. View details in your studio portal.`,
+    data: { invoiceNumber, amount, tailorName },
+  });
+}
+
+/**
+ * Notify client about new message from tailor (in-app notification)
+ */
+export async function notifyClientNewMessage(
+  clientUserId: string,
+  orderNumber: string,
+  tailorName: string
+): Promise<void> {
+  await createNotification({
+    userId: clientUserId,
+    type: 'NEW_MESSAGE',
+    priority: 'HIGH',
+    title: 'New Message',
+    message: `${tailorName} sent you a message about order ${orderNumber}.`,
+    data: { orderNumber, tailorName },
+  });
+}

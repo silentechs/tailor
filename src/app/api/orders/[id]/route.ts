@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logAudit } from '@/lib/audit-service';
-import { notifyOrderStatusChange } from '@/lib/notification-service';
+import { notifyOrderStatusChange, notifyClientOrderStatusChange } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
@@ -186,7 +186,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
         organizationId,
       },
       include: {
-        client: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            userId: true,
+          },
+        },
       },
     });
 
@@ -318,6 +326,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     // Send notification if status changed
     if (newStatus && newStatus !== previousStatus) {
+      // Notify tailor (in-app + SMS/Email to client)
       await notifyOrderStatusChange(
         user.id,
         existingOrder.client.phone,
@@ -328,6 +337,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
         user.notifySms,
         user.notifyEmail
       );
+
+      // Notify client (in-app notification) if they have a linked account
+      if (existingOrder.client.userId) {
+        await notifyClientOrderStatusChange(
+          existingOrder.client.userId,
+          existingOrder.orderNumber,
+          newStatus,
+          user.businessName || user.name
+        );
+      }
 
       // Update collection completed count
       if (newStatus === 'COMPLETED' && existingOrder.collectionId) {

@@ -1,5 +1,5 @@
 import type { MaterialSourceType, OrderStatus, Prisma } from '@prisma/client';
-import { z } from 'zod';
+import { registry, z } from '@/lib/api-docs';
 import { secureErrorResponse, secureJsonResponse, withSecurity } from '@/lib/api-security';
 import { logAudit } from '@/lib/audit-service';
 import { generateOrderNumber, generatePaymentNumber } from '@/lib/invoice-numbering-system';
@@ -45,6 +45,69 @@ const createOrderSchema = z
     measurements: z.record(z.string(), z.any()).optional(),
     measurementUnit: z.enum(['CM', 'INCH']).optional().default('CM'),
   });
+
+// Register Order Schema
+registry.register('Order', createOrderSchema);
+
+// Register GET /orders
+registry.registerPath({
+  method: 'get',
+  path: '/orders',
+  summary: 'List all orders',
+  description: 'Returns a paginated list of orders for the current organization.',
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Success',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            data: z.array(z.any()),
+            pagination: z.object({
+              page: z.number(),
+              pageSize: z.number(),
+              total: z.number(),
+              totalPages: z.number(),
+            }),
+          }),
+        },
+      },
+    },
+  },
+});
+
+// Register POST /orders
+registry.registerPath({
+  method: 'post',
+  path: '/orders',
+  summary: 'Create a new order',
+  description: 'Creates a new order with optional measurements and deposit.',
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: createOrderSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'Order created successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            data: z.any(),
+          }),
+        },
+      },
+    },
+    400: { description: 'Validation failed' },
+  },
+});
 
 // GET /api/orders - List all orders for the current organization
 export const GET = withSecurity(async (request: Request) => {

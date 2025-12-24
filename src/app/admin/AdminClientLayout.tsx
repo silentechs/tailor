@@ -1,8 +1,10 @@
 'use client';
 
 import {
+  Activity,
   BarChart3,
   Bell,
+  History,
   LayoutDashboard,
   LogOut,
   MessageCircle,
@@ -11,6 +13,7 @@ import {
   ShieldCheck,
   Users,
   Wallet,
+  BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,12 +25,16 @@ import { cn } from '@/lib/utils';
 const ADMIN_NAV = [
   { label: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Users', href: '/admin/users', icon: Users },
+  { label: 'Login History', href: '/admin/login-history', icon: History },
+  { label: 'Traffic', href: '/admin/traffic', icon: Activity },
   { label: 'Orders', href: '/admin/orders', icon: Package },
   { label: 'Payments', href: '/admin/payments', icon: Wallet },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Messages', href: '/admin/messaging-tracking', icon: MessageSquare },
   { label: 'Feedback', href: '/admin/feedback', icon: MessageCircle },
+  { label: 'API Docs', href: '/admin/docs', icon: BookOpen },
 ];
+
 
 export function AdminClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -133,8 +140,9 @@ export function AdminClientLayout({ children }: { children: React.ReactNode }) {
             <Button
               variant="outline"
               className="rounded-xl border-slate-200 text-slate-600 font-bold px-6"
+              asChild
             >
-              Documentation
+              <Link href="/admin/docs">Documentation</Link>
             </Button>
           </div>
         </header>

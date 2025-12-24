@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { registry, z } from '@/lib/api-docs';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
 
@@ -13,6 +13,63 @@ const inventoryItemSchema = z.object({
   minStock: z.number().default(0),
   unitCost: z.number().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
+});
+
+// Register InventoryItem Schema
+registry.register('InventoryItem', inventoryItemSchema);
+
+// Register GET /inventory
+registry.registerPath({
+  method: 'get',
+  path: '/inventory',
+  summary: 'List inventory items',
+  description: 'Returns a paginated list of inventory items.',
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Success',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            data: z.array(z.any()),
+          }),
+        },
+      },
+    },
+  },
+});
+
+// Register POST /inventory
+registry.registerPath({
+  method: 'post',
+  path: '/inventory',
+  summary: 'Add new inventory item',
+  description: 'Adds a new item to the inventory.',
+  security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: inventoryItemSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: 'Item created successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            data: z.any(),
+          }),
+        },
+      },
+    },
+    400: { description: 'Validation failed' },
+  },
 });
 
 // GET /api/inventory - List inventory items
