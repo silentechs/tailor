@@ -50,7 +50,8 @@ test.describe('Reset Password Page', () => {
         const loginPage = page.locator('url=/login/');
 
         // Either show error or redirect to login
-        await expect(errorMessage.or(page)).toBeVisible({ timeout: 10000 });
+        const isErrorOrRedirected = await errorMessage.isVisible() || page.url().includes('/login');
+        expect(isErrorOrRedirected).toBe(true);
     });
 
     test('should show password fields when token is valid', async ({ page }) => {

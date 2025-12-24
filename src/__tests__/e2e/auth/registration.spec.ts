@@ -175,10 +175,12 @@ test.describe('Tailor Registration', () => {
         const submitButton = page.getByRole('button', { name: /sign up|register|create/i });
         await submitButton.click();
 
-        // Should show pending approval message or redirect to login
+        // Should show pending approval message or redirect to dashboard
         const pendingMessage = page.getByText(/pending|approval|review|wait/i);
-        const loginRedirect = page.locator('url=/login/');
 
-        await expect(pendingMessage.or(page)).toBeVisible({ timeout: 15000 });
+        // Either shows pending message or was redirected to dashboard (if ACTIVE status)
+        const hasPendingMessage = await pendingMessage.isVisible().catch(() => false);
+        const isRedirected = page.url().includes('/dashboard') || page.url().includes('/login');
+        expect(hasPendingMessage || isRedirected).toBe(true);
     });
 });

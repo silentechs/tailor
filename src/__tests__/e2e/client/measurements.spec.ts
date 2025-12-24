@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /**
  * E2E Tests: Client Measurements
@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
  */
 
 // Helper to login as client
-async function loginAsClient(page: any) {
+async function loginAsClient(page: Page) {
     await page.goto('/auth/login');
     const testEmail = process.env.TEST_CLIENT_EMAIL || 'test-client@example.com';
     const testPassword = process.env.TEST_CLIENT_PASSWORD || 'testpassword123';

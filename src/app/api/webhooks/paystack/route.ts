@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import prisma from '@/lib/prisma';
+import { captureInfo, captureWarning, captureError } from '@/lib/logger';
 import { recordSuccessfulPayment } from '@/lib/payment-service';
 
 export async function POST(req: NextRequest) {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
             const orderId = data.metadata?.orderId;
 
             if (!orderId) {
-                console.warn('Webhook: Missing orderId in metadata', reference);
+                captureWarning('PaystackWebhook', 'Missing orderId in metadata', { reference });
                 return NextResponse.json({ status: 'ignored' });
             }
 
@@ -49,12 +49,12 @@ export async function POST(req: NextRequest) {
                 notes: `Paystack Webhook Ref: ${reference}`,
             });
 
-            console.log(`Webhook Success: Processed payment for order ${orderId}`);
+            captureInfo('PaystackWebhook', 'Processed payment successfully', { orderId, reference, amountPaid });
         }
 
         return NextResponse.json({ status: 'success' });
     } catch (error) {
-        console.error('Paystack Webhook Error:', error);
+        captureError('PaystackWebhook', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

@@ -75,7 +75,7 @@ test.describe('Login Flow', () => {
 });
 
 test.describe('Logout Flow', () => {
-    test('should clear session on logout', async ({ page, context }) => {
+    test('should clear session on logout', async ({ page }) => {
         // First login
         await page.goto('/auth/login');
         const testEmail = process.env.TEST_TAILOR_EMAIL || 'test-tailor@example.com';
