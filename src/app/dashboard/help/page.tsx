@@ -151,7 +151,7 @@ export default function HelpPage() {
         </div>
         <div className="flex flex-wrap justify-center gap-4">
           <a
-            href="https://wa.me/233000000000"
+            href="https://wa.me/233209225268"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-xl font-bold hover:bg-[#128C7E] transition-colors shadow-md"

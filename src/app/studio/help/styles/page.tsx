@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Heart, Search, Star, Zap } from 'lucide-react';
+import { Heart, LogIn, Search, Star, UserPlus, Zap } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { ANIMATIONS } from '@/lib/design-system';
 
 export default function StylesHelpPage() {
@@ -45,6 +46,38 @@ export default function StylesHelpPage() {
           </p>
         </motion.div>
       </div>
+
+      {/* Auth-Aware Like Button Section */}
+      <motion.div variants={ANIMATIONS.fadeInUp} className="space-y-6">
+        <h2 className="text-2xl font-bold font-heading flex items-center gap-2 text-white">
+          <Heart className="w-6 h-6 text-ghana-red" />
+          How the Like Button Works
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-2 text-white font-bold">
+                <LogIn className="w-5 h-5 text-ghana-gold" />
+                Not Signed In?
+              </div>
+              <p className="text-sm text-zinc-400">
+                When you tap the heart icon without being signed in, you'll see a friendly popover with options to <strong className="text-white">Sign In</strong> or <strong className="text-white">Create Account</strong>. Your likes will be saved once you're logged in.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-2 text-white font-bold">
+                <UserPlus className="w-5 h-5 text-ghana-gold" />
+                Already a Member?
+              </div>
+              <p className="text-sm text-zinc-400">
+                Signed-in clients can instantly like designs—the heart fills up and the design is added to your personal wishlist for easy reference.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </motion.div>
 
       <motion.div
         variants={ANIMATIONS.fadeInUp}

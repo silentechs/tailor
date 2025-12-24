@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Globe, Heart, RefreshCcw, UserPlus, Users } from 'lucide-react';
+import { Globe, Heart, Mail, MessageSquare, Phone, RefreshCcw, Search, UserPlus, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ANIMATIONS } from '@/lib/design-system';
@@ -51,6 +51,76 @@ export default function ClientsHelpPage() {
                   <li>Enter their name, phone number, and any initial notes.</li>
                   <li>(Recommended) Add their measurements immediately after creation.</li>
                 </ol>
+              </div>
+            </div>
+          </section>
+
+          {/* NEW: Smart Linking Section */}
+          <section className="space-y-6">
+            <h2 className="text-2xl font-bold font-heading flex items-center gap-2 text-ghana-red">
+              <Search className="w-6 h-6" />
+              Smart Client Linking
+            </h2>
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                When adding a new client, StitchCraft automatically checks if they already have a StitchCraft account using their <strong>phone number</strong>.
+              </p>
+              <div className="bg-white p-6 rounded-2xl border-2 border-slate-100 space-y-4 shadow-sm">
+                <h4 className="font-bold text-slate-900">How it works:</h4>
+                <ol className="space-y-2 text-muted-foreground">
+                  <li>Enter the client's phone number in the add client form.</li>
+                  <li>If a matching account is found, you'll see a <strong>"Link Account"</strong> option.</li>
+                  <li>Linked clients can track their orders and measurements directly from their Studio portal.</li>
+                  <li>Their profile measurements sync automatically with your workshop records.</li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          {/* NEW: Multi-Channel Invitations Section */}
+          <section className="space-y-6">
+            <h2 className="text-2xl font-bold font-heading flex items-center gap-2 text-ghana-red">
+              <Mail className="w-6 h-6" />
+              Multi-Channel Client Invitations
+            </h2>
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Invite clients to join StitchCraft or notify them about orders through their preferred communication channel.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <Card className="border-2 border-[#25D366]/20">
+                  <CardContent className="p-4 space-y-2">
+                    <Badge className="bg-[#25D366]/20 text-[#25D366] border-none">
+                      <MessageSquare className="w-3 h-3 mr-1" />
+                      WhatsApp
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Send instant messages with order links and updates.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-2 border-blue-500/20">
+                  <CardContent className="p-4 space-y-2">
+                    <Badge className="bg-blue-500/20 text-blue-600 border-none">
+                      <Mail className="w-3 h-3 mr-1" />
+                      Email
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Professional emails with detailed order information.
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-2 border-purple-500/20">
+                  <CardContent className="p-4 space-y-2">
+                    <Badge className="bg-purple-500/20 text-purple-600 border-none">
+                      <Phone className="w-3 h-3 mr-1" />
+                      SMS
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Quick text messages for time-sensitive updates.
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </section>

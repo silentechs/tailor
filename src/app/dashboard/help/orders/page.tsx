@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Clock, FileText, Scissors, Users, Zap } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, FileText, Layers, Ruler, Scissors, Users, Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ANIMATIONS } from '@/lib/design-system';
 
@@ -142,6 +143,53 @@ export default function OrdersHelpPage() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Bulk Orders Section */}
+      <motion.div variants={ANIMATIONS.fadeInUp} className="space-y-6">
+        <h2 className="text-2xl font-bold font-heading flex items-center gap-2">
+          <span className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm">
+            3
+          </span>
+          Bulk Order Wizard
+        </h2>
+        <p className="text-muted-foreground">
+          Need to create orders for an entire wedding party or corporate uniforms? The <strong>Bulk Order Wizard</strong> streamlines the process.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Card className="border-2 border-primary/10">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" />
+                <span className="font-bold">Multi-Client Orders</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Add multiple clients in one go—perfect for group events like weddings, graduations, or corporate functions.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-2 border-ghana-gold/10">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Ruler className="w-5 h-5 text-ghana-gold" />
+                <span className="font-bold">Measurement Templates</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Select from pre-defined templates (e.g., Agbada, Kaftan, Dress) to auto-populate the required measurement fields.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border-2 border-slate-100 space-y-4 shadow-sm">
+          <h4 className="font-bold text-slate-900">How to use Bulk Order Wizard:</h4>
+          <ol className="space-y-2 text-muted-foreground">
+            <li>Navigate to <strong>Orders → Bulk Order</strong> from the sidebar.</li>
+            <li>Add clients one by one or import from your existing client list.</li>
+            <li>For each client, select a <strong>Measurement Template</strong> to pre-load the required fields.</li>
+            <li>Fill in measurements—the template ensures you don't miss any critical dimensions.</li>
+            <li>Review all orders and submit in batch.</li>
+          </ol>
+        </div>
+      </motion.div>
 
       {/* Footer CTA */}
       <motion.div variants={ANIMATIONS.fadeInUp} className="pt-8 border-t">
