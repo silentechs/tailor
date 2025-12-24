@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
+import { verifyTransaction } from '@/lib/paystack';
+import { recordSuccessfulPayment } from '@/lib/payment-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,35 +18,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Reference required' }, { status: 400 });
     }
 
-    // Verify with Paystack
-    const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
-    if (!paystackSecret) {
-      return NextResponse.json(
-        { success: false, error: 'Payment configuration missing' },
-        { status: 500 }
-      );
-    }
+    const paystackData = await verifyTransaction(reference);
 
-    const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: {
-        Authorization: `Bearer ${paystackSecret}`,
-      },
-    });
-
-    const verifyData = await verifyRes.json();
-
-    if (!verifyData.status || verifyData.data.status !== 'success') {
+    if (!paystackData.status || paystackData.data.status !== 'success') {
       return NextResponse.json(
         { success: false, error: 'Payment verification failed' },
         { status: 400 }
       );
     }
 
-    const { metadata, amount } = verifyData.data;
+    const { metadata, amount, paid_at } = paystackData.data;
     const orderId = metadata?.orderId;
 
     if (!orderId) {
-      console.error('Missing orderId in metadata', verifyData);
+      console.error('Missing orderId in metadata', paystackData);
       // Attempt to find via reference if previously failed?
       // Ideally metadata is robust. For now, fail safe.
       return NextResponse.json(
@@ -53,51 +40,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) {
-      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
-    }
-
-    // SECURITY: Ensure the order belongs to the current client (avoid cross-client payment attribution)
-    if (order.clientId !== user.linkedClientId) {
-      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
-    }
-
-    // Idempotency check: if payment already recorded
-    const existingPayment = await prisma.payment.findFirst({
-      where: { transactionId: reference },
+    // Record payment using service
+    await recordSuccessfulPayment({
+      orderId,
+      amount: amount / 100,
+      reference,
+      method: 'PAYSTACK',
+      paidAt: new Date(paid_at || new Date()),
+      notes: `Paystack Verified Ref: ${reference}`,
     });
-
-    if (existingPayment) {
-      return NextResponse.json({ success: true, message: 'Payment already recorded' });
-    }
-
-    // Update DB
-    const paidAmount = amount / 100; // Paystack is in lowest currency unit (pesewas)
-
-    await prisma.$transaction([
-      prisma.order.update({
-        where: { id: orderId },
-        data: {
-          paidAmount: { increment: paidAmount },
-        },
-      }),
-      prisma.payment.create({
-        data: {
-          paymentNumber: `PAY-${Date.now()}`,
-          tailorId: order.tailorId,
-          organizationId: order.organizationId ?? undefined,
-          clientId: order.clientId,
-          orderId: order.id,
-          amount: paidAmount,
-          method: 'PAYSTACK', // Correct enum value
-          status: 'COMPLETED',
-          transactionId: reference,
-          notes: `Paystack Ref: ${reference}`,
-          paidAt: new Date(verifyData.data.paid_at || new Date()),
-        },
-      }),
-    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

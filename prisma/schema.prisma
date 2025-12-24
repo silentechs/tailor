@@ -56,7 +56,7 @@ model User {
   memberships          OrganizationMember[]
   sentInvitations      Invitation[]         @relation("InvitedBy")
   
-  linkedClientId       String?               @unique // Deprecated: Migration in progress
+  linkedClientId       String?               @unique // Deprecated: For legacy one-to-one relation
   linkedClient         Client?              @relation("UserClientLegacy", fields: [linkedClientId], references: [id]) // Renamed for migration
   clientProfiles       Client[]             @relation("UserClientProfile") // NEW: One User -> Many Tailor Clients
   measurements         Json?                // NEW: Master measurements
@@ -187,8 +187,10 @@ model Client {
   city               String?
   notes              String?
   profileImage       String?
-  gender             String?               // NEW: Client gender
+  gender             String?               // Client gender
   isLead             Boolean               @default(false)
+  isArchived         Boolean               @default(false)
+  archivedAt         DateTime?
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   organization       Organization?         @relation(fields: [organizationId], references: [id])
@@ -196,8 +198,8 @@ model Client {
   tailor             User                  @relation(fields: [tailorId], references: [id], onDelete: Cascade)
   linkedUserLegacy   User?                 @relation("UserClientLegacy") // Renamed for migration
   
-  userId             String?               // NEW: Link to global User
-  user               User?                 @relation("UserClientProfile", fields: [userId], references: [id]) // NEW relation
+  userId             String?               // Link to global User
+  user               User?                 @relation("UserClientProfile", fields: [userId], references: [id])
   clientMeasurements ClientMeasurement[]
   trackingTokens     ClientTrackingToken[]
   invoices           Invoice[]
@@ -205,13 +207,14 @@ model Client {
   payments           Payment[]
   socialConsents     SocialMediaConsent[]
   ratings            OrderRating[]
-  clientDesigns      ClientDesign[]      // NEW: Designs uploaded by Tailor for this client
+  clientDesigns      ClientDesign[]        // Designs uploaded by Tailor for this client
 
   @@unique([tailorId, phone])
   @@index([tailorId])
   @@index([organizationId])
   @@index([phone])
   @@index([name])
+  @@index([isArchived])
 }
 
 model ClientTrackingToken {

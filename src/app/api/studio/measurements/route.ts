@@ -46,7 +46,8 @@ export async function GET() {
       data: {
         // Master profile values (User.measurements) take precedence
         latest: {
-          values: (globalUser?.measurements as any) || {},
+          values: (globalUser?.measurements as any)?.values || (globalUser?.measurements as any) || {},
+          unit: (globalUser?.measurements as any)?.unit || 'CM',
           createdAt: globalUser?.updatedAt || new Date(),
           notes: 'Your Global Profile',
         },
@@ -70,24 +71,28 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { values } = body;
+    const { values, unit = 'CM' } = body;
 
     if (!values) {
       return NextResponse.json({ success: false, error: 'Values required' }, { status: 400 });
     }
 
     // 1. Update Master Profile
-    // Cast data to any to bypass stale types if needed
+    // We store the unit inside the JSON profile for now to avoid schema changes
+    const profileWithUnit = {
+      values,
+      unit,
+      updatedAt: new Date().toISOString(),
+    };
+
     const updatedUser = (await prisma.user.update({
       where: { id: user.id },
       data: {
-        measurements: values,
-        // ensure isPublicProfile is true if they are saving? Maybe logic for later.
+        measurements: profileWithUnit,
       } as any,
     })) as any;
 
     // 2. Sync to all linked Tailors
-    // Query linked profiles directly to avoid stale User model include
     const linkedProfiles = await prisma.client.findMany({
       where: { userId: user.id } as any,
       select: { id: true },
@@ -100,6 +105,7 @@ export async function POST(req: Request) {
             data: {
               clientId: profile.id,
               values: values,
+              unit: unit,
               notes: 'Synced from Global Studio Profile',
               isSynced: true,
             },

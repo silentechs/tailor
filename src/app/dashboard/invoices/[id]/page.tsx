@@ -120,10 +120,10 @@ export default function InvoiceDetailPage() {
     },
   });
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!invoice) return;
 
-    downloadInvoicePDF({
+    await downloadInvoicePDF({
       invoiceNumber: invoice.invoiceNumber,
       createdAt: invoice.createdAt,
       dueDate: invoice.dueDate,

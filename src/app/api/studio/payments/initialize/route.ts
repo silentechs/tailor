@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUser } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
+import { initializeTransaction } from '@/lib/paystack';
 
 const paymentSchema = z.object({
   orderId: z.string().min(1),
@@ -36,52 +37,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
-
-    // If no secret, we'll simulate or return error
-    if (!paystackSecret || paystackSecret === 'sk_test_mock') {
-      console.log('SIMULATING PAYSTACK INITIALIZATION');
-      // Mock response
-      return NextResponse.json({
-        success: true,
-        data: {
-          authorization_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/studio/payments/success?reference=SIM-REF-${Date.now()}&orderId=${orderId}&amount=${amount}`,
-          reference: `SIM-REF-${Date.now()}`,
-        },
-      });
-    }
-
-    const res = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${paystackSecret}`,
-        'Content-Type': 'application/json',
+    const paystackData = await initializeTransaction({
+      email: user.email,
+      amount,
+      reference: `SC-${order.orderNumber}-${Date.now()}`,
+      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/studio/payments/success`,
+      metadata: {
+        orderId: order.id,
+        clientId: order.clientId,
+        tailorId: order.tailorId,
       },
-      body: JSON.stringify({
-        email: user.email,
-        amount: Math.round(amount * 100), // convert to pesewas
-        currency: 'GHS',
-        reference: `SC-${order.orderNumber}-${Date.now()}`,
-        callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/studio/payments/success`,
-        metadata: {
-          orderId: order.id,
-          clientId: order.clientId,
-          tailorId: order.tailorId,
-        },
-      }),
     });
 
-    const data = await res.json();
-
-    if (!data.status) {
-      throw new Error(data.message || 'Paystack initialization failed');
+    if (!paystackData.status) {
+      throw new Error(paystackData.message || 'Paystack initialization failed');
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        authorization_url: data.data.authorization_url,
-        reference: data.data.reference,
+        authorization_url: paystackData.data.authorization_url,
+        reference: paystackData.data.reference,
       },
     });
   } catch (error) {

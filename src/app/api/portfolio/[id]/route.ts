@@ -102,3 +102,38 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ success: false, error: 'Failed to update item' }, { status: 500 });
   }
 }
+// PATCH /api/portfolio/[id] - Partial update (e.g., visibility)
+export async function PATCH(request: Request, { params }: RouteParams) {
+  try {
+    const user = await requireActiveTailor();
+    const { id } = await params;
+    const body = await request.json();
+
+    const item = await prisma.portfolioItem.findFirst({
+      where: {
+        id,
+        tailorId: user.id,
+      },
+    });
+
+    if (!item) {
+      return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+    }
+
+    const updated = await prisma.portfolioItem.update({
+      where: { id },
+      data: {
+        isPublic: body.isPublic !== undefined ? body.isPublic : item.isPublic,
+        isFeatured: body.isFeatured !== undefined ? body.isFeatured : item.isFeatured,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Patch portfolio item error:', error);
+    return NextResponse.json({ success: false, error: 'Failed to update item' }, { status: 500 });
+  }
+}

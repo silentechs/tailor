@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const user = await requireUser();
     if (user.role !== 'CLIENT') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Clients only' }, { status: 403 });
     }
 
     const wishlist = await prisma.wishlistItem.findMany({
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   try {
     const user = await requireUser();
     if (user.role !== 'CLIENT') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Clients only' }, { status: 403 });
     }
 
     const { portfolioItemId } = await req.json();

@@ -39,27 +39,37 @@ const appointmentSchema = z.object({
   clientId: z.string().min(1, 'Client is required'),
   orderId: z.string().optional().nullable(),
   type: z.enum(['CONSULTATION', 'MEASUREMENT', 'FITTING', 'COLLECTION', 'REPAIR']),
-  date: z.string().optional(),
-  time: z.string().optional(),
+  date: z.string().min(1, 'Date is required'),
+  time: z.string().min(1, 'Time is required'),
   duration: z.string().optional(),
   notes: z.string().optional(),
   location: z.string().optional(),
+}).refine((data) => {
+  if (!data.date || !data.time) return true;
+  const appointmentDateTime = new Date(`${data.date}T${data.time}:00`);
+  const now = new Date();
+  return appointmentDateTime >= now;
+}, {
+  message: 'Appointment cannot be scheduled in the past',
+  path: ['date'],
 });
 
 interface ScheduleAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: any;
+  prefilledDate?: Date | null;
 }
 
 export function ScheduleAppointmentDialog({
   open,
   onOpenChange,
   initialData,
+  prefilledDate,
 }: ScheduleAppointmentDialogProps) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const isEditing = !!initialData;
+  const isEditing = !!initialData?.id;
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({
     queryKey: ['clients', searchTerm],
@@ -85,9 +95,9 @@ export function ScheduleAppointmentDialog({
     },
   });
 
-  // Handle initial data for editing
+  // Handle initial data for editing or prefilled date for new appointments
   useEffect(() => {
-    if (initialData && open) {
+    if (isEditing && initialData && open) {
       const startTime = new Date(initialData.startTime);
       const endTime = new Date(initialData.endTime);
       const durationMins = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
@@ -102,10 +112,21 @@ export function ScheduleAppointmentDialog({
         notes: initialData.notes || '',
         location: initialData.location || '',
       });
+    } else if (prefilledDate && open) {
+      // Pre-fill date from calendar click for new appointments
+      form.reset({
+        clientId: '',
+        type: 'FITTING',
+        date: prefilledDate.toISOString().split('T')[0],
+        time: '10:00',
+        duration: '30',
+        notes: '',
+        location: '',
+      });
     } else if (!open) {
       form.reset();
     }
-  }, [initialData, open, form]);
+  }, [initialData, prefilledDate, open, form, isEditing]);
 
   const watchedClientId = form.watch('clientId');
   const selectedClient = clients?.find((c: any) => c.id === watchedClientId);
@@ -155,9 +176,9 @@ export function ScheduleAppointmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? 'Reschedule Appointment' : 'Schedule Appointment'}</DialogTitle>
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-0">
+        <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/10 to-transparent border-b">
+          <DialogTitle className="text-xl font-bold">{isEditing ? 'Reschedule Appointment' : 'Schedule Appointment'}</DialogTitle>
           <DialogDescription>
             {isEditing
               ? 'Update the time or details for this session.'
@@ -165,19 +186,19 @@ export function ScheduleAppointmentDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 p-6 pt-4">
             {/* Client Selection */}
             <FormField
               control={form.control}
               name="clientId"
               render={() => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Client</FormLabel>
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-sm font-semibold">Client</FormLabel>
                   {watchedClientId ? (
-                    <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5 border-primary/20">
+                    <div className="flex items-center justify-between p-4 border rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 shadow-sm">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary text-primary-foreground">
+                        <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                          <AvatarFallback className="bg-primary text-primary-foreground font-bold">
                             {selectedClient?.name?.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
@@ -188,7 +209,7 @@ export function ScheduleAppointmentDialog({
                       </div>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => form.setValue('clientId', '')}
                       >
@@ -196,19 +217,19 @@ export function ScheduleAppointmentDialog({
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                          placeholder="Search client..."
-                          className="pl-9"
+                          placeholder="Search client by name or phone..."
+                          className="pl-10 h-11"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
-                      <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border rounded-md p-1">
+                      <div className="grid grid-cols-1 gap-1 max-h-44 overflow-y-auto border rounded-lg p-2 bg-muted/20">
                         {isLoadingClients ? (
-                          <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground">
+                          <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Loading clients...
                           </div>
@@ -218,11 +239,11 @@ export function ScheduleAppointmentDialog({
                               <button
                                 key={client.id}
                                 type="button"
-                                className="flex w-full items-center gap-3 p-2 hover:bg-muted rounded cursor-pointer transition-colors text-left"
+                                className="flex w-full items-center gap-3 p-3 hover:bg-primary/10 rounded-lg cursor-pointer transition-all text-left border border-transparent hover:border-primary/20"
                                 onClick={() => form.setValue('clientId', client.id)}
                               >
-                                <Avatar className="h-6 w-6">
-                                  <AvatarFallback>{client.name.charAt(0)}</AvatarFallback>
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback className="bg-muted text-muted-foreground font-medium text-xs">{client.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <span className="text-sm font-medium">{client.name}</span>
                                 <span className="text-xs text-muted-foreground ml-auto">
@@ -231,7 +252,7 @@ export function ScheduleAppointmentDialog({
                               </button>
                             ))}
                             {clients?.length === 0 && (
-                              <p className="text-xs text-center py-4 text-muted-foreground">
+                              <p className="text-sm text-center py-6 text-muted-foreground">
                                 No clients found.
                               </p>
                             )}
@@ -251,10 +272,10 @@ export function ScheduleAppointmentDialog({
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel className="text-sm font-semibold">Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
@@ -275,10 +296,10 @@ export function ScheduleAppointmentDialog({
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duration (Mins)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel className="text-sm font-semibold">Duration</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -302,9 +323,14 @@ export function ScheduleAppointmentDialog({
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input
+                        type="date"
+                        {...field}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="h-11"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -315,9 +341,9 @@ export function ScheduleAppointmentDialog({
                 name="time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Time</FormLabel>
+                    <FormLabel className="text-sm font-semibold">Time</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input type="time" {...field} className="h-11" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -330,9 +356,9 @@ export function ScheduleAppointmentDialog({
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location / Landmark (Optional)</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Location / Landmark <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Workshop, Client's Office, etc." {...field} />
+                    <Input placeholder="e.g. Workshop, Client's Office, etc." {...field} className="h-11" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -344,22 +370,22 @@ export function ScheduleAppointmentDialog({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Special Notes</FormLabel>
+                  <FormLabel className="text-sm font-semibold">Special Notes <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
                   <FormControl>
-                    <Input placeholder="Bring fabric samples, etc." {...field} />
+                    <Input placeholder="Bring fabric samples, etc." {...field} className="h-11" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <DialogFooter className="pt-6 pb-2 border-t mt-6 flex gap-3">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">
                 Cancel
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending} className="flex-1 sm:flex-none">
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? 'Save Changes' : 'Schedule'}
+                {isEditing ? 'Save Changes' : 'Schedule Appointment'}
               </Button>
             </DialogFooter>
           </form>

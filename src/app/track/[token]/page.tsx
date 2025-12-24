@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
+  FEATURE_FLAGS,
   cn,
   formatCurrency,
   formatDate,
@@ -105,7 +106,7 @@ export default function TrackingPage() {
           text: `Tracking status for my orders at ${tailor.businessName}`,
           url: trackingUrl,
         })
-        .catch(() => {});
+        .catch(() => { });
     } else {
       navigator.clipboard.writeText(trackingUrl);
       toast.success('Tracking link copied to clipboard');
@@ -312,9 +313,31 @@ export default function TrackingPage() {
               </div>
             </div>
 
-            {activeOrder.totalAmount - activeOrder.paidAmount > 0 && (
-              <Button className="w-full bg-[#34A853] hover:bg-[#2d9248] text-white font-bold h-12 shadow-lg shadow-emerald-100">
-                Pay via {tailor.businessName} Wallet
+            {FEATURE_FLAGS.ENABLE_PAYMENTS && activeOrder.totalAmount - activeOrder.paidAmount > 0 && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/track/${token}/pay`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        orderId: activeOrder.id,
+                        amount: activeOrder.totalAmount - activeOrder.paidAmount,
+                      }),
+                    });
+                    const result = await res.json();
+                    if (result.success && result.data.authorization_url) {
+                      window.location.href = result.data.authorization_url;
+                    } else {
+                      toast.error('Could not initialize payment. Please contact your tailor.');
+                    }
+                  } catch (err) {
+                    toast.error('Network error during payment initialization.');
+                  }
+                }}
+                className="w-full bg-[#34A853] hover:bg-[#2d9248] text-white font-bold h-12 shadow-lg shadow-emerald-100 rounded-xl"
+              >
+                Pay Balance via Mobile Money
               </Button>
             )}
           </CardContent>

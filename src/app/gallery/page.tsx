@@ -5,9 +5,9 @@ import { Heart, MapPin, Scissors, Search, Sparkles, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { KenteBackground } from '@/components/landing/kente-background';
 import { Navbar } from '@/components/landing/navbar';
+import { SaveButton } from '@/components/save-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -225,33 +225,11 @@ export default function GalleryPage() {
                     className="break-inside-avoid group relative"
                   >
                     {/* Save to Style Hub button */}
-                    <Button
-                      size="icon"
+                    <SaveButton
+                      portfolioItemId={item.id}
                       className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-black/50 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary hover:scale-110"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        try {
-                          const res = await fetch('/api/studio/wishlist', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ portfolioItemId: item.id }),
-                          });
-                          const data = await res.json();
-                          if (data.action === 'added') {
-                            toast.success('Saved to Style Hub!');
-                          } else if (data.action === 'removed') {
-                            toast.info('Removed from Style Hub');
-                          } else if (!data.success) {
-                            toast.error('Sign in to save inspirations');
-                          }
-                        } catch {
-                          toast.error('Sign in to save inspirations');
-                        }
-                      }}
-                    >
-                      <Heart className="h-5 w-5" />
-                    </Button>
+                      iconClassName="h-5 w-5"
+                    />
                     <Link href={`/showcase/${item.tailorUsername}`}>
                       <Card className="group relative overflow-hidden border-none bg-accent/5 shadow-none cursor-pointer rounded-[2.5rem]">
                         <div className="relative aspect-[3/4] overflow-hidden transition-all duration-700 group-hover:shadow-2xl">
@@ -261,6 +239,9 @@ export default function GalleryPage() {
                             fill
                             className="object-cover transition-transform duration-1000 group-hover:scale-110"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                            placeholder="blur"
+                            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkqG9YDwADEQExX9/5nQAAAABJRU5ErkJggg=="
+                            priority={filteredItems.indexOf(item) < 4}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8">
                             <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 space-y-4">

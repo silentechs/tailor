@@ -24,6 +24,7 @@ interface PushToProfileButtonProps {
     measurements: Record<string, any> | null;
     /** Whether client has a linked user account */
     hasLinkedAccount: boolean;
+    unit?: string;
     onPushComplete?: () => void;
 }
 
@@ -32,6 +33,7 @@ export function PushToProfileButton({
     clientName,
     measurements,
     hasLinkedAccount,
+    unit = 'CM',
     onPushComplete,
 }: PushToProfileButtonProps) {
     const [pushing, setPushing] = useState(false);
@@ -47,7 +49,7 @@ export function PushToProfileButton({
             const res = await fetchApi(`/api/clients/${clientId}/push-to-profile`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ values: measurements }),
+                body: JSON.stringify({ values: measurements, unit }),
             });
 
             if (!res.ok) {

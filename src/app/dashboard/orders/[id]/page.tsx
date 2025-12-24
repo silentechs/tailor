@@ -194,7 +194,7 @@ export default function OrderDetailsPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => {
+            onClick={async () => {
               const invoiceData = {
                 invoiceNumber: orderData.orderNumber,
                 createdAt: orderData.createdAt,
@@ -223,7 +223,7 @@ export default function OrderDetailsPage() {
                 paidAmount: Number(orderData.paidAmount),
                 notes: orderData.description,
               };
-              downloadInvoicePDF(invoiceData);
+              await downloadInvoicePDF(invoiceData);
               toast.success('Invoice PDF downloaded');
             }}
           >
@@ -311,7 +311,7 @@ export default function OrderDetailsPage() {
                   Measurements Used
                 </p>
                 {orderData.measurement?.values &&
-                Object.keys(orderData.measurement.values).length > 0 ? (
+                  Object.keys(orderData.measurement.values).length > 0 ? (
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                     {Object.entries(orderData.measurement.values as Record<string, any>).map(
                       ([key, value]) => (

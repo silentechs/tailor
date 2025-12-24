@@ -87,7 +87,7 @@ export default function StudioMeasurementsPage() {
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          <MeasurementDialog initialValues={values} />
+          <MeasurementDialog initialValues={values} unit={latest?.unit || 'CM'} />
           <Button
             onClick={handleDownloadPDF}
             className="rounded-2xl h-14 bg-ghana-gold text-ghana-black hover:bg-ghana-gold/90 font-black uppercase tracking-widest text-[10px] px-8"

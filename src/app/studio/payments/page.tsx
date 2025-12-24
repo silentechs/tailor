@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import { FEATURE_FLAGS, cn } from '@/lib/utils';
 
 export default function StudioPaymentsPage() {
   const { data: pData, isLoading } = useQuery({
@@ -171,7 +171,7 @@ export default function StudioPaymentsPage() {
                       >
                         <Download className="h-5 w-5 text-zinc-400" />
                       </Button>
-                      {inv.status !== 'PAID' && (
+                      {FEATURE_FLAGS.ENABLE_PAYMENTS && inv.status !== 'PAID' && (
                         <Button
                           onClick={() => handleSettle(inv)}
                           disabled={processing === inv.id}
@@ -250,26 +250,28 @@ export default function StudioPaymentsPage() {
           </section>
 
           {/* Secure Payment Note */}
-          <div className="p-8 bg-zinc-900/50 border border-white/5 rounded-[2.5rem] relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
-              <CreditCard className="h-20 w-20" />
+          {FEATURE_FLAGS.ENABLE_PAYMENTS && (
+            <div className="p-8 bg-zinc-900/50 border border-white/5 rounded-[2.5rem] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
+                <CreditCard className="h-20 w-20" />
+              </div>
+              <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">
+                Secure Gateway
+              </h4>
+              <p className="text-zinc-500 font-bold leading-relaxed italic text-xs mb-6">
+                All transactions are end-to-end encrypted via Paystack securely. We do not store your
+                card details.
+              </p>
+              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '100%' }}
+                  transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+                  className="h-full w-1/3 bg-ghana-gold/50"
+                />
+              </div>
             </div>
-            <h4 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-4">
-              Secure Gateway
-            </h4>
-            <p className="text-zinc-500 font-bold leading-relaxed italic text-xs mb-6">
-              All transactions are end-to-end encrypted via Paystack securely. We do not store your
-              card details.
-            </p>
-            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ x: '-100%' }}
-                animate={{ x: '100%' }}
-                transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-                className="h-full w-1/3 bg-ghana-gold/50"
-              />
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

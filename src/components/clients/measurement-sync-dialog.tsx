@@ -26,8 +26,10 @@ interface MeasurementSyncDialogProps {
     clientName: string;
     /** Local measurements stored by tailor */
     tailorMeasurements: Record<string, any> | null;
-    /** Global measurements from client's profile */
+    /** Global measurements from client's profile (can be raw values or structured JSON) */
     clientProfileMeasurements: Record<string, any> | null;
+    /** Unit used by the tailor */
+    tailorUnit?: string;
     /** Last synced timestamp */
     lastSyncedAt?: string;
     onSyncComplete?: () => void;
@@ -44,6 +46,7 @@ export function MeasurementSyncDialog({
     clientName,
     tailorMeasurements,
     clientProfileMeasurements,
+    tailorUnit = 'CM',
     lastSyncedAt,
     onSyncComplete,
 }: MeasurementSyncDialogProps) {
@@ -52,17 +55,48 @@ export function MeasurementSyncDialog({
     const [strategy, setStrategy] = useState<SyncStrategy>('use_client');
     const [mergeChoices, setMergeChoices] = useState<MergeChoice>({});
 
-    const tailorValues = tailorMeasurements || {};
-    const clientValues = clientProfileMeasurements || {};
+    // Handle both old raw values and new structured JSON { values, unit, updatedAt }
+    // For tailor measurements - unwrap nested values if present
+    const tailorData = tailorMeasurements as any;
+    const tailorValues = (tailorData?.values && typeof tailorData.values === 'object' && !Array.isArray(tailorData.values))
+        ? tailorData.values
+        : (tailorMeasurements || {});
+
+    // Filter out metadata keys from tailor values
+    const filteredTailorValues = Object.fromEntries(
+        Object.entries(tailorValues).filter(([key]) =>
+            !['unit', 'updatedAt', 'createdAt', 'id', 'clientId', 'templateId', 'notes', 'sketch', 'isSynced', 'clientSideId', 'values'].includes(key)
+        )
+    );
+
+    // Handle both old raw values and new structured JSON { values, unit, updatedAt }
+    const clientProfileData = clientProfileMeasurements as any;
+    const clientRawValues = (clientProfileData?.values && typeof clientProfileData.values === 'object')
+        ? clientProfileData.values
+        : (clientProfileMeasurements || {});
+    const clientUnit = clientProfileData?.unit || 'CM';
+
+    // Filter out metadata keys from client values
+    const clientValues = Object.fromEntries(
+        Object.entries(clientRawValues).filter(([key]) =>
+            !['unit', 'updatedAt', 'createdAt', 'id', 'clientId', 'templateId', 'notes', 'sketch', 'isSynced', 'clientSideId', 'values'].includes(key)
+        )
+    ) as Record<string, any>;
 
     // Get all unique keys from both measurement sets
     const allKeys = Array.from(
-        new Set([...Object.keys(tailorValues), ...Object.keys(clientValues)])
-    ).sort();
+        new Set([...Object.keys(filteredTailorValues), ...Object.keys(clientValues)])
+    ).filter(key => {
+        // Only include keys that have primitive values (numbers or strings)
+        const tailorVal = filteredTailorValues[key];
+        const clientVal = clientValues[key];
+        return (typeof tailorVal === 'number' || typeof tailorVal === 'string' || tailorVal === undefined) &&
+            (typeof clientVal === 'number' || typeof clientVal === 'string' || clientVal === undefined);
+    }).sort();
 
     // Find keys with differences
     const diffKeys = allKeys.filter((key) => {
-        const tailorVal = tailorValues[key];
+        const tailorVal = filteredTailorValues[key];
         const clientVal = clientValues[key];
         return tailorVal !== clientVal && (tailorVal !== undefined || clientVal !== undefined);
     });
@@ -89,13 +123,13 @@ export function MeasurementSyncDialog({
 
     const getMergedValues = (): Record<string, any> => {
         if (strategy === 'use_client') return clientValues;
-        if (strategy === 'use_tailor') return tailorValues;
+        if (strategy === 'use_tailor') return filteredTailorValues;
 
         // Custom merge
         const merged: Record<string, any> = {};
         allKeys.forEach((key) => {
             const choice = mergeChoices[key] || 'client';
-            merged[key] = choice === 'client' ? clientValues[key] : tailorValues[key];
+            merged[key] = choice === 'client' ? clientValues[key] : filteredTailorValues[key];
         });
         return merged;
     };
@@ -103,14 +137,15 @@ export function MeasurementSyncDialog({
     const handleSync = async () => {
         try {
             setSyncing(true);
-            const valuesToSync = getMergedValues();
+            const mergedValues = getMergedValues();
 
             // Create a new measurement record with the merged/chosen values
             const res = await fetchApi(`/api/clients/${clientId}/measurements`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    values: valuesToSync,
+                    values: mergedValues,
+                    unit: strategy === 'use_client' ? clientUnit : tailorUnit,
                     notes: `Synced from profile using "${strategy}" strategy`,
                 }),
             });
@@ -244,8 +279,8 @@ export function MeasurementSyncDialog({
                                 {/* Header */}
                                 <div className="grid grid-cols-3 gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-2 border-b">
                                     <span>Measurement</span>
-                                    <span className="text-center">Your Records</span>
-                                    <span className="text-center">Client Profile</span>
+                                    <span className="text-center">Your Records ({tailorUnit})</span>
+                                    <span className="text-center">Client Profile ({clientUnit})</span>
                                 </div>
 
                                 {allKeys.map((key) => {
@@ -283,8 +318,8 @@ export function MeasurementSyncDialog({
                                                     'ring-2 ring-primary bg-primary/10'
                                                 )}
                                             >
-                                                <span className={cn('text-sm', !tailorVal && 'text-muted-foreground')}>
-                                                    {tailorVal !== undefined ? `${tailorVal}"` : '—'}
+                                                <span className={cn('text-sm', tailorVal === undefined && 'text-muted-foreground')}>
+                                                    {tailorVal !== undefined ? String(tailorVal) : '—'}
                                                 </span>
                                             </button>
 
@@ -302,8 +337,8 @@ export function MeasurementSyncDialog({
                                                     'ring-2 ring-primary bg-primary/10'
                                                 )}
                                             >
-                                                <span className={cn('text-sm', !clientVal && 'text-muted-foreground')}>
-                                                    {clientVal !== undefined ? `${clientVal} cm` : '—'}
+                                                <span className={cn('text-sm', clientVal === undefined && 'text-muted-foreground')}>
+                                                    {clientVal !== undefined ? String(clientVal) : '—'}
                                                 </span>
                                             </button>
                                         </div>

@@ -218,7 +218,7 @@ export async function registerUser(data: {
   const hashedPassword = await hashPassword(data.password);
 
   // Create user and organization in a transaction
-  const initialStatus = data.role === 'TAILOR' || data.role === 'SEAMSTRESS' ? 'PENDING' : 'ACTIVE';
+  const initialStatus = 'ACTIVE';
 
   const user = await prisma.$transaction(async (tx) => {
     // 1. Create the user

@@ -204,10 +204,6 @@ export async function notifyOrderStatusChange(
     title: config.title,
     message: `Order ${orderNumber} for ${clientName} is now ${newStatus.toLowerCase().replace('_', ' ')}`,
     data: { orderNumber, clientName, status: newStatus },
-    sendSms: notifySms && !!clientPhone,
-    smsRecipient: clientPhone || undefined,
-    sendEmail: notifyEmail && !!clientEmail,
-    emailRecipient: clientEmail || undefined,
   });
 
   // Send Email directly to client with professional template
@@ -243,10 +239,6 @@ export async function notifyPaymentReceived(
     title: 'Payment Received',
     message: `${clientName} paid ${amount}`,
     data: { clientName, amount },
-    sendSms: notifySms && !!clientPhone,
-    smsRecipient: clientPhone || undefined,
-    sendEmail: notifyEmail && !!clientEmail,
-    emailRecipient: clientEmail || undefined,
   });
 
   // Send confirmation to client

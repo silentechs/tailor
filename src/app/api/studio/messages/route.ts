@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       data: {
         orderId,
         senderId: user.id,
-        senderType: 'CLIENT',
+        senderType: 'client',
         message: content,
       },
     });

@@ -31,6 +31,7 @@ import { VoiceInput } from '@/components/ui/voice-input';
 import { fetchApi } from '@/lib/fetch-api';
 import { suggestTagsForGarment } from '@/lib/ai-logic';
 import { GARMENT_TYPE_LABELS } from '@/lib/utils';
+import { EyeOff } from 'lucide-react';
 
 // API Functions
 async function getPortfolio() {
@@ -59,6 +60,16 @@ async function deletePortfolioItem(id: string) {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error('Failed to delete item');
+  return res.json();
+}
+
+async function updatePortfolioVisibility(id: string, isPublic: boolean) {
+  const res = await fetchApi(`/api/portfolio/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isPublic }),
+  });
+  if (!res.ok) throw new Error('Failed to update visibility');
   return res.json();
 }
 
@@ -149,6 +160,18 @@ export default function PortfolioPage() {
         isFeatured: false,
       });
       toast.success('Project updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+
+  const toggleVisibilityMutation = useMutation({
+    mutationFn: ({ id, isPublic }: { id: string; isPublic: boolean }) =>
+      updatePortfolioVisibility(id, isPublic),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+      toast.success('Visibility updated');
     },
     onError: (error: any) => {
       toast.error(error.message);
@@ -355,6 +378,20 @@ export default function PortfolioPage() {
                           </div>
                         </DialogContent>
                       </Dialog>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          toggleVisibilityMutation.mutate({ id: item.id, isPublic: !item.isPublic })
+                        }
+                      >
+                        {item.isPublic ? (
+                          <Eye className="h-4 w-4 mr-2" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 mr-2" />
+                        )}
+                        {item.isPublic ? 'Public' : 'Private'}
+                      </Button>
                       <Button variant="secondary" size="sm" onClick={() => handleEdit(item)}>
                         Edit
                       </Button>
@@ -389,10 +426,17 @@ export default function PortfolioPage() {
                   <CardHeader className="p-4 pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-lg truncate pr-2">{item.title}</CardTitle>
-                      <Badge variant="outline" className="shrink-0">
-                        {GARMENT_TYPE_LABELS[item.category as keyof typeof GARMENT_TYPE_LABELS] ||
-                          item.category}
-                      </Badge>
+                      <div className="flex gap-2 items-center">
+                        {!item.isPublic && (
+                          <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">
+                            Private
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="shrink-0">
+                          {GARMENT_TYPE_LABELS[item.category as keyof typeof GARMENT_TYPE_LABELS] ||
+                            item.category}
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">

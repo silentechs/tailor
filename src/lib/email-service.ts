@@ -245,17 +245,19 @@ async function logEmailAttempt(
 export async function sendRegistrationEmail(
   to: string,
   userName: string,
-  adminEmail: string
+  adminEmail: string,
+  userRole: string = 'TAILOR'
 ): Promise<EmailResult> {
-  const subject = `New Registration: ${userName} - Pending Approval`;
+  const subject = `New Registration: ${userName} (${userRole}) - Pending Approval`;
   const content = `
     <p>Hello Admin,</p>
-    <p>A new tailor has registered on <strong>StitchCraft Ghana</strong>:</p>
+    <p>A new ${userRole === 'CLIENT' ? 'client' : 'tailor'} has registered on <strong>StitchCraft Ghana</strong>:</p>
     <div class="card">
       <p style="margin: 0;"><strong>Name:</strong> <span class="highlight">${userName}</span></p>
       <p style="margin: 10px 0 0 0;"><strong>Email:</strong> ${to}</p>
+      <p style="margin: 10px 0 0 0;"><strong>Role:</strong> ${userRole}</p>
     </div>
-    <p>Please review their application in the admin dashboard and approve or reject their registration.</p>
+    <p>${userRole === 'CLIENT' ? 'Their account is active by default.' : 'Please review their application in the admin dashboard and approve or reject their registration.'}</p>
     <div style="text-align: center;">
       <a href="${APP_URL}/admin/users" class="btn">Go to Admin Dashboard</a>
     </div>
@@ -273,18 +275,29 @@ export async function sendRegistrationEmail(
 export async function sendApprovalEmail(
   to: string,
   userName: string,
-  loginUrl: string
+  loginUrl: string,
+  userRole: string = 'TAILOR'
 ): Promise<EmailResult> {
   const subject = 'Welcome to StitchCraft Ghana - Account Approved! 🎉';
   const content = `
     <p>Dear ${userName},</p>
     <p>Great news! Your StitchCraft Ghana account has been <strong style="color: ${BRAND_COLORS.primary};">approved</strong>!</p>
-    <p>You can now log in and start managing your tailoring business:</p>
+    <p>You can now log in and ${userRole === 'CLIENT' ? 'start exploring the world of GH fashion' : 'start managing your tailoring business'}:</p>
     <ul>
-      <li>Manage your clients and their orders</li>
-      <li>Track payments and generate invoices</li>
-      <li>Showcase your work to potential clients</li>
-      <li>Send SMS and email notifications</li>
+      ${userRole === 'CLIENT'
+      ? `
+          <li>Browse the Design Gallery for inspiration</li>
+          <li>Find and connect with verified master tailors</li>
+          <li>Track your orders and garments in real-time</li>
+          <li>Manage your global measurement profile</li>
+        `
+      : `
+          <li>Manage your clients and their orders</li>
+          <li>Track payments and generate invoices</li>
+          <li>Showcase your work to potential clients</li>
+          <li>Send SMS and email notifications</li>
+        `
+    }
     </ul>
     <div style="text-align: center;">
       <a href="${loginUrl}" class="btn">Log In to Your Account</a>
@@ -662,5 +675,47 @@ export async function sendFeedbackResponseEmail(
     html: getEmailLayout(content, { subject }),
     text: `Dear ${data.name}, Thank you for your feedback about "${data.subject}". Our response: ${data.response}`,
     template: 'feedback_response',
+  });
+}
+
+// ============================================
+// Client Linked Email Template
+// ============================================
+
+export async function sendClientLinkedEmail(
+  to: string,
+  clientName: string,
+  tailorName: string,
+  tailorBusinessName: string | null
+): Promise<EmailResult> {
+  const businessDisplay = tailorBusinessName || tailorName;
+  const subject = `${businessDisplay} added you as a client on StitchCraft Ghana`;
+  const content = `
+    <h2 style="color: ${BRAND_COLORS.primary};">🎉 You've Been Added as a Client!</h2>
+    <p>Dear ${clientName},</p>
+    <p><strong>${businessDisplay}</strong> has added you as a client on StitchCraft Ghana.</p>
+    <div class="card" style="border-left: 4px solid ${BRAND_COLORS.secondary};">
+      <p style="margin: 0;">Your measurements and design preferences will now be shared with this tailor for better service.</p>
+    </div>
+    <p>What this means for you:</p>
+    <ul>
+      <li>Your tailor can access your measurement profile</li>
+      <li>You'll receive order updates and notifications</li>
+      <li>Track your orders through your StitchCraft account</li>
+    </ul>
+    <div style="text-align: center;">
+      <a href="${APP_URL}/studio" class="btn">View Your Profile</a>
+    </div>
+    <p style="margin-top: 30px; font-size: 13px; color: #666;">
+      If you didn't expect this, you can manage your connected tailors in your account settings.
+    </p>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html: getEmailLayout(content, { subject }),
+    text: `Dear ${clientName}, ${businessDisplay} has added you as a client on StitchCraft Ghana. View your profile at: ${APP_URL}/studio`,
+    template: 'client_linked',
   });
 }

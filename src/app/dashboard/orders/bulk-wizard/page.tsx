@@ -14,6 +14,7 @@ import {
   Ruler,
   Search,
   Shirt,
+  Sparkles,
   Trash2,
   Users,
 } from 'lucide-react';
@@ -55,8 +56,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { fetchApi } from '@/lib/fetch-api';
-import { cn, GARMENT_TYPE_LABELS } from '@/lib/utils';
+import { cn, GARMENT_TYPE_LABELS, isValidGhanaPhone } from '@/lib/utils';
 
 // --- Schemas ---
 
@@ -188,6 +196,7 @@ export default function BulkOrderWizard() {
   const [currentMeasurementItem, setCurrentMeasurementItem] = useState<SelectionItem | null>(null);
   const [measurementValues, setMeasurementValues] = useState<Record<string, string | number>>({});
   const [newMeasurementLabel, setNewMeasurementLabel] = useState('');
+  const [selectedMeasurementTemplateId, setSelectedMeasurementTemplateId] = useState<string | null>(null);
 
   // Form for Step 2
   const form = useForm<z.infer<typeof commonDetailsSchema>>({
@@ -204,6 +213,21 @@ export default function BulkOrderWizard() {
     queryKey: ['clients', searchTerm],
     queryFn: () => getClients(searchTerm),
   });
+
+  // Fetch Measurement Templates
+  const { data: templatesData } = useQuery<{ data: Array<{ id?: string; name: string; garmentType: string; fields: string[] }> }>({
+    queryKey: ['measurement-templates'],
+    queryFn: () => fetch('/api/measurement-templates').then((res) => res.json()),
+  });
+  const templates = templatesData?.data || [];
+
+  // Get the selected garment type and find matching template
+  const watchedGarmentType = form.watch('garmentType');
+  const recommendedTemplate = templates.find((t) => t.garmentType === watchedGarmentType);
+  const selectedTemplate = selectedMeasurementTemplateId
+    ? templates.find((t) => (t.id || t.garmentType) === selectedMeasurementTemplateId) || recommendedTemplate
+    : recommendedTemplate;
+  const templateFields = selectedTemplate?.fields || [];
 
   // Auto-save Draft Logic (Debounced)
   useEffect(() => {
@@ -258,6 +282,10 @@ export default function BulkOrderWizard() {
 
   const handleCreateClient = async () => {
     if (!newClientName || !newClientPhone) return;
+    if (!isValidGhanaPhone(newClientPhone)) {
+      toast.error('Invalid Ghana phone number format (e.g., 024xxxxxxx or +233xxxxxxxx)');
+      return;
+    }
     setIsCreatingClient(true);
     try {
       const res = await createClient({ name: newClientName, phone: newClientPhone });
@@ -857,36 +885,83 @@ export default function BulkOrderWizard() {
             <DialogTitle>Measurements for {currentMeasurementItem?.name}</DialogTitle>
             <DialogDescription>Enter measurements for this order.</DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[400px] pr-4">
-            <div className="space-y-4 py-2">
-              {/* Common Measurements */}
-              <div className="grid grid-cols-2 gap-4">
-                {['Chest', 'Waist', 'Hips', 'Shoulder', 'Sleeve', 'Length'].map((label) => {
-                  const inputId = `measurement-${label.toLowerCase()}`;
+
+          {/* Template Selector */}
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Ruler className="h-4 w-4 text-primary" />
+              <span className="font-medium text-sm">{selectedTemplate?.name || 'Select Template'}</span>
+              {selectedTemplate && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({selectedTemplate.fields.length} fields)
+                </span>
+              )}
+            </div>
+            <Select
+              value={selectedMeasurementTemplateId || selectedTemplate?.id || selectedTemplate?.garmentType || ''}
+              onValueChange={(val) => setSelectedMeasurementTemplateId(val)}
+            >
+              <SelectTrigger className="h-8 text-xs bg-white/80">
+                <SelectValue placeholder="Choose template..." />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((t) => {
+                  const isRecommended = t.garmentType === watchedGarmentType;
                   return (
-                    <div key={label} className="space-y-1">
-                      <label
-                        htmlFor={inputId}
-                        className="text-xs font-medium text-muted-foreground"
-                      >
-                        {label}
-                      </label>
-                      <Input
-                        id={inputId}
-                        type="number"
-                        value={measurementValues[label] || ''}
-                        onChange={(e) =>
-                          setMeasurementValues((prev) => ({
-                            ...prev,
-                            [label]: e.target.value,
-                          }))
-                        }
-                        placeholder="0"
-                      />
-                    </div>
+                    <SelectItem key={t.id || t.garmentType} value={t.id || t.garmentType}>
+                      <div className="flex items-center gap-2">
+                        <span>{t.name}</span>
+                        {isRecommended && (
+                          <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-bold">
+                            <Sparkles className="h-2.5 w-2.5" />
+                            Rec
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
                   );
                 })}
-              </div>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <ScrollArea className="max-h-[350px] pr-4">
+            <div className="space-y-4 py-2">
+              {/* Template-based Measurements */}
+              {templateFields.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {templateFields.map((field) => {
+                    const label = field.replace(/_/g, ' ');
+                    const inputId = `measurement-${field}`;
+                    return (
+                      <div key={field} className="space-y-1">
+                        <label
+                          htmlFor={inputId}
+                          className="text-xs font-medium text-muted-foreground capitalize"
+                        >
+                          {label}
+                        </label>
+                        <Input
+                          id={inputId}
+                          type="number"
+                          value={measurementValues[field] || ''}
+                          onChange={(e) =>
+                            setMeasurementValues((prev) => ({
+                              ...prev,
+                              [field]: e.target.value,
+                            }))
+                          }
+                          placeholder="0"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  Select a garment type in Step 2 to see template fields
+                </div>
+              )}
 
               <Separator />
 
@@ -896,7 +971,7 @@ export default function BulkOrderWizard() {
                 {Object.entries(measurementValues)
                   .filter(
                     ([key]) =>
-                      !['Chest', 'Waist', 'Hips', 'Shoulder', 'Sleeve', 'Length'].includes(key)
+                      !templateFields.includes(key)
                   )
                   .map(([key, value]) => (
                     <div key={key} className="flex items-center gap-2">

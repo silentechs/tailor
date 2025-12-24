@@ -129,7 +129,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
 
     if (status === 'APPROVED' && existingUser.status === 'PENDING') {
-      await sendApprovalEmail(user.email, user.name, `${appUrl}/auth/login`);
+      await sendApprovalEmail(user.email, user.name, `${appUrl}/auth/login`, user.role);
     }
 
     if (status === 'REJECTED') {

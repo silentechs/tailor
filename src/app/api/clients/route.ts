@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { secureErrorResponse, secureJsonResponse, withSecurity } from '@/lib/api-security';
 import { logAudit } from '@/lib/audit-service';
 import { createTrackingToken } from '@/lib/client-tracking-service';
+import { sendClientLinkedEmail } from '@/lib/email-service';
 import { notifyNewClient } from '@/lib/notification-service';
 import prisma from '@/lib/prisma';
 import { requireOrganization, requirePermission } from '@/lib/require-permission';
@@ -13,7 +14,7 @@ const createClientSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().refine((val) => isValidGhanaPhone(val), 'Invalid Ghana phone number'),
   email: z.string().email('Invalid email').optional().nullable(),
-  gender: z.string().optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
   address: z.string().optional().nullable(),
   region: z.string().optional().nullable(),
   city: z.string().optional().nullable(),
@@ -40,10 +41,13 @@ export const GET = withSecurity(
       const search = searchParams.get('search') || '';
       const sortBy = searchParams.get('sortBy') || 'createdAt';
       const sortOrder = searchParams.get('sortOrder') || 'desc';
+      const includeArchived = searchParams.get('includeArchived') === 'true';
 
       // Build where clause
       const where = {
         organizationId,
+        // Filter out archived clients by default
+        ...(includeArchived ? {} : { isArchived: false }),
         ...(search && {
           OR: [
             { name: { contains: search, mode: 'insensitive' as const } },
@@ -181,7 +185,16 @@ export const POST = withSecurity(
           } as any,
         });
 
-        // 2. Create measurement record
+        // 2. Auto-link user's account bidirectionally (so they see data in Studio)
+        // Only set if user doesn't already have a linked client (avoid overwriting)
+        if (globalUser?.id && !globalUser.linkedClientId) {
+          await tx.user.update({
+            where: { id: globalUser.id },
+            data: { linkedClientId: newClient.id },
+          });
+        }
+
+        // 3. Create measurement record
         let measurementValues = data.measurements?.values;
         let measurementNotes = 'Initial measurements';
 
@@ -216,6 +229,16 @@ export const POST = withSecurity(
 
       // Create notification
       await notifyNewClient(user.id, client.name);
+
+      // Send email to linked client (if they have an account with email)
+      if (globalUser?.email) {
+        sendClientLinkedEmail(
+          globalUser.email,
+          globalUser.name || data.name,
+          user.name,
+          user.businessName || null
+        ).catch(console.error); // Fire-and-forget
+      }
 
       // Audit Log
       await logAudit({

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { Mail, MapPin, MessageSquare, MoreHorizontal, Phone, Share2 } from 'lucide-react';
+import { Archive, Mail, MapPin, MessageSquare, MoreHorizontal, Phone, RotateCcw, Share2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ export type Client = {
   paymentCount: number;
   trackingToken: string | null;
   isLead: boolean;
+  isArchived?: boolean;
   createdAt: string;
 };
 
@@ -185,6 +186,36 @@ export const columns: ColumnDef<Client>[] = [
                 </DropdownMenuItem>
               </>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={async () => {
+                const res = await fetch(`/api/clients/${client.id}`, {
+                  method: client.isArchived ? 'PUT' : 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: client.isArchived ? JSON.stringify({ isArchived: false }) : undefined,
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  toast.success(data.archived ? 'Client archived' : client.isArchived ? 'Client restored' : 'Client deleted');
+                  window.location.reload();
+                } else {
+                  toast.error('Action failed');
+                }
+              }}
+              className={client.isArchived ? '' : 'text-destructive focus:text-destructive'}
+            >
+              {client.isArchived ? (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Restore Client
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete / Archive
+                </>
+              )}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

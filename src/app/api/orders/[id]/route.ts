@@ -45,6 +45,7 @@ const updateOrderSchema = z
         'READY_FOR_FITTING',
         'FITTING_DONE',
         'COMPLETED',
+        'DELIVERED',
         'CANCELLED',
       ])
       .optional(),
@@ -217,6 +218,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (newStatus && newStatus !== previousStatus) {
       if (newStatus === 'IN_PROGRESS' && !existingOrder.startedAt) {
         updateData.startedAt = new Date();
+      }
+      if (newStatus === 'DELIVERED') {
+        updateData.deliveredAt = new Date();
       }
       if (newStatus === 'COMPLETED') {
         updateData.completedAt = new Date();

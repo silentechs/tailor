@@ -7,6 +7,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 const pushMeasurementsSchema = z.object({
     values: z.record(z.string(), z.any()),
+    unit: z.enum(['CM', 'INCH']).default('CM'),
 });
 
 // POST /api/clients/[id]/push-to-profile - Push tailor's measurements to client's global profile
@@ -50,13 +51,17 @@ export async function POST(request: Request, { params }: RouteParams) {
             );
         }
 
-        const { values } = validation.data;
+        const { values, unit } = validation.data;
 
         // Update the User's global measurements profile
         const updatedUser = (await prisma.user.update({
             where: { id: client.userId },
             data: {
-                measurements: values,
+                measurements: {
+                    values,
+                    unit,
+                    updatedAt: new Date().toISOString(),
+                },
             } as any,
         })) as any;
 
@@ -65,6 +70,7 @@ export async function POST(request: Request, { params }: RouteParams) {
             data: {
                 clientId: id,
                 values,
+                unit,
                 notes: `Pushed to client profile by ${user.name || 'tailor'}`,
             },
         });

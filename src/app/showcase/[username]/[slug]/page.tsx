@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
   Calendar,
-  Heart,
   Info,
   Loader2,
   Maximize2,
@@ -17,7 +16,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { SaveButton } from '@/components/save-button';
 import { ShareButton } from '@/components/share-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -93,32 +92,11 @@ export default function PortfolioItemPage() {
           Back
         </Button>
         <div className="flex gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
+          <SaveButton
+            portfolioItemId={project.id}
             className="rounded-full bg-white/20 text-white hover:bg-white/30"
-            onClick={async () => {
-              try {
-                const res = await fetch('/api/studio/wishlist', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ portfolioItemId: project.id }),
-                });
-                const data = await res.json();
-                if (data.action === 'added') {
-                  toast.success('Saved to Style Hub!');
-                } else if (data.action === 'removed') {
-                  toast.info('Removed from Style Hub');
-                } else if (!data.success) {
-                  toast.error('Sign in to save inspirations');
-                }
-              } catch {
-                toast.error('Sign in to save inspirations');
-              }
-            }}
-          >
-            <Heart className="h-5 w-5" />
-          </Button>
+            iconClassName="h-5 w-5"
+          />
           <ShareButton
             className="bg-white/20 text-white hover:bg-white/30"
             shareTitle={project.title}

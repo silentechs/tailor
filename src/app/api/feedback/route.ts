@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     });
 
     // Send email notification to admins
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@stitchcraft.gh';
+    const adminEmail = process.env.ADMIN_EMAIL || 'support@silentech.live';
     await sendFeedbackNotificationEmail(
       adminEmail,
       {

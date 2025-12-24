@@ -130,7 +130,7 @@ function RegisterContent() {
         });
       } else {
         toast.success('Account Created!', {
-          description: 'Your account is pending approval. Please check your email.',
+          description: 'Your dashboard is ready. Redirecting to login...',
         });
       }
 
@@ -229,7 +229,7 @@ function RegisterContent() {
                     <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={userType === 'client' ? 'you@example.com' : 'tailor@example.com'}
+                        placeholder="email@example.com"
                         {...field}
                       />
                     </FormControl>
@@ -290,7 +290,7 @@ function RegisterContent() {
               {/* Info text based on role */}
               {userType === 'tailor' && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Tailor accounts require admin approval before activation.
+                  Your profile will be ready instantly after signup.
                 </p>
               )}
               {userType === 'client' && (

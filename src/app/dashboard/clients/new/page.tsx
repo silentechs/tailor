@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2, Loader2, User } from 'lucide-react';
+import { CheckCircle2, Loader2, Mail, MessageCircle, Phone, User, UserCheck, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -9,6 +9,13 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -55,7 +62,11 @@ export default function NewClientPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const [lookupComplete, setLookupComplete] = useState(false);
   const [matchedUser, setMatchedUser] = useState<MatchedUser | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [createdClient, setCreatedClient] = useState<{ name: string; phone: string; email?: string; wasLinked: boolean } | null>(null);
+  const [inviteChannel, setInviteChannel] = useState<'whatsapp' | 'sms' | 'email'>('whatsapp');
 
   const form = useForm<z.infer<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
@@ -78,10 +89,12 @@ export default function NewClientPage() {
   const lookupPhone = useCallback(async (phone: string) => {
     if (!isValidGhanaPhone(phone)) {
       setMatchedUser(null);
+      setLookupComplete(false);
       return;
     }
 
     setIsLookingUp(true);
+    setLookupComplete(false);
     try {
       const res = await fetchApi('/api/clients/lookup', {
         method: 'POST',
@@ -106,6 +119,7 @@ export default function NewClientPage() {
       setMatchedUser(null);
     } finally {
       setIsLookingUp(false);
+      setLookupComplete(true);
     }
   }, [form]);
 
@@ -113,6 +127,7 @@ export default function NewClientPage() {
   useEffect(() => {
     if (!watchedPhone || watchedPhone.length < 10) {
       setMatchedUser(null);
+      setLookupComplete(false);
       return;
     }
 
@@ -122,6 +137,35 @@ export default function NewClientPage() {
 
     return () => clearTimeout(timer);
   }, [watchedPhone, lookupPhone]);
+
+  // Draft persistence - localStorage key
+  const DRAFT_KEY = 'stitch_client_draft';
+
+  // Load draft on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved);
+        Object.entries(draft).forEach(([key, value]) => {
+          if (value) form.setValue(key as any, value as string);
+        });
+      } catch {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    }
+  }, [form]);
+
+  // Save draft on form change (debounced)
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      // Only save if there's meaningful content
+      if (values.name || values.phone) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   async function onSubmit(values: z.infer<typeof clientSchema>) {
     setIsSubmitting(true);
@@ -159,7 +203,18 @@ export default function NewClientPage() {
         });
       }
 
-      router.push('/dashboard/clients');
+      // Clear draft on success
+      localStorage.removeItem(DRAFT_KEY);
+
+      // Show success dialog with multi-channel invite options
+      setCreatedClient({
+        name: data.data.name,
+        phone: data.data.phone,
+        email: data.data.email || undefined,
+        wasLinked: !!matchedUser
+      });
+      setInviteChannel('whatsapp'); // Reset to default
+      setShowSuccessDialog(true);
     } catch (error: any) {
       console.error(error);
       toast.error('Error', {
@@ -189,20 +244,40 @@ export default function NewClientPage() {
             <CardContent className="space-y-4">
               {/* Phone-based user detection banner */}
               {matchedUser && (
-                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-start gap-3 animate-in slide-in-from-top-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">
-                      Existing StitchCraft Account Found!
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
-                      <span className="font-semibold">{matchedUser.name}</span>
-                      {matchedUser.email && ` • ${matchedUser.email}`}
-                    </p>
-                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      This client already has an account. Their profile, measurements, and designs will be automatically linked.
-                    </p>
+                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-3">
+                    {/* Profile image or avatar */}
+                    <div className="shrink-0">
+                      {matchedUser.profileImage ? (
+                        <img
+                          src={matchedUser.profileImage}
+                          alt={matchedUser.name}
+                          className="h-12 w-12 rounded-full object-cover border-2 border-green-400"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center">
+                          <UserCheck className="h-6 w-6 text-green-700 dark:text-green-300" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                        <p className="font-medium text-green-800 dark:text-green-200 text-sm">
+                          Existing StitchCraft Account Found!
+                        </p>
+                      </div>
+                      <p className="text-sm text-green-700 dark:text-green-300 mt-0.5 truncate">
+                        <span className="font-semibold">{matchedUser.name}</span>
+                        {matchedUser.email && (
+                          <span className="text-green-600 dark:text-green-400"> • {matchedUser.email}</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-3 pl-15 border-t border-green-200 dark:border-green-700 pt-2">
+                    ✨ Profile, measurements, and saved designs will be automatically linked to your client record.
+                  </p>
                 </div>
               )}
 
@@ -215,14 +290,44 @@ export default function NewClientPage() {
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Input placeholder="024xxxxxxx" {...field} />
-                          {isLookingUp && (
-                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                          )}
+                          <Input
+                            placeholder="024xxxxxxx"
+                            {...field}
+                            className={
+                              matchedUser
+                                ? 'border-green-500 focus-visible:ring-green-500 pr-10'
+                                : lookupComplete && !matchedUser
+                                  ? 'border-blue-300 pr-10'
+                                  : 'pr-10'
+                            }
+                          />
+                          {/* Status icon */}
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {isLookingUp ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : matchedUser ? (
+                              <UserCheck className="h-4 w-4 text-green-600" />
+                            ) : lookupComplete ? (
+                              <UserPlus className="h-4 w-4 text-blue-500" />
+                            ) : null}
+                          </div>
                         </div>
                       </FormControl>
+                      {/* Dynamic status message */}
                       <FormDescription className="text-xs">
-                        Ghanaian number (+233 or 02...)
+                        {isLookingUp ? (
+                          <span className="text-muted-foreground">Checking StitchCraft database...</span>
+                        ) : matchedUser ? (
+                          <span className="text-green-600 font-medium">
+                            ✓ Existing account found — will be linked automatically
+                          </span>
+                        ) : lookupComplete ? (
+                          <span className="text-blue-600">
+                            No existing account found. A new profile will be created.
+                          </span>
+                        ) : (
+                          <span>Ghanaian number (+233 or 02...)</span>
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -389,6 +494,105 @@ export default function NewClientPage() {
           </div>
         </form>
       </Form>
+
+      {/* Success Dialog with Multi-Channel Invite */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              {createdClient?.wasLinked ? 'Client Linked!' : 'Client Added!'}
+            </DialogTitle>
+            <DialogDescription>
+              <span className="font-medium text-foreground">{createdClient?.name}</span>
+              {createdClient?.wasLinked
+                ? ' has been linked to their existing StitchCraft account.'
+                : ' has been added to your client directory.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* Channel Selector */}
+            <div className="flex rounded-lg border bg-muted/30 p-1">
+              <button
+                type="button"
+                onClick={() => setInviteChannel('whatsapp')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${inviteChannel === 'whatsapp'
+                    ? 'bg-green-600 text-white'
+                    : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={() => setInviteChannel('sms')}
+                disabled={!createdClient?.phone}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${inviteChannel === 'sms'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
+                  }`}
+              >
+                <Phone className="h-4 w-4" />
+                SMS
+              </button>
+              <button
+                type="button"
+                onClick={() => setInviteChannel('email')}
+                disabled={!createdClient?.email}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${inviteChannel === 'email'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
+                  }`}
+                title={!createdClient?.email ? 'No email on file' : undefined}
+              >
+                <Mail className="h-4 w-4" />
+                Email
+              </button>
+            </div>
+
+            {/* Send Button */}
+            <Button
+              className={`w-full ${inviteChannel === 'whatsapp' ? 'bg-green-600 hover:bg-green-700' :
+                  inviteChannel === 'sms' ? 'bg-blue-600 hover:bg-blue-700' :
+                    'bg-purple-600 hover:bg-purple-700'
+                }`}
+              onClick={() => {
+                const phone = createdClient?.phone.replace('+', '');
+                const isLinked = createdClient?.wasLinked;
+                const name = createdClient?.name;
+
+                const inviteMessage = `Akwaaba ${name}! You've been added as a valued client at our tailoring shop on StitchCraft Ghana. Download the app to track your orders: https://stitchcraft.live`;
+                const notifyMessage = `Hi ${name}! I've added you to my client list on StitchCraft. Check your dashboard: https://stitchcraft.live/studio`;
+                const message = isLinked ? notifyMessage : inviteMessage;
+
+                if (inviteChannel === 'whatsapp') {
+                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                } else if (inviteChannel === 'sms') {
+                  window.open(`sms:${createdClient?.phone}?body=${encodeURIComponent(message)}`, '_blank');
+                } else if (inviteChannel === 'email' && createdClient?.email) {
+                  const subject = isLinked
+                    ? 'StitchCraft: You\'ve been connected!'
+                    : 'Welcome to StitchCraft Ghana!';
+                  window.open(`mailto:${createdClient.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`, '_blank');
+                }
+
+                toast.success(`${inviteChannel === 'whatsapp' ? 'WhatsApp' : inviteChannel === 'sms' ? 'SMS' : 'Email'} opened!`);
+              }}
+            >
+              {inviteChannel === 'whatsapp' && <MessageCircle className="h-4 w-4 mr-2" />}
+              {inviteChannel === 'sms' && <Phone className="h-4 w-4 mr-2" />}
+              {inviteChannel === 'email' && <Mail className="h-4 w-4 mr-2" />}
+              {createdClient?.wasLinked ? 'Send Notification' : 'Send Invitation'}
+            </Button>
+
+            <Button variant="outline" className="w-full" onClick={() => router.push('/dashboard/clients')}>
+              Skip & Go to Clients
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

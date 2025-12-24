@@ -137,7 +137,11 @@ export const columns: ColumnDef<Payment>[] = [
                 <Link href={`/dashboard/orders/${payment.orderId}`}>View Order</Link>
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem>Download Receipt</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href={`/api/payments/${payment.id}/receipt`} target="_blank" rel="noopener noreferrer">
+                Download Receipt
+              </a>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

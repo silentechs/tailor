@@ -44,21 +44,7 @@ const createOrderSchema = z
     collectionId: z.string().optional().nullable(),
     measurements: z.record(z.string(), z.any()).optional(),
     measurementUnit: z.enum(['CM', 'INCH']).optional().default('CM'),
-  })
-  .refine(
-    (data) => {
-      if (data.totalAmount !== undefined) {
-        const materialCost = data.materialCost || 0;
-        const calculatedTotal = data.laborCost + materialCost;
-        return Math.abs(data.totalAmount - calculatedTotal) < 0.01;
-      }
-      return true;
-    },
-    {
-      message: 'totalAmount must equal laborCost + materialCost',
-      path: ['totalAmount'],
-    }
-  );
+  });
 
 // GET /api/orders - List all orders for the current organization
 export const GET = withSecurity(async (request: Request) => {

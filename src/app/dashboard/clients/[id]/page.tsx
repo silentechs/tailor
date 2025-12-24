@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ClientDesignUploadDialog } from '@/components/clients/client-design-upload-dialog';
 import { MeasurementSyncDialog } from '@/components/clients/measurement-sync-dialog';
+import { MeasurementUpdateDialog } from '@/components/clients/measurement-update-dialog';
 import { PushToProfileButton } from '@/components/clients/push-to-profile-button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -271,6 +272,7 @@ export default function ClientProfilePage() {
                         clientName={clientData.name}
                         tailorMeasurements={clientData.measurements}
                         clientProfileMeasurements={clientData.user.measurements as Record<string, any>}
+                        tailorUnit={clientData.unit}
                         onSyncComplete={() => window.location.reload()}
                       />
                     )}
@@ -278,33 +280,63 @@ export default function ClientProfilePage() {
                       clientId={clientData.id}
                       clientName={clientData.name}
                       measurements={clientData.measurements}
+                      unit={clientData.unit}
                       hasLinkedAccount={!!clientData.userId}
                       onPushComplete={() => window.location.reload()}
                     />
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Update
-                    </Button>
+                    <MeasurementUpdateDialog
+                      clientId={clientData.id}
+                      clientName={clientData.name}
+                      measurements={clientData.measurements}
+                      unit={clientData.unit}
+                      onUpdateComplete={() => window.location.reload()}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {clientData.measurements && Object.keys(clientData.measurements).length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                      {Object.entries(clientData.measurements).map(([key, value]) => (
-                        <div key={key} className="space-y-1 bg-muted/30 p-4 rounded-lg border">
-                          <p className="text-sm font-medium text-muted-foreground capitalize flex items-center gap-2">
-                            <Ruler className="h-3 w-3" />
-                            {key}
-                          </p>
-                          <p className="text-2xl font-bold">{String(value)}"</p>
+                  {(() => {
+                    // Extract actual measurement values - handle nested structure
+                    let measurementData = clientData.measurements || {};
+
+                    // If measurements contains a nested 'values' object, use that
+                    if (measurementData.values && typeof measurementData.values === 'object') {
+                      measurementData = measurementData.values;
+                    }
+
+                    // Filter out metadata keys, keep only numeric measurement values
+                    const measurementEntries = Object.entries(measurementData).filter(
+                      ([key, value]) =>
+                        !['unit', 'updatedAt', 'createdAt', 'id', 'clientId', 'templateId', 'notes', 'sketch', 'isSynced', 'clientSideId'].includes(key) &&
+                        (typeof value === 'number' || (typeof value === 'string' && !isNaN(parseFloat(value))))
+                    );
+
+                    if (measurementEntries.length > 0) {
+                      return (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                          {measurementEntries.map(([key, value]) => (
+                            <div key={key} className="space-y-1 bg-muted/30 p-4 rounded-lg border">
+                              <p className="text-sm font-medium text-muted-foreground capitalize flex items-center gap-2">
+                                <Ruler className="h-3 w-3" />
+                                {key.replace(/_/g, ' ')}
+                              </p>
+                              <p className="text-2xl font-bold">
+                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                                <span className="text-sm font-normal text-muted-foreground ml-1">
+                                  {clientData.unit === 'CM' ? 'cm' : '"'}
+                                </span>
+                              </p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No measurements recorded yet.
-                    </div>
-                  )}
+                      );
+                    }
+
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No measurements recorded yet.
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>

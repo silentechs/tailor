@@ -75,6 +75,46 @@ export const DEFAULT_TEMPLATES = [
       'waist_to_floor',
     ],
   },
+  {
+    name: 'Dashiki',
+    garmentType: 'DASHIKI',
+    fields: ['chest', 'shoulder', 'sleeve_length', 'shirt_length', 'neck'],
+  },
+  {
+    name: 'Complet',
+    garmentType: 'COMPLET',
+    fields: ['chest', 'waist', 'shoulder', 'sleeve_length', 'shirt_length', 'trouser_waist', 'trouser_length', 'inseam'],
+  },
+  {
+    name: 'Kente Cloth',
+    garmentType: 'KENTE_CLOTH',
+    fields: ['shoulder', 'chest', 'length', 'wrap_style'],
+  },
+  {
+    name: 'Boubou',
+    garmentType: 'BOUBOU',
+    fields: ['chest', 'shoulder', 'sleeve_length', 'full_length', 'neck'],
+  },
+  {
+    name: 'Suit',
+    garmentType: 'SUIT',
+    fields: ['chest', 'waist', 'shoulder', 'sleeve_length', 'jacket_length', 'trouser_waist', 'trouser_length', 'inseam'],
+  },
+  {
+    name: 'Skirt',
+    garmentType: 'SKIRT',
+    fields: ['waist', 'hips', 'length', 'bottom_width'],
+  },
+  {
+    name: 'Blouse',
+    garmentType: 'BLOUSE',
+    fields: ['bust', 'under_bust', 'waist', 'shoulder', 'sleeve_length', 'blouse_length'],
+  },
+  {
+    name: 'Other',
+    garmentType: 'OTHER',
+    fields: ['chest', 'waist', 'hips', 'shoulder', 'length'],
+  },
 ];
 
 const createTemplateSchema = z.object({
@@ -88,14 +128,30 @@ export async function GET() {
   try {
     const user = await requireActiveTailor();
 
-    const templates = await prisma.measurementTemplate.findMany({
+    const userTemplates = await prisma.measurementTemplate.findMany({
       where: { tailorId: user.id },
       orderBy: { name: 'asc' },
     });
 
-    // If user has no templates, we could return defaults or seed them
-    // For now, let's return combined if custom exists, otherwise just defaults
-    const combinedTemplates = templates.length > 0 ? templates : DEFAULT_TEMPLATES;
+    // Merge: user templates override defaults for the same garmentType
+    const templateMap = new Map<string, { id?: string; name: string; garmentType: string; fields: string[] }>();
+
+    // Add defaults first
+    for (const defaultTemplate of DEFAULT_TEMPLATES) {
+      templateMap.set(defaultTemplate.garmentType, defaultTemplate);
+    }
+
+    // User templates override defaults for matching garment types
+    for (const userTemplate of userTemplates) {
+      templateMap.set(userTemplate.garmentType, {
+        id: userTemplate.id,
+        name: userTemplate.name,
+        garmentType: userTemplate.garmentType,
+        fields: userTemplate.fields as string[],
+      });
+    }
+
+    const combinedTemplates = Array.from(templateMap.values());
 
     return NextResponse.json({
       success: true,

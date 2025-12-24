@@ -20,12 +20,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ found: false });
         }
 
-        const formattedPhone = formatGhanaPhone(result.data.phone);
+        const rawPhone = result.data.phone.replace(/[\s-]/g, '');
+        const internationalPhone = formatGhanaPhone(rawPhone); // +233...
 
-        // Look for an existing CLIENT user with this phone
+        // Build local format from international (e.g., +233240000003 → 0240000003)
+        const localPhone = internationalPhone.startsWith('+233')
+            ? '0' + internationalPhone.slice(4)
+            : rawPhone;
+
+        // Search for BOTH formats since storage may vary
         const existingUser = await prisma.user.findFirst({
             where: {
-                phone: formattedPhone,
+                OR: [
+                    { phone: internationalPhone },
+                    { phone: localPhone },
+                    { phone: rawPhone },
+                ],
                 role: 'CLIENT',
             },
             select: {

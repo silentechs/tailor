@@ -9,6 +9,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const FEATURE_FLAGS = {
+  ENABLE_PAYMENTS: process.env.NEXT_PUBLIC_ENABLE_PAYMENTS === 'true',
+};
+
 // ============================================
 // Ghana Currency Formatting
 // ============================================

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { History, Loader2, Mic, Plus, X, AlertCircle, ShieldAlert } from 'lucide-react';
+import { History, Loader2, Mic, Plus, X, AlertCircle, ShieldAlert, Sparkles, ChevronDown, Ruler } from 'lucide-react';
 import { useMemo, useState, useRef, useCallback } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -57,46 +57,80 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
   const [customFields, setCustomFields] = useState<string[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   const watchedUnit = useWatch({ control, name: 'measurementUnit' }) || 'CM';
 
   // Voice Dictation State
   const [dictationTarget, setDictationTarget] = useState<string | null>(null);
-  
+
   // Ref to hold current allFields for the speech callback
   const allFieldsRef = useRef<string[]>([]);
 
   const watchedValues = useWatch({ control, name: 'measurements' });
 
   // Handle voice transcription result
-  const handleVoiceResult = useCallback((text: string, isFinal: boolean) => {
-    if (isFinal) {
-      const cleaned = text.toLowerCase().trim();
-      const numMatch = cleaned.match(/(\d+(\.\d+)?)/);
-      
-      if (numMatch) {
-        const value = numMatch[0];
+  const handleVoiceResult = useCallback(
+    (text: string, isFinal: boolean) => {
+      if (isFinal) {
+        const cleaned = text.toLowerCase().trim();
         const fields = allFieldsRef.current;
-        
-        if (dictationTarget) {
-          setValue(`measurements.${dictationTarget}`, value);
-          const currentIndex = fields.indexOf(dictationTarget);
-          if (currentIndex < fields.length - 1) {
-            setDictationTarget(fields[currentIndex + 1]);
-          } else {
-            setDictationTarget(null);
-            toast.success('Dictation complete!');
+
+        // 1. Batch Parsing (e.g., "Bust 38 and Waist 30")
+        const batchMatches = [...cleaned.matchAll(/([a-z\s_]+)\s+(\d+(?:\.\d+)?)/g)];
+
+        if (batchMatches.length > 0) {
+          let appliedCount = 0;
+          batchMatches.forEach((match) => {
+            const spokenField = match[1].trim().replace(/\s+/g, '_');
+            const value = match[2];
+
+            const fieldMatch = fields.find(
+              (f) =>
+                f === spokenField ||
+                f.replace(/_/g, ' ') === spokenField.replace(/_/g, ' ') ||
+                spokenField.includes(f.replace(/_/g, ' '))
+            );
+
+            if (fieldMatch) {
+              setValue(`measurements.${fieldMatch}`, value);
+              appliedCount++;
+            }
+          });
+
+          if (appliedCount > 0) {
+            toast.success(`Voice Entry: Applied ${appliedCount} values`);
+            return;
           }
-        } else {
-          const fieldMatch = fields.find(f => cleaned.includes(f.replace(/_/g, ' ')));
-          if (fieldMatch) {
-            setValue(`measurements.${fieldMatch}`, value);
-            toast.info(`Set ${fieldMatch.replace(/_/g, ' ')} to ${value}`);
+        }
+
+        // 2. Sequential Dictation Fallback
+        const numMatch = cleaned.match(/(\d+(\.\d+)?)/);
+        if (numMatch) {
+          const value = numMatch[0];
+
+          if (dictationTarget) {
+            setValue(`measurements.${dictationTarget}`, value);
+            const currentIndex = fields.indexOf(dictationTarget);
+            if (currentIndex < fields.length - 1) {
+              setDictationTarget(fields[currentIndex + 1]);
+            } else {
+              setDictationTarget(null);
+              toast.success('Dictation complete!');
+            }
+          } else {
+            // Fuzzy match single field entry
+            const fieldMatch = fields.find((f) => cleaned.includes(f.replace(/_/g, ' ')));
+            if (fieldMatch) {
+              setValue(`measurements.${fieldMatch}`, value);
+              toast.info(`Set ${fieldMatch.replace(/_/g, ' ')} to ${value}`);
+            }
           }
         }
       }
-    }
-  }, [dictationTarget, setValue]);
+    },
+    [dictationTarget, setValue]
+  );
 
   const { isListening, toggleListening } = useSpeechRecognition({
     continuous: true,
@@ -136,14 +170,29 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
     return detectMeasurementAnomalies(watchedValues, [lastMeasurement]);
   }, [watchedValues, lastMeasurement]);
 
-  // Find template for current garment type
-  const template = templates?.data.find((t) => t.garmentType === garmentType);
+  // Find recommended template for current garment type
+  const recommendedTemplate = templates?.data.find((t) => t.garmentType === garmentType);
+
+  // Determine which template to use (selected or recommended)
+  const selectedTemplate = useMemo(() => {
+    if (!templates?.data) return null;
+    if (selectedTemplateId) {
+      // Find by ID first, then by garmentType for defaults without ID
+      const byId = templates.data.find((t) => t.id === selectedTemplateId);
+      if (byId) return byId;
+      const byGarment = templates.data.find((t) => t.garmentType === selectedTemplateId);
+      if (byGarment) return byGarment;
+    }
+    return recommendedTemplate;
+  }, [templates?.data, selectedTemplateId, recommendedTemplate]);
+
+  const template = selectedTemplate;
   const fields = template ? template.fields : [];
 
   // Combine template fields, custom fields, and fields from last measurement
   const prevFields = lastMeasurement?.values ? Object.keys(lastMeasurement.values) : [];
   const allFields = [...new Set([...fields, ...customFields, ...prevFields])];
-  
+
   // Keep the ref updated
   allFieldsRef.current = allFields;
 
@@ -190,77 +239,158 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            {template?.name || 'Standard'} Measurements
-          </h3>
-          <FormField
-            control={control}
-            name="measurementUnit"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value || 'CM'}>
-                <SelectTrigger className="h-8 w-24 rounded-full bg-muted/50 border-none text-[10px] font-bold">
-                  <SelectValue placeholder="Unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CM">CM (Centimeters)</SelectItem>
-                  <SelectItem value="INCH">IN (Inches)</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </div>
-        <div className="flex gap-2">
-          {lastMeasurement && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={loadPrevious}
-              className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+      {/* Template Selector Card */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-primary/5 via-primary/10 to-transparent border border-primary/20 rounded-xl p-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Ruler className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">{template?.name || 'Select Template'}</h3>
+              <p className="text-xs text-muted-foreground">
+                {template ? `${template.fields.length} measurement fields` : 'Choose a measurement template'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Template Selector Dropdown */}
+            <Select
+              value={selectedTemplateId || template?.id || template?.garmentType || ''}
+              onValueChange={(value) => setSelectedTemplateId(value)}
             >
-              <Loader2 className={cn('h-4 w-4 mr-2', isLoadingPrev && 'animate-spin')} />
-              Load Last ({new Date(lastMeasurement.createdAt).toLocaleDateString()})
-            </Button>
-          )}
-          {localDraft
-            ? !localDraft.isSynced && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={loadDraft}
-                  className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+              <SelectTrigger className="min-w-[200px] bg-white/80 backdrop-blur-sm border-primary/20 hover:border-primary/40 transition-all">
+                <SelectValue placeholder="Choose template..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {templates?.data.map((t) => {
+                  const isRecommended = t.garmentType === garmentType;
+                  return (
+                    <SelectItem key={t.id || t.garmentType} value={t.id || t.garmentType}>
+                      <div className="flex items-center gap-2">
+                        <span>{t.name}</span>
+                        {isRecommended && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                            <Sparkles className="h-3 w-3" />
+                            Recommended
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+
+            {/* Unit Selector */}
+            <FormField
+              control={control}
+              name="measurementUnit"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value || 'CM'}>
+                  <SelectTrigger className="w-20 bg-white/80 backdrop-blur-sm border-primary/20">
+                    <SelectValue placeholder="Unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CM">CM</SelectItem>
+                    <SelectItem value="INCH">INCH</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Field Preview */}
+        {template && (
+          <motion.div
+            key={template.name}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mt-4 pt-3 border-t border-primary/10"
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {template.fields.map((field) => (
+                <span
+                  key={field}
+                  className="text-[10px] bg-white/60 px-2 py-1 rounded-full text-muted-foreground font-medium capitalize border border-primary/10"
                 >
-                  <History className="h-4 w-4 mr-2" />
-                  Load Unsaved Draft
-                </Button>
-              )
-            : null}
+                  {field.replace(/_/g, ' ')}
+                </span>
+              ))}
+              {customFields.length > 0 && (
+                <>
+                  <span className="text-[10px] text-muted-foreground px-1">+</span>
+                  {customFields.map((field) => (
+                    <span
+                      key={field}
+                      className="text-[10px] bg-blue-50 px-2 py-1 rounded-full text-blue-600 font-medium capitalize border border-blue-200"
+                    >
+                      {field.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Action Buttons Row */}
+      <div className="flex flex-wrap gap-2">
+        {lastMeasurement && (
           <Button
             type="button"
-            variant={isListening ? 'default' : 'outline'}
+            variant="secondary"
             size="sm"
-            onClick={() => {
-              toggleListening();
-              if (!isListening && allFields.length > 0) {
-                setDictationTarget(allFields[0]);
-                toast.info('Dictation started. Say the values for each field.');
-              } else {
-                setDictationTarget(null);
-              }
-            }}
-            className={cn(isListening && 'bg-red-500 hover:bg-red-600 animate-pulse')}
+            onClick={loadPrevious}
+            className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
           >
-            <Mic className="h-4 w-4 mr-2" />
-            {isListening ? 'Listening...' : 'Dictate'}
+            <Loader2 className={cn('h-4 w-4 mr-2', isLoadingPrev && 'animate-spin')} />
+            Load Last ({new Date(lastMeasurement.createdAt).toLocaleDateString()})
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setIsAddOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Custom
-          </Button>
-        </div>
+        )}
+        {localDraft
+          ? !localDraft.isSynced && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={loadDraft}
+              className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+            >
+              <History className="h-4 w-4 mr-2" />
+              Load Unsaved Draft
+            </Button>
+          )
+          : null}
+        <Button
+          type="button"
+          variant={isListening ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => {
+            toggleListening();
+            if (!isListening && allFields.length > 0) {
+              setDictationTarget(allFields[0]);
+              toast.info('Dictation started. Say the values for each field.');
+            } else {
+              setDictationTarget(null);
+            }
+          }}
+          className={cn(isListening && 'bg-red-500 hover:bg-red-600 animate-pulse')}
+        >
+          <Mic className="h-4 w-4 mr-2" />
+          {isListening ? 'Listening...' : 'Dictate'}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => setIsAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Custom
+        </Button>
       </div>
 
       {anomalies.length > 0 && (

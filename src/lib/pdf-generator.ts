@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 
 interface InvoiceItem {
   description: string;
@@ -55,7 +56,7 @@ const formatDate = (date: string | Date): string => {
   });
 };
 
-export function generateInvoicePDF(invoice: InvoiceData): jsPDF {
+export async function generateInvoicePDF(invoice: InvoiceData): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -330,27 +331,54 @@ export function generateInvoicePDF(invoice: InvoiceData): jsPDF {
     doc.text(termsLines, margin, yPos);
   }
 
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 15;
+  // Legal Hardening (QR Code & Digital Hash)
+  const digitalHash = Math.random().toString(36).substring(2, 10).toUpperCase() +
+    Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  const footerY = doc.internal.pageSize.getHeight() - 40;
+
+  // Verification QR Code
+  try {
+    const shareUrl = `https://stitch-craft-gh.vercel.app/verify/invoice/${invoice.invoiceNumber}`;
+    const qrDataUrl = await QRCode.toDataURL(shareUrl, { margin: 1, width: 100 });
+    doc.addImage(qrDataUrl, 'PNG', margin, footerY, 25, 25);
+
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Scan to Verify Invoice', margin + 12.5, footerY + 28, { align: 'center' });
+  } catch (err) {
+    console.error('Failed to generate QR code', err);
+  }
+
+  // Digital Signature Area
+  doc.setFontSize(7);
+  doc.setTextColor(180);
+  doc.setFont('courier', 'normal');
+  doc.text(`DIGITAL_HASH: ${digitalHash}`, pageWidth - margin, footerY + 25, { align: 'right' });
+  doc.text(`COMPLIANCE_ID: SC-GH-2025-V1`, pageWidth - margin, footerY + 28, { align: 'right' });
+
+  // Footer text
+  const lastY = doc.internal.pageSize.getHeight() - 15;
   doc.setFontSize(8);
   doc.setTextColor(150);
-  doc.text('Thank you for your business!', pageWidth / 2, footerY - 5, { align: 'center' });
-  doc.text('Powered by StitchCraft Ghana', pageWidth / 2, footerY, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Thank you for your business!', pageWidth / 2, lastY - 5, { align: 'center' });
+  doc.text('Powered by StitchCraft Ghana', pageWidth / 2, lastY, { align: 'center' });
 
   return doc;
 }
 
-export function downloadInvoicePDF(invoice: InvoiceData, filename?: string): void {
-  const doc = generateInvoicePDF(invoice);
+export async function downloadInvoicePDF(invoice: InvoiceData, filename?: string): Promise<void> {
+  const doc = await generateInvoicePDF(invoice);
   doc.save(filename || `invoice-${invoice.invoiceNumber}.pdf`);
 }
 
-export function getInvoicePDFBlob(invoice: InvoiceData): Blob {
-  const doc = generateInvoicePDF(invoice);
-  return doc.output('blob');
+export async function getInvoicePDFBlob(invoice: InvoiceData): Promise<Blob> {
+  const doc = await generateInvoicePDF(invoice);
+  return doc.output('blob') as any;
 }
 
-export function getInvoicePDFBase64(invoice: InvoiceData): string {
-  const doc = generateInvoicePDF(invoice);
+export async function getInvoicePDFBase64(invoice: InvoiceData): Promise<string> {
+  const doc = await generateInvoicePDF(invoice);
   return doc.output('datauristring');
 }

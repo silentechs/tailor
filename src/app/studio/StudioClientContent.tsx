@@ -1,7 +1,7 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Menu, Search, User } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { FeedbackButton } from '@/components/feedback';
@@ -21,7 +21,7 @@ export function StudioClientContent({ children }: { children: React.ReactNode })
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen bg-zinc-950 text-white font-body selection:bg-ghana-gold selection:text-ghana-black">
+      <div className="dark flex min-h-screen bg-zinc-950 text-white font-body selection:bg-ghana-gold selection:text-ghana-black">
         {/* Desktop Sidebar */}
         <StudioSidebar className="hidden lg:block w-80 fixed inset-y-0 z-50 border-r border-white/5" />
 
@@ -69,9 +69,7 @@ export function StudioClientContent({ children }: { children: React.ReactNode })
 
             <div className="flex items-center gap-4 ml-8">
               <NotificationsPopover />
-              <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors">
-                <User className="h-6 w-6 text-zinc-400" />
-              </div>
+              <StudioUserAvatar />
             </div>
           </header>
 
@@ -94,5 +92,38 @@ export function StudioClientContent({ children }: { children: React.ReactNode })
         </div>
       </div>
     </QueryClientProvider>
+  );
+}
+
+function StudioUserAvatar() {
+  const [user, setUser] = React.useState<{ name?: string; email?: string } | null>(null);
+
+  React.useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user) setUser(data.user);
+      })
+      .catch(() => { });
+  }, []);
+
+  const displayName = user?.name || user?.email?.split('@')[0] || 'Client';
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="hidden sm:block text-right">
+        <p className="text-sm font-bold text-white truncate max-w-[120px]">{displayName}</p>
+        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Client</p>
+      </div>
+      <div className="h-12 w-12 rounded-2xl bg-ghana-gold/20 border border-ghana-gold/30 flex items-center justify-center cursor-pointer hover:bg-ghana-gold/30 transition-colors">
+        <span className="text-sm font-black text-ghana-gold">{initials}</span>
+      </div>
+    </div>
   );
 }

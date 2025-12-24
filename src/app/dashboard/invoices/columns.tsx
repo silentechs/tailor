@@ -149,8 +149,8 @@ export const columns: ColumnDef<Invoice>[] = [
     cell: ({ row }) => {
       const invoice = row.original;
 
-      const handleDownloadPDF = () => {
-        downloadInvoicePDF({
+      const handleDownloadPDF = async () => {
+        await downloadInvoicePDF({
           invoiceNumber: invoice.invoiceNumber,
           createdAt: invoice.createdAt,
           dueDate: invoice.dueDate,

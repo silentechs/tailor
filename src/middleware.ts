@@ -76,7 +76,7 @@ const _protectedApiPrefixes = [
   '/api/user',
 ];
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static files and Next.js internals

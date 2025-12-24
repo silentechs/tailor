@@ -1,10 +1,26 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { endOfDay, isToday, startOfToday } from 'date-fns';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfDay,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  isToday,
+  startOfMonth,
+  startOfToday,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
 import {
   Calendar as CalendarIcon,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Loader2,
   MapPin,
@@ -46,9 +62,10 @@ async function getAppointments() {
 
 export default function AppointmentsPage() {
   const queryClient = useQueryClient();
-  const [_selectedDate, _setSelectedDate] = useState(new Date());
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: appointments, isLoading } = useQuery({
     queryKey: ['appointments'],
@@ -115,6 +132,7 @@ export default function AppointmentsPage() {
       <Tabs defaultValue="active" className="space-y-6">
         <TabsList>
           <TabsTrigger value="active">Upcoming</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
           <TabsTrigger value="history">Past & Completed</TabsTrigger>
         </TabsList>
 
@@ -149,10 +167,10 @@ export default function AppointmentsPage() {
                     isToday(new Date(a.startTime)) &&
                     (a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
                 ).length === 0 && (
-                  <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
-                    <p className="text-sm text-muted-foreground">No active appointments today.</p>
-                  </div>
-                )}
+                    <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
+                      <p className="text-sm text-muted-foreground">No active appointments today.</p>
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -185,13 +203,26 @@ export default function AppointmentsPage() {
                     new Date(a.startTime) > endOfDay(new Date()) &&
                     (a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
                 ).length === 0 && (
-                  <div className="col-span-full text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
-                    <p className="text-sm text-muted-foreground">No other upcoming bookings.</p>
-                  </div>
-                )}
+                    <div className="col-span-full text-center py-12 border-2 border-dashed rounded-xl bg-muted/5">
+                      <p className="text-sm text-muted-foreground">No other upcoming bookings.</p>
+                    </div>
+                  )}
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <AppointmentCalendar
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+            appointments={appointments || []}
+            onSelectDate={(date) => {
+              setSelectedDate(date);
+              setEditingAppointment(null);
+              setIsScheduleOpen(true);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="history">
@@ -220,11 +251,161 @@ export default function AppointmentsPage() {
         open={isScheduleOpen}
         onOpenChange={(open) => {
           setIsScheduleOpen(open);
-          if (!open) setEditingAppointment(null);
+          if (!open) {
+            setEditingAppointment(null);
+            setSelectedDate(null);
+          }
         }}
         initialData={editingAppointment}
+        prefilledDate={selectedDate}
       />
     </div>
+  );
+}
+
+function AppointmentCalendar({
+  currentMonth,
+  onMonthChange,
+  appointments,
+  onSelectDate,
+}: {
+  currentMonth: Date;
+  onMonthChange: (date: Date) => void;
+  appointments: any[];
+  onSelectDate: (date: Date) => void;
+}) {
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+
+  const days = eachDayOfInterval({
+    start: startDate,
+    end: endDate,
+  });
+
+  const nextMonth = () => onMonthChange(addMonths(currentMonth, 1));
+  const prevMonth = () => onMonthChange(subMonths(currentMonth, 1));
+
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const getAppointmentsForDay = (day: Date) => {
+    return appointments.filter((apt) => isSameDay(new Date(apt.startTime), day));
+  };
+
+  return (
+    <Card className="shadow-xl overflow-hidden">
+      <div className="p-6 border-b flex items-center justify-between bg-gradient-to-r from-primary/5 to-transparent">
+        <h2 className="text-xl font-heading font-bold text-foreground uppercase tracking-tight">
+          {format(currentMonth, 'MMMM yyyy')}
+        </h2>
+        <div className="flex gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={prevMonth}
+            className="h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={nextMonth}
+            className="h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 border-b bg-muted/30">
+        {weekDays.map((day) => (
+          <div
+            key={day}
+            className="py-3 text-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7">
+        {days.map((day, idx) => {
+          const dayAppointments = getAppointmentsForDay(day);
+          const isSelectedMonth = isSameMonth(day, monthStart);
+          const isTodayDate = isToday(day);
+          const isFutureDate = day > new Date();
+
+          return (
+            <div
+              key={day.toString()}
+              onClick={() => onSelectDate(day)}
+              className={cn(
+                'min-h-[110px] p-2 border-r border-b cursor-pointer transition-all',
+                'hover:bg-primary/5 hover:shadow-inner',
+                !isSelectedMonth && 'bg-muted/20 opacity-40',
+                idx % 7 === 6 && 'border-r-0',
+                isTodayDate && 'bg-amber-50 dark:bg-amber-950/20'
+              )}
+            >
+              <div className="flex justify-between items-start">
+                <span
+                  className={cn(
+                    'text-sm font-semibold transition-all',
+                    isTodayDate
+                      ? 'h-7 w-7 flex items-center justify-center rounded-full bg-amber-500 text-white shadow-md'
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  {format(day, 'd')}
+                </span>
+                {dayAppointments.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "text-[9px] px-1.5 h-4 font-bold",
+                      isTodayDate && "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
+                    )}
+                  >
+                    {dayAppointments.length}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="mt-2 space-y-1">
+                {dayAppointments.slice(0, 2).map((apt) => (
+                  <div
+                    key={apt.id}
+                    className={cn(
+                      "text-[10px] py-0.5 px-1.5 rounded truncate font-medium",
+                      isTodayDate
+                        ? "bg-amber-100 border border-amber-200 text-amber-900 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-200"
+                        : isFutureDate
+                          ? "bg-primary/10 border border-primary/20 text-foreground"
+                          : "bg-muted/50 border border-muted text-muted-foreground"
+                    )}
+                  >
+                    <span className={cn(
+                      "font-bold",
+                      isTodayDate ? "text-amber-600 dark:text-amber-400" : "text-primary"
+                    )}>
+                      {format(new Date(apt.startTime), 'HH:mm')}
+                    </span>{' '}
+                    {apt.client.name}
+                  </div>
+                ))}
+                {dayAppointments.length > 2 && (
+                  <div className="text-[9px] text-muted-foreground font-semibold pl-1">
+                    + {dayAppointments.length - 2} more
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

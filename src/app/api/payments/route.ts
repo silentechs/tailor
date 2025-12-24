@@ -180,14 +180,29 @@ export const POST = withSecurity(
         const newPaidAmount = Number(invoice.paidAmount) + data.amount;
         const newStatus = newPaidAmount >= Number(invoice.totalAmount) ? 'PAID' : invoice.status;
 
-        await prisma.invoice.updateMany({
-          where: { id: invoice.id, organizationId },
+        await prisma.invoice.update({
+          where: { id: invoice.id },
           data: {
             paidAmount: newPaidAmount,
             status: newStatus,
             ...(newStatus === 'PAID' && { paidAt: new Date() }),
           },
         });
+
+        // If invoice is linked to an order, and that order wasn't already updated above
+        if (invoice.orderId && data.orderId !== invoice.orderId) {
+          const linkedOrder = await prisma.order.findUnique({
+            where: { id: invoice.orderId },
+          });
+          if (linkedOrder) {
+            await prisma.order.update({
+              where: { id: linkedOrder.id },
+              data: {
+                paidAmount: Number(linkedOrder.paidAmount) + data.amount,
+              },
+            });
+          }
+        }
       }
 
       // Send notification

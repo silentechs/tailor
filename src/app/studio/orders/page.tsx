@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { FEATURE_FLAGS, cn } from '@/lib/utils';
 
 export default function StudioOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
@@ -334,34 +334,34 @@ export default function StudioOrdersPage() {
                   )}
 
                   {/* Payment Section */}
-                  {Number(orders.find((o: any) => o.id === selectedOrder).totalAmount) >
+                  {FEATURE_FLAGS.ENABLE_PAYMENTS && Number(orders.find((o: any) => o.id === selectedOrder).totalAmount) >
                     Number(orders.find((o: any) => o.id === selectedOrder).paidAmount) && (
-                    <div className="bg-zinc-950/50 rounded-[2rem] p-8 border border-white/5 flex flex-col items-center text-center">
-                      <Badge variant="outline" className="mb-4 border-ghana-gold text-ghana-gold">
-                        Payment Pending
-                      </Badge>
-                      <p className="text-3xl font-black font-heading mb-2">
-                        GH₵{' '}
-                        {(
-                          Number(orders.find((o: any) => o.id === selectedOrder).totalAmount) -
-                          Number(orders.find((o: any) => o.id === selectedOrder).paidAmount)
-                        ).toFixed(2)}
-                      </p>
-                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-8">
-                        Remaining balance for this order
-                      </p>
-                      <Button
-                        className="w-full rounded-xl bg-ghana-gold text-ghana-black font-black uppercase text-[10px] tracking-widest h-14 group"
-                        disabled={payNowMutation.isPending}
-                        onClick={() =>
-                          payNowMutation.mutate(orders.find((o: any) => o.id === selectedOrder))
-                        }
-                      >
-                        {payNowMutation.isPending ? 'Connecting...' : 'Pay Now with Paystack'}
-                        <ChevronRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </Button>
-                    </div>
-                  )}
+                      <div className="bg-zinc-950/50 rounded-[2rem] p-8 border border-white/5 flex flex-col items-center text-center">
+                        <Badge variant="outline" className="mb-4 border-ghana-gold text-ghana-gold">
+                          Payment Pending
+                        </Badge>
+                        <p className="text-3xl font-black font-heading mb-2">
+                          GH₵{' '}
+                          {(
+                            Number(orders.find((o: any) => o.id === selectedOrder).totalAmount) -
+                            Number(orders.find((o: any) => o.id === selectedOrder).paidAmount)
+                          ).toFixed(2)}
+                        </p>
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-8">
+                          Remaining balance for this order
+                        </p>
+                        <Button
+                          className="w-full rounded-xl bg-ghana-gold text-ghana-black font-black uppercase text-[10px] tracking-widest h-14 group"
+                          disabled={payNowMutation.isPending}
+                          onClick={() =>
+                            payNowMutation.mutate(orders.find((o: any) => o.id === selectedOrder))
+                          }
+                        >
+                          {payNowMutation.isPending ? 'Connecting...' : 'Pay Now with Paystack'}
+                          <ChevronRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                      </div>
+                    )}
 
                   <div className="flex justify-center">
                     <Button

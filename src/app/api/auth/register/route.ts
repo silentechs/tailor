@@ -84,14 +84,16 @@ export async function POST(request: Request) {
     // Send notification email to admin
     const adminEmail = process.env.ADMIN_EMAIL;
     if (adminEmail && result.user) {
-      await sendRegistrationEmail(result.user.email, result.user.name, adminEmail);
+      await sendRegistrationEmail(result.user.email, result.user.name, adminEmail, result.user.role);
     }
 
     return NextResponse.json(
       {
         success: true,
         message:
-          'Registration successful! Your account is pending approval. You will receive an email once approved.',
+          rawData.role === 'CLIENT'
+            ? 'Registration successful! You can now log in to your account.'
+            : 'Registration successful! Your account is pending approval. You will receive an email once approved.',
         user: {
           id: result.user!.id,
           email: result.user!.email,

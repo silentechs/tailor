@@ -13,12 +13,14 @@ const updateClientSchema = z.object({
     .refine((val) => isValidGhanaPhone(val), 'Invalid Ghana phone number')
     .optional(),
   email: z.string().email('Invalid email').optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
   address: z.string().optional().nullable(),
   region: z.string().optional().nullable(),
   city: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   profileImage: z.string().optional().nullable(),
   isLead: z.boolean().optional(),
+  isArchived: z.boolean().optional(),
 });
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -139,6 +141,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         activeTrackingToken: client.trackingTokens[0] || null,
         latestConsent: client.socialConsents[0] || null,
         measurements: client.clientMeasurements[0]?.values || {},
+        unit: client.clientMeasurements[0]?.unit || 'CM',
         userDesigns: Array.from(
           new Map(
             [...(client.user?.clientDesigns || []), ...(client.clientDesigns || [])].map((d) => [
@@ -223,11 +226,18 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data.phone = formattedPhone;
     }
 
+    // Handle archive timestamp
+    const archiveData: { archivedAt?: Date | null } = {};
+    if (data.isArchived !== undefined) {
+      archiveData.archivedAt = data.isArchived ? new Date() : null;
+    }
+
     // Update client
     const client = await prisma.client.update({
       where: { id },
       data: {
         ...data,
+        ...archiveData,
         region: data.region as Region | undefined,
       },
     });
@@ -267,22 +277,26 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
 
-    // Check if client has orders (soft delete might be better)
+    // Check if client has orders - archive instead of delete
     const orderCount = await prisma.order.count({
       where: { clientId: id },
     });
 
     if (orderCount > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Cannot delete client with ${orderCount} orders. Consider archiving instead.`,
-        },
-        { status: 400 }
-      );
+      // Archive instead of rejecting - preserves data integrity
+      const archivedClient = await prisma.client.update({
+        where: { id },
+        data: { isArchived: true, archivedAt: new Date() },
+      });
+      return NextResponse.json({
+        success: true,
+        message: `Client archived (has ${orderCount} order${orderCount > 1 ? 's' : ''})`,
+        data: archivedClient,
+        archived: true,
+      });
     }
 
-    // Delete client (cascades to tokens, sessions)
+    // No orders - safe to hard delete (cascades to tokens, sessions)
     await prisma.client.delete({
       where: { id },
     });
