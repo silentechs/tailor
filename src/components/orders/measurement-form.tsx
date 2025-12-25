@@ -171,7 +171,7 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
   }, [watchedValues, lastMeasurement]);
 
   // Find recommended template for current garment type
-  const recommendedTemplate = templates?.data.find((t) => t.garmentType === garmentType);
+  const recommendedTemplate = templates?.data?.find((t) => t.garmentType === garmentType);
 
   // Determine which template to use (selected or recommended)
   const selectedTemplate = useMemo(() => {
@@ -268,7 +268,7 @@ export function MeasurementForm({ garmentType, clientId }: MeasurementFormProps)
                 <SelectValue placeholder="Choose template..." />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                {templates?.data.map((t) => {
+                {templates?.data?.map((t) => {
                   const isRecommended = t.garmentType === garmentType;
                   return (
                     <SelectItem key={t.id || t.garmentType} value={t.id || t.garmentType}>
