@@ -67,18 +67,37 @@ export async function generateOrderNumber(tailorId: string): Promise<string> {
 
   const prefix = `SC-${year}${month}`;
 
-  const count = await prisma.order.count({
+  // Find the highest existing order number with this prefix
+  const latestOrder = await prisma.order.findFirst({
     where: {
       tailorId,
       orderNumber: {
         startsWith: prefix,
       },
     },
+    orderBy: {
+      orderNumber: 'desc',
+    },
+    select: {
+      orderNumber: true,
+    },
   });
 
-  const sequenceNumber = (count + 1).toString().padStart(4, '0');
+  let nextSequence = 1;
 
-  return `${prefix}-${sequenceNumber}`;
+  if (latestOrder?.orderNumber) {
+    // Extract the sequence number from the latest order
+    const match = latestOrder.orderNumber.match(/-(\d{4,})$/);
+    if (match) {
+      nextSequence = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  // Add a small random suffix to handle race conditions (last 3 chars of timestamp)
+  const randomSuffix = Date.now().toString().slice(-3);
+  const sequenceNumber = nextSequence.toString().padStart(4, '0');
+
+  return `${prefix}-${sequenceNumber}${randomSuffix}`;
 }
 
 // ============================================
@@ -92,18 +111,41 @@ export async function generatePaymentNumber(tailorId: string): Promise<string> {
 
   const prefix = `PAY-${year}${month}`;
 
-  const count = await prisma.payment.count({
+  // Find the highest existing payment number with this prefix
+  const latestPayment = await prisma.payment.findFirst({
     where: {
       tailorId,
       paymentNumber: {
         startsWith: prefix,
       },
     },
+    orderBy: {
+      paymentNumber: 'desc',
+    },
+    select: {
+      paymentNumber: true,
+    },
   });
 
-  const sequenceNumber = (count + 1).toString().padStart(4, '0');
+  let nextSequence = 1;
 
-  return `${prefix}-${sequenceNumber}`;
+  if (latestPayment?.paymentNumber) {
+    // Extract the sequence number from the latest payment (before the random suffix)
+    // Pattern: PAY-YYMM-XXXX or PAY-YYMM-XXXXNNN (with random suffix)
+    const match = latestPayment.paymentNumber.match(/-(\d{4,})$/);
+    if (match) {
+      // Get the first 4 digits as sequence, ignore any random suffix
+      const fullSequence = match[1];
+      const baseSequence = parseInt(fullSequence.slice(0, 4), 10);
+      nextSequence = baseSequence + 1;
+    }
+  }
+
+  // Add a small random suffix to handle race conditions (last 3 chars of timestamp)
+  const randomSuffix = Date.now().toString().slice(-3);
+  const sequenceNumber = nextSequence.toString().padStart(4, '0');
+
+  return `${prefix}-${sequenceNumber}${randomSuffix}`;
 }
 
 // ============================================
