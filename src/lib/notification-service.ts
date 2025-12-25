@@ -484,14 +484,18 @@ export async function notifyClientOrderStatusChange(
 export async function notifyClientPaymentReceived(
   clientUserId: string,
   amount: string,
-  orderNumber: string,
+  orderNumber: string | null,
   tailorName: string
 ): Promise<void> {
+  const message = orderNumber
+    ? `Your payment of ${amount} for order ${orderNumber} has been received. Thank you!`
+    : `Your payment of ${amount} has been received. Thank you!`;
+
   await createNotification({
     userId: clientUserId,
     type: 'PAYMENT_RECEIVED',
     title: 'Payment Confirmed',
-    message: `Your payment of ${amount} for order ${orderNumber} has been received. Thank you!`,
+    message,
     data: { amount, orderNumber, tailorName },
   });
 }

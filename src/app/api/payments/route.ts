@@ -283,11 +283,11 @@ export const POST = withSecurity(
       );
 
       // Send in-app notification to client if they have a linked account
-      if (payment.client.userId && payment.order?.orderNumber) {
+      if (payment.client.userId) {
         await notifyClientPaymentReceived(
           payment.client.userId,
           formatCurrency(data.amount),
-          payment.order.orderNumber,
+          payment.order?.orderNumber || null,
           user.businessName || user.name
         );
       }
