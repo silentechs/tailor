@@ -62,7 +62,7 @@ export async function GET() {
           ...t,
           businessName: t.businessName || 'Unnamed Artisan',
           region: t.region || 'Unknown Region',
-          specialty: t.portfolioItems[0]?.category || 'Bespoke Tailoring',
+          specialty: t.portfolioItems[0]?.category || 'Bespoke Fashion Design',
           projectCount: t._count.portfolioItems,
           rating: avgRating,
         };

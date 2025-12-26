@@ -53,7 +53,7 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20"
                 >
                   <TrendingUp className="h-4 w-4" />
-                  <span>The #1 Management Platform for Ghana Fashion</span>
+                  <span>The #1 Management Platform for West African Fashion</span>
                 </motion.div>
 
                 <motion.h1
@@ -61,7 +61,7 @@ export default function LandingPage() {
                   className="text-5xl md:text-7xl font-bold font-heading tracking-tight leading-[1.1]"
                 >
                   Empowering <br />
-                  <span className="text-primary italic">Ghanaian Tailors</span> <br />
+                  <span className="text-primary italic">Fashion Designers</span> <br />
                   to Scale.
                 </motion.h1>
 
@@ -69,8 +69,8 @@ export default function LandingPage() {
                   variants={ANIMATIONS.fadeInUp}
                   className="text-xl text-muted-foreground max-w-lg leading-relaxed"
                 >
-                  Transform your fashion business with a digital companion built for Ghanaian
-                  artisans. Sync measurements, track orders live, and showcase your finest work.
+                  Transform your fashion business with a digital companion built for master
+                  designers. Sync measurements, track orders live, and showcase your finest work.
                 </motion.p>
 
                 <motion.div
@@ -130,7 +130,7 @@ export default function LandingPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                 </div>
 
-                {/* Floating Stats Card */}
+                {/* Floating Stats Card - Dynamic Content */}
                 <motion.div
                   animate={{ y: [0, -10, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -138,11 +138,13 @@ export default function LandingPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-ghana-gold rounded-full flex items-center justify-center">
-                      <TrendingUp className="h-6 w-6 text-white" />
+                      <Scissors className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Monthly Orders</p>
-                      <p className="text-2xl font-bold">+124% Growth</p>
+                      <p className="text-sm text-muted-foreground">Active Designers</p>
+                      <p className="text-2xl font-bold">
+                        {tailorsLoading ? '...' : `${tailors?.length || 0}+ Verified`}
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -159,7 +161,7 @@ export default function LandingPage() {
                 Built for the Way You Work
               </h2>
               <p className="text-xl text-muted-foreground">
-                From individual tailors to large fashion houses, StitchCraft provides the tools you
+                From individual designers to large fashion houses, StitchCraft provides the tools you
                 need to stay organized and grow your revenue.
               </p>
             </div>
@@ -266,7 +268,7 @@ export default function LandingPage() {
                     <div>
                       <h4 className="font-bold text-lg">Ghana-Wide Discovery</h4>
                       <p className="text-muted-foreground">
-                        Find verified artisans by region, specialty, or rating. Hire the perfect
+                        Find verified designers by region, specialty, or rating. Hire the perfect
                         hands for your kente, kaftan, or bridal wear.
                       </p>
                     </div>
@@ -295,7 +297,7 @@ export default function LandingPage() {
                   <span className="text-primary italic text-ghana-gold">Design Gallery</span>
                 </h2>
                 <p className="text-slate-400 text-lg">
-                  Every garment tells a story. Browse the latest masterpieces crafted by artisans
+                  Every garment tells a story. Browse the latest masterpieces crafted by designers
                   using the StitchCraft platform.
                 </p>
               </div>
@@ -354,7 +356,7 @@ export default function LandingPage() {
                 Meet Our Master Tailors
               </h2>
               <p className="text-xl text-muted-foreground">
-                Connect directly with certified artisans verified for their excellence,
+                Connect directly with certified designers verified for their excellence,
                 professionalism, and craftsmanship.
               </p>
             </div>
@@ -441,7 +443,7 @@ export default function LandingPage() {
                 asChild
               >
                 <Link href="/discover">
-                  Browse All Artisans in Ghana{' '}
+                  Browse All Designers in Ghana{' '}
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
@@ -518,12 +520,12 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link href="/discover" className="hover:text-primary transition-colors">
-                    Find a Tailor
+                    Find a Designer
                   </Link>
                 </li>
                 <li>
                   <Link href="/auth/register" className="hover:text-primary transition-colors">
-                    Join as Artisan
+                    Join as Designer
                   </Link>
                 </li>
               </ul>
@@ -545,7 +547,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link href="/safety" className="hover:text-primary transition-colors">
-                    Artisan Safety
+                    Designer Safety
                   </Link>
                 </li>
                 <li>

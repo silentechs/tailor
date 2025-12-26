@@ -367,7 +367,7 @@ export default function StudioDesignsPage() {
 
                 <div className="space-y-2">
                   <Label className="text-xs uppercase font-bold tracking-widest text-zinc-500">
-                    Notes for Tailor
+                    Notes for Designer
                   </Label>
                   <Textarea
                     value={notes}

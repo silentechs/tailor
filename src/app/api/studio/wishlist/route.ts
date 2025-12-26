@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import { requireUser } from '@/lib/direct-current-user';
+import { getCurrentUser } from '@/lib/direct-current-user';
 import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const user = await requireUser();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
     if (user.role !== 'CLIENT') {
       return NextResponse.json({ success: false, error: 'Clients only' }, { status: 403 });
     }
@@ -38,7 +41,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireUser();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
     if (user.role !== 'CLIENT') {
       return NextResponse.json({ success: false, error: 'Clients only' }, { status: 403 });
     }
@@ -83,3 +89,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

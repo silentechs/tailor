@@ -1,8 +1,10 @@
 'use client';
 
 import {
+  Compass,
   HelpCircle,
   History,
+  Images,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -27,17 +29,22 @@ const navItems = [
   { icon: MessageSquare, label: 'Messages', href: '/studio/messages' },
 ];
 
+const discoverItems = [
+  { icon: Compass, label: 'Find Designers', href: '/discover' },
+  { icon: Images, label: 'Design Gallery', href: '/gallery' },
+];
+
 export function StudioSidebar({ className }: { className?: string }) {
   const pathname = usePathname();
 
   return (
     <div className={cn('flex flex-col h-full bg-ghana-black text-white p-6', className)}>
-      <div className="flex items-center gap-3 mb-12 px-2">
+      <Link href="/" className="flex items-center gap-3 mb-12 px-2 hover:opacity-80 transition-opacity">
         <div className="h-10 w-10 bg-ghana-gold rounded-xl flex items-center justify-center font-black text-ghana-black text-xl">
           SC
         </div>
         <span className="text-xl font-bold tracking-tighter">STUDIO</span>
-      </div>
+      </Link>
 
       <nav className="flex-1 space-y-2">
         {navItems.map((item) => {
@@ -64,6 +71,21 @@ export function StudioSidebar({ className }: { className?: string }) {
             </Link>
           );
         })}
+
+        {/* Discover Section */}
+        <div className="pt-6 mt-6 border-t border-white/10">
+          <p className="px-4 mb-3 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+            Discover
+          </p>
+          {discoverItems.map((item) => (
+            <Link key={item.href} href={item.href} target="_blank">
+              <div className="group flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 hover:bg-white/5 text-zinc-400 hover:text-white">
+                <item.icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="font-bold tracking-wide">{item.label}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
       </nav>
 
       <div className="pt-8 mt-8 border-t border-white/10 space-y-4">
@@ -106,3 +128,4 @@ export function StudioSidebar({ className }: { className?: string }) {
     </div>
   );
 }
+

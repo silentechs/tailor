@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'StitchCraft Ghana',
-  description: 'Professional Tailoring Management System',
+  description: 'Professional Fashion Design Management System',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',

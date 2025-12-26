@@ -121,7 +121,7 @@ export default function OrderDetailsPage() {
         orderId: orderData.id,
         items: [
           {
-            description: `${orderData.garmentType.replace(/_/g, ' ')} - Custom Tailoring`,
+            description: `${orderData.garmentType.replace(/_/g, ' ')} - Custom Fashion Design`,
             quantity: 1,
             unitPrice: Number(orderData.totalAmount),
             amount: Number(orderData.totalAmount),
@@ -150,7 +150,8 @@ export default function OrderDetailsPage() {
       queryClient.invalidateQueries({ queryKey: ['order', id] });
     },
     onError: (err: any) => {
-      toast.error(err.message);
+      console.error('Invoice creation failed:', err);
+      toast.error(`Invoice Failed: ${err.message}. Please verify the client has an email/phone set.`);
     },
   });
 
@@ -209,7 +210,7 @@ export default function OrderDetailsPage() {
                 clientEmail: orderData.client?.email,
                 items: [
                   {
-                    description: `${orderData.garmentType?.replace(/_/g, ' ')} - Custom Tailoring`,
+                    description: `${orderData.garmentType?.replace(/_/g, ' ')} - Custom Fashion Design`,
                     quantity: 1,
                     unitPrice: Number(orderData.totalAmount),
                     amount: Number(orderData.totalAmount),
@@ -248,7 +249,7 @@ export default function OrderDetailsPage() {
               ) : (
                 <FileText className="h-4 w-4 mr-2" />
               )}
-              Generate Official Invoice
+              Generate Professional Invoice
             </Button>
           )}
           <Select

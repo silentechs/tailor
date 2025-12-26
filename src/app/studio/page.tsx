@@ -48,13 +48,21 @@ export default function StudioDashboard() {
           <TriangleAlert className="h-12 w-12 text-ghana-gold" />
         </div>
         <h1 className="text-4xl font-black font-heading tracking-tight mb-6 uppercase">
-          Account Unlinked
+          Waiting for Your Designer
         </h1>
-        <p className="text-zinc-400 text-lg mb-10 leading-relaxed font-bold">
-          Your account is not yet connected to a tailor's client record. Use the link provided by
-          your tailor to sync your orders and measurements.
+        <p className="text-zinc-400 text-lg mb-4 leading-relaxed font-bold">
+          Your account will be automatically linked when a Fashion Designer adds you as a client using your phone number or email.
         </p>
-        <LinkAccountDialog />
+        <p className="text-zinc-500 text-sm mb-10">
+          Once linked, you'll see your orders, measurements, and payment history here.
+        </p>
+
+        <div className="w-full max-w-md border border-white/10 rounded-2xl p-6 bg-white/5">
+          <p className="text-zinc-500 text-xs uppercase tracking-widest font-bold mb-4">
+            Already have a tracking link?
+          </p>
+          <LinkAccountDialog />
+        </div>
       </div>
     );
   }
@@ -268,7 +276,7 @@ function LinkAccountDialog() {
         <DialogHeader>
           <DialogTitle>Link Your Account</DialogTitle>
           <DialogDescription>
-            Enter the tracking token provided by your tailor to connect your account.
+            Enter the tracking token provided by your fashion designer to connect your account.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

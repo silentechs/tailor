@@ -75,15 +75,15 @@ export default function DiscoverPage() {
               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium border border-primary/20"
             >
               <Sparkles className="h-4 w-4" />
-              <span>Verified Artisans of Ghana</span>
+              <span>Verified Designers of Ghana</span>
             </motion.div>
 
             <h1 className="text-5xl md:text-8xl font-bold font-heading tracking-tight leading-[1.1]">
-              Find Your <span className="text-primary italic">Artisan</span>
+              Find Your <span className="text-primary italic">Designer</span>
             </h1>
 
             <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto font-medium">
-              Connect with master tailors who bring heritage to life. Bespoke craftsmanship,
+              Connect with master designers who bring heritage to life. Bespoke craftsmanship,
               verified professionalism.
             </p>
           </div>
@@ -131,97 +131,97 @@ export default function DiscoverPage() {
             <AnimatePresence mode="popLayout">
               {isLoading
                 ? Array.from({ length: 3 }, (_, i) => `discover-skeleton-${i}`).map((key) => (
-                    <Card
-                      key={key}
-                      className="rounded-[3rem] p-10 space-y-8 bg-white/50 border-none shadow-xl"
-                    >
-                      <Skeleton className="h-32 w-32 rounded-full mx-auto" />
-                      <div className="space-y-4">
-                        <Skeleton className="h-8 w-3/4 mx-auto" />
-                        <Skeleton className="h-4 w-1/2 mx-auto" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <Skeleton className="h-12 rounded-2xl" />
-                        <Skeleton className="h-12 rounded-2xl" />
+                  <Card
+                    key={key}
+                    className="rounded-[3rem] p-10 space-y-8 bg-white/50 border-none shadow-xl"
+                  >
+                    <Skeleton className="h-32 w-32 rounded-full mx-auto" />
+                    <div className="space-y-4">
+                      <Skeleton className="h-8 w-3/4 mx-auto" />
+                      <Skeleton className="h-4 w-1/2 mx-auto" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Skeleton className="h-12 rounded-2xl" />
+                      <Skeleton className="h-12 rounded-2xl" />
+                    </div>
+                  </Card>
+                ))
+                : filteredTailors.map((tailor: Tailor, idx: number) => (
+                  <motion.div
+                    key={tailor.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    <Card className="group relative overflow-hidden border-none bg-white/80 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-700 rounded-[3rem] p-10">
+                      <CardContent className="p-0 flex flex-col items-center text-center space-y-8">
+                        <div className="relative">
+                          <Avatar className="h-32 w-32 ring-8 ring-primary/5 shadow-2xl transition-all duration-700 group-hover:scale-105 group-hover:rotate-1">
+                            <AvatarImage
+                              src={
+                                tailor.profileImage ||
+                                `https://api.dicebear.com/7.x/avataaars/svg?seed=${tailor.name}`
+                              }
+                            />
+                            <AvatarFallback className="bg-primary text-white text-3xl font-black">
+                              {tailor.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="absolute -bottom-2 -right-2 bg-white px-3 py-1.5 rounded-full shadow-lg border border-border/50 flex items-center gap-1.5 text-xs font-black">
+                            <Star className="h-4 w-4 fill-ghana-gold text-ghana-gold" />
+                            {tailor.rating || '4.9'}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 w-full">
+                          <h3 className="text-3xl font-bold font-heading text-slate-900 leading-[1.2] tracking-tight">
+                            {tailor.businessName}
+                          </h3>
+                          <div className="flex items-center justify-center gap-2 text-muted-foreground font-bold text-sm uppercase tracking-widest">
+                            <MapPin className="h-4 w-4 text-red-500" />
+                            {GHANA_REGIONS[tailor.region] || 'Ghana'}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap justify-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="bg-primary/10 text-primary border-none font-black text-[10px] px-4 py-1.5 uppercase tracking-widest rounded-full"
+                          >
+                            {tailor.specialty || 'Fashion Designer'}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 w-full pt-4">
+                          <Button
+                            className="rounded-2xl h-14 font-black shadow-lg shadow-primary/20 bg-primary group-hover:bg-primary/90 transition-all text-white"
+                            asChild
+                          >
+                            <Link href={`/showcase/${tailor.showcaseUsername}`}>
+                              Visit Showcase Studio
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="rounded-2xl h-14 font-black border-2 border-slate-100 hover:bg-slate-50 transition-all"
+                            asChild
+                          >
+                            <Link href={`/showcase/${tailor.showcaseUsername}`}>
+                              Check Availability
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+
+                      {/* Decorative Background Element */}
+                      <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.02] pointer-events-none transform translate-x-1/2 -translate-y-1/2 transition-transform duration-1000 group-hover:rotate-12 group-hover:scale-110">
+                        <Scissors className="w-full h-full text-primary" />
                       </div>
                     </Card>
-                  ))
-                : filteredTailors.map((tailor: Tailor, idx: number) => (
-                    <motion.div
-                      key={tailor.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ delay: idx * 0.1 }}
-                    >
-                      <Card className="group relative overflow-hidden border-none bg-white/80 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-700 rounded-[3rem] p-10">
-                        <CardContent className="p-0 flex flex-col items-center text-center space-y-8">
-                          <div className="relative">
-                            <Avatar className="h-32 w-32 ring-8 ring-primary/5 shadow-2xl transition-all duration-700 group-hover:scale-105 group-hover:rotate-1">
-                              <AvatarImage
-                                src={
-                                  tailor.profileImage ||
-                                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${tailor.name}`
-                                }
-                              />
-                              <AvatarFallback className="bg-primary text-white text-3xl font-black">
-                                {tailor.name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="absolute -bottom-2 -right-2 bg-white px-3 py-1.5 rounded-full shadow-lg border border-border/50 flex items-center gap-1.5 text-xs font-black">
-                              <Star className="h-4 w-4 fill-ghana-gold text-ghana-gold" />
-                              {tailor.rating || '4.9'}
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 w-full">
-                            <h3 className="text-3xl font-bold font-heading text-slate-900 leading-[1.2] tracking-tight">
-                              {tailor.businessName}
-                            </h3>
-                            <div className="flex items-center justify-center gap-2 text-muted-foreground font-bold text-sm uppercase tracking-widest">
-                              <MapPin className="h-4 w-4 text-red-500" />
-                              {GHANA_REGIONS[tailor.region] || tailor.region}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap justify-center gap-2">
-                            <Badge
-                              variant="secondary"
-                              className="bg-primary/10 text-primary border-none font-black text-[10px] px-4 py-1.5 uppercase tracking-widest rounded-full"
-                            >
-                              {tailor.specialty || 'Master Tailor'}
-                            </Badge>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-3 w-full pt-4">
-                            <Button
-                              className="rounded-2xl h-14 font-black shadow-lg shadow-primary/20 bg-primary group-hover:bg-primary/90 transition-all text-white"
-                              asChild
-                            >
-                              <Link href={`/showcase/${tailor.showcaseUsername}`}>
-                                Visit Showcase Studio
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="rounded-2xl h-14 font-black border-2 border-slate-100 hover:bg-slate-50 transition-all"
-                              asChild
-                            >
-                              <Link href={`/showcase/${tailor.showcaseUsername}`}>
-                                Check Availability
-                              </Link>
-                            </Button>
-                          </div>
-                        </CardContent>
-
-                        {/* Decorative Background Element */}
-                        <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.02] pointer-events-none transform translate-x-1/2 -translate-y-1/2 transition-transform duration-1000 group-hover:rotate-12 group-hover:scale-110">
-                          <Scissors className="w-full h-full text-primary" />
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
+                  </motion.div>
+                ))}
             </AnimatePresence>
           </div>
 
@@ -231,9 +231,9 @@ export default function DiscoverPage() {
                 <Search className="h-12 w-12" />
               </div>
               <div className="space-y-4">
-                <h3 className="text-3xl font-bold font-heading">No Artisans Found</h3>
+                <h3 className="text-3xl font-bold font-heading">No Designers Found</h3>
                 <p className="text-muted-foreground font-medium max-w-sm mx-auto text-lg leading-relaxed">
-                  We couldn't find any certified artisans matching your search. Try removing your location
+                  We couldn't find any certified designers matching your search. Try removing your location
                   filter or using a broader search term.
                 </p>
               </div>

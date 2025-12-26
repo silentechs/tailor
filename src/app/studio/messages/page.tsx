@@ -101,7 +101,7 @@ export default function StudioMessagesPage() {
             <h1 className="text-2xl font-black uppercase italic tracking-tighter text-white">
               Messages
             </h1>
-            <p className="text-sm text-zinc-400">Chat with your tailors.</p>
+            <p className="text-sm text-zinc-400">Chat with your designers.</p>
           </div>
           <Link
             href="/studio/help/messages"

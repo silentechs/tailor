@@ -33,7 +33,7 @@ export default function DesignsHelpPage() {
               Custom Commissions
             </h2>
             <p className="text-zinc-400">
-              Your design library stores every custom creation you've worked on with your tailors.
+              Your design library stores every custom creation you've worked on with your designers.
               Review past sketches, fabric choices, and specific details.
             </p>
           </section>
@@ -59,7 +59,7 @@ export default function DesignsHelpPage() {
               </div>
               <p className="text-sm text-zinc-500">
                 Found a design you love from 2 years ago? Every design is archived with its original
-                specs and the tailor who made it.
+                specs and the designer who made it.
               </p>
             </CardContent>
           </Card>

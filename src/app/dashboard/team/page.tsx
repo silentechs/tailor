@@ -544,14 +544,13 @@ export default function TeamPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MANAGER">Manager (Full Access)</SelectItem>
-                    <SelectItem value="SENIOR">Senior Tailor</SelectItem>
+                    <SelectItem value="SENIOR">Senior Designer</SelectItem>
                     <SelectItem value="WORKER">Worker</SelectItem>
                     <SelectItem value="APPRENTICE">Apprentice</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Roles provide a default set of permissions. You can grant{' '}
-                  <strong>additional</strong> permissions below.
+                  Roles provide a base set of permissions. Note that default permissions for a role <strong>cannot be revoked</strong>, only additional ones can be granted.
                 </p>
               </div>
 

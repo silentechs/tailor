@@ -95,10 +95,10 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-10">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-4xl font-black font-heading text-slate-900 tracking-tight">
+        <h1 className="text-2xl sm:text-4xl font-black font-heading text-slate-900 tracking-tight">
           System <span className="text-primary">Overview</span>
         </h1>
-        <p className="text-slate-500 font-medium">
+        <p className="text-slate-400 sm:text-slate-500 text-sm sm:text-base font-medium">
           Real-time platform performance and business health metrics.
         </p>
       </div>
@@ -151,85 +151,89 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl p-8">
-          <CardHeader className="p-0 mb-8 border-b border-slate-50 pb-6 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xl font-bold font-heading flex items-center gap-2">
+        <Card className="lg:col-span-2 border-none shadow-sm rounded-3xl p-4 sm:p-8">
+          <CardHeader className="p-0 mb-6 sm:mb-8 border-b border-slate-50 pb-6 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-lg sm:text-xl font-bold font-heading flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
               Recent Activity
             </CardTitle>
-            <Button variant="ghost" size="sm" className="rounded-full px-4 text-xs font-bold" asChild>
+            <Button variant="ghost" size="sm" className="rounded-full px-3 sm:px-4 text-[10px] sm:text-xs font-bold" asChild>
               <Link href="/admin/logs">View All Logs</Link>
             </Button>
           </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-50 hover:bg-transparent">
-                <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Action
-                </TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  User
-                </TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Status
-                </TableHead>
-                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Time
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [1, 2, 3].map((i) => (
-                  <TableRow key={i} className="animate-pulse">
-                    <TableCell colSpan={4} className="h-12 bg-slate-50/50 rounded-lg mb-2" />
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-50 hover:bg-transparent">
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Action
+                    </TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      User
+                    </TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Time
+                    </TableHead>
                   </TableRow>
-                ))
-              ) : activities.length > 0 ? (
-                activities.map((activity) => (
-                  <TableRow
-                    key={activity.id}
-                    className="border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group"
-                  >
-                    <TableCell className="py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                          <TrendingUp className="h-4 w-4 text-slate-500" />
-                        </div>
-                        <span className="font-bold text-slate-900 text-sm">{activity.label}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium text-slate-500 text-sm truncate max-w-[150px]">
-                      {activity.user}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "border-none text-[10px] font-black uppercase",
-                          activity.status === 'SUCCESS' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                        )}
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    [1, 2, 3].map((i) => (
+                      <TableRow key={i} className="animate-pulse">
+                        <TableCell colSpan={4} className="h-12 bg-slate-50/50 rounded-lg mb-2" />
+                      </TableRow>
+                    ))
+                  ) : activities.length > 0 ? (
+                    activities.map((activity) => (
+                      <TableRow
+                        key={activity.id}
+                        className="border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group"
                       >
-                        {activity.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-bold text-slate-400">
-                      {formatDistanceToNow(new Date(activity.time), { addSuffix: true })}
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-10 text-slate-400 font-medium">
-                    No recent activity found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                              <TrendingUp className="h-4 w-4 text-slate-500" />
+                            </div>
+                            <span className="font-bold text-slate-900 text-sm">{activity.label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-500 text-sm truncate max-w-[150px]">
+                          {activity.user}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              "border-none text-[10px] font-black uppercase",
+                              activity.status === 'SUCCESS' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                            )}
+                          >
+                            {activity.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-xs font-bold text-slate-400">
+                          {formatDistanceToNow(new Date(activity.time), { addSuffix: true })}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-10 text-slate-400 font-medium">
+                        No recent activity found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </Card>
 
-        <Card className="border-none shadow-sm rounded-3xl p-8 bg-slate-900 text-white relative overflow-hidden">
+        <Card className="border-none shadow-sm rounded-3xl p-6 sm:p-8 bg-slate-900 text-white relative overflow-hidden">
           <div className="relative z-10 space-y-8">
             <div className="space-y-2">
               <p className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">

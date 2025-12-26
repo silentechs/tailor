@@ -85,7 +85,7 @@ export default function TrackingPage() {
         <div className="space-y-2">
           <h2 className="text-2xl font-bold font-heading">Access Denied</h2>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            This tracking link is invalid or has expired. Please contact your tailor for a new link.
+            This tracking link is invalid or has expired. Please contact your fashion designer for a new link.
           </p>
         </div>
         <Button variant="outline" onClick={() => window.location.reload()}>
@@ -329,7 +329,7 @@ export default function TrackingPage() {
                     if (result.success && result.data.authorization_url) {
                       window.location.href = result.data.authorization_url;
                     } else {
-                      toast.error('Could not initialize payment. Please contact your tailor.');
+                      toast.error('Could not initialize payment. Please contact your fashion designer.');
                     }
                   } catch (err) {
                     toast.error('Network error during payment initialization.');
@@ -346,7 +346,7 @@ export default function TrackingPage() {
         {/* Tailor Info & Support */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest px-1">
-            Tailor Contact
+            Designer Contact
           </h3>
           <div className="flex items-center gap-4">
             <Avatar className="h-14 w-14 ring-4 ring-slate-50">
@@ -358,7 +358,7 @@ export default function TrackingPage() {
             <div>
               <p className="font-bold text-lg">{tailor.name}</p>
               <p className="text-xs text-muted-foreground">
-                {tailor.businessName || 'StitchCraft Master Tailor'}
+                {tailor.businessName || 'StitchCraft Fashion Designer'}
               </p>
             </div>
           </div>

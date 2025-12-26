@@ -34,7 +34,7 @@ export default function TrackingHelpPage() {
             </h2>
             <p className="text-zinc-400">
               Every order you place with a StitchCraft workshop comes with a private tracking
-              portal. You can see real-time updates as your tailor works on your piece.
+              portal. You can see real-time updates as your designer works on your piece.
             </p>
             <div className="space-y-4">
               {[
@@ -45,7 +45,7 @@ export default function TrackingHelpPage() {
                 },
                 {
                   title: 'In Production',
-                  desc: 'Tailors have begun cutting and sewing.',
+                  desc: 'Designers have begun cutting and sewing.',
                   icon: Scissors,
                 },
                 {

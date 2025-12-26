@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, Image as ImageIcon, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
+import { Eye, Image as ImageIcon, Loader2, Plus, Trash2, Upload, X, MoreVertical, Edit } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -324,105 +330,137 @@ export default function PortfolioPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {portfolio.map((item: any) => (
-                <Card key={item.id} className="overflow-hidden group">
-                  <div className="aspect-square bg-muted relative">
-                    <div className="absolute inset-0 flex items-center justify-center bg-secondary/10 text-muted-foreground">
-                      {item.images && item.images.length > 0 ? (
-                        <img
-                          src={item.images[0]}
-                          alt={item.title}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <ImageIcon className="h-10 w-10" />
-                      )}
-                    </div>
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Dialog>
+                <Card key={item.id} className="overflow-hidden group relative">
+                  <Dialog>
+                    {/* Make the entire image area a trigger for the dialog */}
+                    <div className="relative aspect-square bg-muted">
+                      <DialogTrigger asChild>
+                        <div className="absolute inset-0 flex items-center justify-center bg-secondary/10 text-muted-foreground cursor-pointer">
+                          {item.images && item.images.length > 0 ? (
+                            <img
+                              src={item.images[0]}
+                              alt={item.title}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <ImageIcon className="h-10 w-10" />
+                          )}
+                        </div>
+                      </DialogTrigger>
+
+                      {/* Mobile Actions Menu (Visible on md and below) */}
+                      <div className="absolute top-2 right-2 md:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full shadow-md bg-white/90 backdrop-blur-sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(item)}>
+                              <Edit className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleVisibilityMutation.mutate({ id: item.id, isPublic: !item.isPublic })}>
+                              {item.isPublic ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                              {item.isPublic ? 'Make Private' : 'Make Public'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConfirmId(item.id)}>
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {/* Desktop Hover Overlay (Hidden on mobile) */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center justify-center gap-2 pointer-events-none group-hover:pointer-events-auto">
                         <DialogTrigger asChild>
                           <Button variant="secondary" size="sm">
                             <Eye className="h-4 w-4 mr-2" /> View
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[700px]">
-                          <DialogHeader>
-                            <DialogTitle>{item.title}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                              {item.images && item.images.length > 0 ? (
-                                <img
-                                  src={item.images[0]}
-                                  alt={item.title}
-                                  className="object-contain w-full h-full"
-                                />
-                              ) : (
-                                <div className="flex items-center justify-center h-full">
-                                  <ImageIcon className="h-20 w-20 text-muted-foreground" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline">
-                                {GARMENT_TYPE_LABELS[
-                                  item.category as keyof typeof GARMENT_TYPE_LABELS
-                                ] || item.category}
-                              </Badge>
-                              <span className="text-sm text-muted-foreground">
-                                {item.viewCount} views • {item.likeCount} likes
-                              </span>
-                            </div>
-                            {item.description && (
-                              <p className="text-sm text-muted-foreground">{item.description}</p>
-                            )}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          toggleVisibilityMutation.mutate({ id: item.id, isPublic: !item.isPublic })
-                        }
-                      >
-                        {item.isPublic ? (
-                          <Eye className="h-4 w-4 mr-2" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 mr-2" />
-                        )}
-                        {item.isPublic ? 'Public' : 'Private'}
-                      </Button>
-                      <Button variant="secondary" size="sm" onClick={() => handleEdit(item)}>
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeleteConfirmId(item.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        {deleteMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4 mr-2" />
-                        )}
-                        Delete
-                      </Button>
-                      <ConfirmDialog
-                        open={deleteConfirmId === item.id}
-                        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
-                        title="Delete Project"
-                        description="Are you sure you want to remove this project from your portfolio? This action cannot be undone."
-                        confirmText="Delete"
-                        variant="destructive"
-                        onConfirm={() => {
-                          deleteMutation.mutate(item.id);
-                          setDeleteConfirmId(null);
-                        }}
-                        isLoading={deleteMutation.isPending}
-                      />
+
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() =>
+                            toggleVisibilityMutation.mutate({ id: item.id, isPublic: !item.isPublic })
+                          }
+                        >
+                          {item.isPublic ? (
+                            <Eye className="h-4 w-4 mr-2" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 mr-2" />
+                          )}
+                          {item.isPublic ? 'Public' : 'Private'}
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => handleEdit(item)}>
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeleteConfirmId(item.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          {deleteMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+
+                    <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>{item.title}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                          {item.images && item.images.length > 0 ? (
+                            <img
+                              src={item.images[0]}
+                              alt={item.title}
+                              className="object-contain w-full h-full"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <ImageIcon className="h-20 w-20 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">
+                            {GARMENT_TYPE_LABELS[
+                              item.category as keyof typeof GARMENT_TYPE_LABELS
+                            ] || item.category}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {item.viewCount} views • {item.likeCount} likes
+                          </span>
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <ConfirmDialog
+                    open={deleteConfirmId === item.id}
+                    onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+                    title="Delete Project"
+                    description="Are you sure you want to remove this project from your portfolio? This action cannot be undone."
+                    confirmText="Delete"
+                    variant="destructive"
+                    onConfirm={() => {
+                      deleteMutation.mutate(item.id);
+                      setDeleteConfirmId(null);
+                    }}
+                    isLoading={deleteMutation.isPending}
+                  />
+
                   <CardHeader className="p-4 pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-lg truncate pr-2">{item.title}</CardTitle>
@@ -529,7 +567,7 @@ export default function PortfolioPage() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Edit Project' : 'Add New Project'}</DialogTitle>
           </DialogHeader>

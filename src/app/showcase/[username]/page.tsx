@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: ShowcasePageProps): Promise<M
   if (!tailor) {
     return {
       title: 'Showcase - StitchCraft Ghana',
-      description: 'Discover talented Ghanaian tailors on StitchCraft.',
+      description: 'Discover talented West African Fashion Designers on StitchCraft.',
     };
   }
 
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: ShowcasePageProps): Promise<M
     tailor.city && tailor.region ? `${tailor.city}, ${tailor.region.replace(/_/g, ' ')}` : 'Ghana';
   const description =
     tailor.bio ||
-    `Bespoke Ghanaian tailoring by ${displayName}. Based in ${location}. View portfolio and connect.`;
+    `Bespoke West African fashion by ${displayName}. Based in ${location}. View portfolio and connect.`;
 
   const title = `${displayName} - StitchCraft Ghana`;
 
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: ShowcasePageProps): Promise<M
     description,
     keywords: [
       displayName,
-      'Ghana tailor',
+      'Ghana designer',
       'African fashion',
       'Kente',
       'bespoke clothing',
@@ -64,13 +64,13 @@ export async function generateMetadata({ params }: ShowcasePageProps): Promise<M
       type: 'profile',
       images: tailor.profileImage
         ? [
-            {
-              url: tailor.profileImage,
-              width: 400,
-              height: 400,
-              alt: `${displayName} - Ghanaian Tailor`,
-            },
-          ]
+          {
+            url: tailor.profileImage,
+            width: 400,
+            height: 400,
+            alt: `${displayName} - West African Fashion Designer`,
+          },
+        ]
         : [],
       siteName: 'StitchCraft Ghana',
     },

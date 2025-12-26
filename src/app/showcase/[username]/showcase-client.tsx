@@ -48,7 +48,7 @@ function trackLead({ tailorId, channel, source }: { tailorId: string; channel: s
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tailorId, channel, source }),
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 export default function ShowcasePageClient() {
@@ -90,7 +90,7 @@ export default function ShowcasePageClient() {
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
         <h2 className="text-2xl font-bold font-heading">Showcase Unavailable</h2>
         <p className="text-muted-foreground mt-2 max-w-xs">
-          This tailor hasn't set up their public showcase yet.
+          This designer hasn't set up their public showcase yet.
         </p>
         <Button variant="link" asChild className="mt-4">
           <Link href="/">Back to StitchCraft</Link>
@@ -225,7 +225,7 @@ export default function ShowcasePageClient() {
 
             <p className="text-lg text-slate-600 max-w-2xl leading-relaxed">
               {tailor.bio ||
-                'Bespoke Ghanaian tailoring. Crafting traditional and modern masterpieces with every stitch.'}
+                'Bespoke West African fashion. Crafting traditional and modern masterpieces with every stitch.'}
             </p>
 
             <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-2">
@@ -368,7 +368,7 @@ export default function ShowcasePageClient() {
             </span>
           </div>
           <p className="text-muted-foreground text-sm">
-            Empowering Ghanaian Tailors through Technology.
+            Empowering West African Fashion Designers through Technology.
           </p>
           <div className="flex justify-center gap-6 pt-4">
             <Link

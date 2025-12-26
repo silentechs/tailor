@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { toast } from 'sonner';
+import { AuthHeader } from '@/components/auth-header';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -91,7 +92,8 @@ function AcceptInvitationContent() {
 
   if (isValidating) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-muted/30 pt-16">
+        <AuthHeader />
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground font-medium">Validating your invitation...</p>
       </div>
@@ -100,7 +102,8 @@ function AcceptInvitationContent() {
 
   if (validateError || !token) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4 bg-muted/30">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-muted/30 pt-16">
+        <AuthHeader />
         <Card className="w-full max-w-md shadow-2xl border-none rounded-3xl overflow-hidden">
           <CardHeader className="bg-destructive/10 text-center py-8">
             <div className="mx-auto h-16 w-16 bg-destructive/20 rounded-full flex items-center justify-center mb-4">
@@ -129,7 +132,8 @@ function AcceptInvitationContent() {
 
   if (isAccepted) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4 bg-muted/30">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-muted/30 pt-16">
+        <AuthHeader />
         <Card className="w-full max-w-md shadow-2xl border-none rounded-3xl overflow-hidden animate-in fade-in zoom-in duration-500">
           <CardHeader className="bg-primary/10 text-center py-10">
             <div className="mx-auto h-20 w-20 bg-primary/20 rounded-full flex items-center justify-center mb-6 animate-bounce">
@@ -152,7 +156,8 @@ function AcceptInvitationContent() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-16">
+      <AuthHeader />
       <Card className="w-full max-w-lg shadow-2xl border-none rounded-[2.5rem] overflow-hidden bg-background/80 backdrop-blur-xl">
         <CardHeader className="text-center pt-12 pb-6 px-10">
           <div className="mx-auto h-24 w-24 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-8 rotate-3 shadow-inner">

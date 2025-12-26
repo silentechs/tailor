@@ -3,10 +3,10 @@
 import { Heart, LogIn, Sparkles, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 interface SaveButtonProps {
@@ -27,6 +27,15 @@ export function SaveButton({
     const [showAuthPopover, setShowAuthPopover] = useState(false);
     const pathname = usePathname();
 
+    useEffect(() => {
+        // Check if there's a pending save for this item after login
+        const pendingSave = sessionStorage.getItem('pending_wishlist_save');
+        if (pendingSave === portfolioItemId) {
+            sessionStorage.removeItem('pending_wishlist_save');
+            handleSave();
+        }
+    }, [portfolioItemId]);
+
     const handleSave = async () => {
         setIsLoading(true);
         try {
@@ -45,6 +54,8 @@ export function SaveButton({
 
             // Not authenticated
             if (res.status === 401) {
+                // Store the intent to save this item
+                sessionStorage.setItem('pending_wishlist_save', portfolioItemId);
                 setShowAuthPopover(true);
                 return;
             }
@@ -62,7 +73,8 @@ export function SaveButton({
                 toast.info('Removed from Style Hub');
             }
         } catch {
-            // Network error or not authenticated - assume auth issue
+            // Network error - show auth popover as fallback
+            sessionStorage.setItem('pending_wishlist_save', portfolioItemId);
             setShowAuthPopover(true);
         } finally {
             setIsLoading(false);
@@ -73,7 +85,7 @@ export function SaveButton({
 
     return (
         <Popover open={showAuthPopover} onOpenChange={setShowAuthPopover}>
-            <PopoverTrigger asChild>
+            <PopoverAnchor asChild>
                 <Button
                     size={size}
                     variant="ghost"
@@ -94,7 +106,7 @@ export function SaveButton({
                         )}
                     />
                 </Button>
-            </PopoverTrigger>
+            </PopoverAnchor>
             <PopoverContent
                 className="w-72 p-0 rounded-2xl border-none shadow-2xl overflow-hidden"
                 align="end"
@@ -142,3 +154,4 @@ export function SaveButton({
         </Popover>
     );
 }
+

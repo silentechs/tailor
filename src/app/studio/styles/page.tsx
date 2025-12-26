@@ -2,11 +2,12 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Heart, HelpCircle, Loader2, MapPin, Share2 } from 'lucide-react';
+import { Heart, HelpCircle, Loader2, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ShareButton } from '@/components/share-button';
 
 export default function StudioStyleHubPage() {
   const { data: wishlistData, isLoading } = useQuery({
@@ -48,10 +49,17 @@ export default function StudioStyleHubPage() {
             <HelpCircle className="h-6 w-6" />
           </Link>
         </div>
-        <div className="max-w-xs text-right">
+        <div className="max-w-xs text-right space-y-3">
           <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs leading-loose">
-            Your personal collection of inspirations and saved work from StitchCraft tailors.
+            Your personal collection of inspirations and saved work from StitchCraft designers.
           </p>
+          <Button
+            asChild
+            variant="outline"
+            className="rounded-full px-6 border-ghana-gold/30 text-ghana-gold hover:bg-ghana-gold hover:text-ghana-black font-bold uppercase tracking-widest text-[10px]"
+          >
+            <Link href="/gallery">Browse Gallery →</Link>
+          </Button>
         </div>
       </header>
 
@@ -108,7 +116,7 @@ export default function StudioStyleHubPage() {
                     <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                       {item.portfolioItem.organization?.name ||
                         item.portfolioItem.tailor?.businessName ||
-                        'Bespoke Artisan'}
+                        'Bespoke Designer'}
                     </span>
                   </div>
                 </div>
@@ -119,7 +127,7 @@ export default function StudioStyleHubPage() {
                   <Badge
                     key={tag}
                     variant="outline"
-                    className="text-[9px] uppercase font-black tracking-tighter border-white/10 rounded-full px-3 py-0.5"
+                    className="text-[9px] uppercase font-black tracking-tighter border-white/10 text-zinc-300 rounded-full px-3 py-0.5"
                   >
                     {tag}
                   </Badge>
@@ -138,15 +146,15 @@ export default function StudioStyleHubPage() {
                         : '#'
                     }
                   >
-                    View Tailor
+                    View Designer
                   </Link>
                 </Button>
-                <Button
-                  size="icon"
+                <ShareButton
+                  shareTitle={item.portfolioItem.title}
+                  shareText={`Check out this ${item.portfolioItem.title} by ${item.portfolioItem.tailor?.businessName || 'a StitchCraft designer'}!`}
+                  shareUrl={item.portfolioItem.tailor?.showcaseUsername ? `${typeof window !== 'undefined' ? window.location.origin : ''}/showcase/${item.portfolioItem.tailor.showcaseUsername}` : undefined}
                   className="h-14 w-14 rounded-2xl bg-white/5 hover:bg-white/10 border-white/5 text-zinc-400"
-                >
-                  <Share2 className="h-5 w-5" />
-                </Button>
+                />
               </div>
             </div>
           </motion.div>

@@ -162,7 +162,7 @@ export default function StudioOrdersPage() {
                         selectedOrder === order.id ? 'text-ghana-black/60' : 'text-zinc-500'
                       )}
                     >
-                      {order.organization.name}
+                      {order.tailor.businessName || order.tailor.name}
                     </span>
                     <h3 className="text-xl font-black font-heading mt-1 uppercase leading-tight">
                       {order.garmentType}
@@ -368,7 +368,7 @@ export default function StudioOrdersPage() {
                       variant="outline"
                       className="rounded-2xl h-14 border-white/10 hover:bg-white/5 font-black uppercase tracking-widest text-[10px] px-10 gap-3"
                     >
-                      Message Tailor <ChevronRight className="h-4 w-4" />
+                      Message Designer <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

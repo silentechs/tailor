@@ -24,7 +24,7 @@ export default function SafetyPage() {
             <div className="prose prose-slate prose-lg max-w-none text-slate-600 leading-relaxed font-medium">
               <p className="text-xl leading-relaxed text-slate-700">
                 At StitchCraft, we are committed to creating a safe, trustworthy environment for
-                both artisans and clients. Our safety protocols are designed to protect your
+                both designers and clients. Our safety protocols are designed to protect your
                 business, your payments, and your personal interactions.
               </p>
 
@@ -33,7 +33,7 @@ export default function SafetyPage() {
                   <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center text-green-600">
                     <UserCheck className="h-6 w-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900">Artisan Verification</h3>
+                  <h3 className="text-xl font-bold text-slate-900">Designer Verification</h3>
                   <p className="text-slate-600 text-sm">
                     Every tailor on our "Discover" platform undergoes a review process. We verify
                     business locations and identities to ensure clients are connecting with real,
@@ -60,7 +60,7 @@ export default function SafetyPage() {
               </h2>
               <p>
                 While StitchCraft facilitates the digital management of your business, physical
-                fittings are the heart of tailoring. We recommend the following safety measures:
+                fittings are the heart of fashion design. We recommend the following safety measures:
               </p>
               <ul className="list-disc pl-6 space-y-2 marker:text-primary">
                 <li>
@@ -73,7 +73,7 @@ export default function SafetyPage() {
                 </li>
                 <li>
                   <strong>Respectful Conduct:</strong> We have a zero-tolerance policy for
-                  harassment or discrimination from either artisans or clients.
+                  harassment or discrimination from either designers or clients.
                 </li>
               </ul>
 

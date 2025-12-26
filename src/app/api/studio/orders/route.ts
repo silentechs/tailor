@@ -10,13 +10,22 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Return empty data if client is not linked to a tailor yet
-    if (!user.linkedClientId) {
+    const clientProfiles = await prisma.client.findMany({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+
+    const clientIds = clientProfiles.map((cp) => cp.id);
+    if (user.linkedClientId && !clientIds.includes(user.linkedClientId)) {
+      clientIds.push(user.linkedClientId);
+    }
+
+    if (clientIds.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
     const orders = await prisma.order.findMany({
-      where: { clientId: user.linkedClientId },
+      where: { clientId: { in: clientIds } },
       orderBy: { createdAt: 'desc' },
       include: {
         organization: {
@@ -24,6 +33,12 @@ export async function GET() {
             name: true,
             logo: true,
             city: true,
+          },
+        },
+        tailor: {
+          select: {
+            name: true,
+            businessName: true,
           },
         },
         collection: {

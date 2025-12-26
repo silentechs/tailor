@@ -78,7 +78,7 @@ export default function WelcomeHelpPage() {
               Ready to explore?
             </h2>
             <p className="text-zinc-400">
-              Your Studio is the central hub for your fashion life. Connect with tailors, manage
+              Your Studio is the central hub for your fashion life. Connect with designers, manage
               your wardrobe, and never worry about a bad fit again.
             </p>
           </div>

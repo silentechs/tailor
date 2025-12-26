@@ -10,12 +10,18 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   RefreshCw,
-  Download
+  Download,
+  Eye,
+  Globe,
+  Smartphone,
+  Monitor,
+  Tablet
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import ReactECharts from 'echarts-for-react';
 
@@ -109,6 +115,28 @@ export default function AdminAnalyticsPage() {
     ]
   };
 
+  const publicAnalytics = data?.publicAnalytics;
+  const maxFunnelViews = Math.max(...(publicAnalytics?.funnel?.map((f: any) => f.views) || [1]));
+
+  const getDeviceIcon = (device: string) => {
+    switch (device) {
+      case 'mobile': return <Smartphone className="h-4 w-4" />;
+      case 'tablet': return <Tablet className="h-4 w-4" />;
+      default: return <Monitor className="h-4 w-4" />;
+    }
+  };
+
+  const getPageLabel = (path: string) => {
+    const labels: Record<string, string> = {
+      '/': 'Landing Page',
+      '/gallery': 'Design Gallery',
+      '/discover': 'Find Designers',
+      '/auth/register': 'Registration',
+      '/auth/login': 'Login'
+    };
+    return labels[path] || path;
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -132,6 +160,73 @@ export default function AdminAnalyticsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Public Page Analytics Summary Cards */}
+      {publicAnalytics && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="border-none shadow-sm rounded-2xl">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Page Views</p>
+                  <p className="text-3xl font-black text-slate-900">{publicAnalytics.totalPageViews.toLocaleString()}</p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Eye className="h-6 w-6 text-blue-500" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-1">
+                {publicAnalytics.pageViewGrowth >= 0 ? (
+                  <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4 text-red-500" />
+                )}
+                <span className={cn(
+                  "text-sm font-bold",
+                  publicAnalytics.pageViewGrowth >= 0 ? "text-emerald-500" : "text-red-500"
+                )}>
+                  {publicAnalytics.pageViewGrowth >= 0 ? '+' : ''}{publicAnalytics.pageViewGrowth}%
+                </span>
+                <span className="text-sm text-slate-400">vs last 30 days</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm rounded-2xl">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">Unique Sessions</p>
+                  <p className="text-3xl font-black text-slate-900">{publicAnalytics.uniqueSessions.toLocaleString()}</p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-purple-50 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-purple-500" />
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-slate-400">Last 30 days</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-sm rounded-2xl col-span-1 md:col-span-2">
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-slate-500 mb-3">Device Breakdown</p>
+              <div className="flex gap-4">
+                {publicAnalytics.deviceBreakdown.map((d: any) => (
+                  <div key={d.device} className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                      {getDeviceIcon(d.device)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 capitalize">{d.device}</p>
+                      <p className="text-xs text-slate-400">{d.count.toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Revenue Trend */}
@@ -157,6 +252,33 @@ export default function AdminAnalyticsPage() {
           </CardContent>
         </Card>
 
+        {/* Traffic Funnel */}
+        {publicAnalytics && (
+          <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+            <CardHeader className="p-8 pb-0">
+              <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <Globe className="h-5 w-5 text-blue-500" />
+                Traffic Funnel
+              </CardTitle>
+              <p className="text-sm font-medium text-slate-400">User journey through public pages (30 days)</p>
+            </CardHeader>
+            <CardContent className="p-8 space-y-4">
+              {publicAnalytics.funnel.map((page: any, i: number) => (
+                <div key={page.path} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-700">{getPageLabel(page.path)}</span>
+                    <span className="text-sm font-black text-slate-900">{page.views.toLocaleString()}</span>
+                  </div>
+                  <Progress
+                    value={(page.views / maxFunnelViews) * 100}
+                    className="h-3"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Status Distribution */}
         <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
           <CardHeader className="p-8 pb-0">
@@ -172,6 +294,36 @@ export default function AdminAnalyticsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Top Pages */}
+        {publicAnalytics && (
+          <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
+            <CardHeader className="p-8 pb-4">
+              <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <Eye className="h-5 w-5 text-indigo-500" />
+                Top Pages
+              </CardTitle>
+              <p className="text-sm font-medium text-slate-400">Most visited pages in the last 30 days</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-slate-50">
+                {publicAnalytics.topPages.slice(0, 5).map((page: any, i: number) => (
+                  <div key={page.path} className="px-8 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center font-black text-slate-500 text-xs">
+                        #{i + 1}
+                      </div>
+                      <p className="font-medium text-slate-700 truncate max-w-[200px]">{page.path}</p>
+                    </div>
+                    <Badge variant="secondary" className="font-bold">
+                      {page.views.toLocaleString()} views
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Region Distribution */}
         <Card className="border-none shadow-sm rounded-3xl overflow-hidden">
@@ -213,7 +365,6 @@ export default function AdminAnalyticsPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-black text-slate-900">GH₵ {tailor.revenue.toLocaleString()}</p>
-                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Growth ⚡</p>
                   </div>
                 </div>
               )) || (
@@ -228,3 +379,4 @@ export default function AdminAnalyticsPage() {
     </div>
   );
 }
+

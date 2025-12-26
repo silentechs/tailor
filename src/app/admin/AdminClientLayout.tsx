@@ -14,11 +14,14 @@ import {
   Users,
   Wallet,
   BookOpen,
+  Menu,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useCsrf } from '@/hooks/use-csrf';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +41,7 @@ const ADMIN_NAV = [
 
 export function AdminClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Initialize CSRF token
   useCsrf();
@@ -59,8 +63,8 @@ export function AdminClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col z-50">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-72 bg-white border-r border-slate-200 flex-col z-50">
         <div className="p-8 pb-4 flex items-center gap-3">
           <div className="h-10 w-10 bg-slate-900 rounded-2xl flex items-center justify-center">
             <ShieldCheck className="h-6 w-6 text-white" />
@@ -127,27 +131,118 @@ export function AdminClientLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative custom-scrollbar">
         {/* Top Header */}
-        <header className="sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-10 h-20 flex items-center justify-between z-40">
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
-            Platform Control Center
-          </h2>
+        <header className="sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 md:px-10 h-20 flex items-center justify-between z-40">
           <div className="flex items-center gap-4">
+            {/* Mobile Menu Trigger */}
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-6 w-6 text-slate-600" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72 border-r-0">
+                <div className="flex flex-col h-full bg-white">
+                  <div className="p-8 pb-4 flex items-center gap-3">
+                    <div className="h-10 w-10 bg-slate-900 rounded-2xl flex items-center justify-center">
+                      <ShieldCheck className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="font-heading font-black text-xl tracking-tight text-slate-900 uppercase">
+                      Stitch<span className="text-primary italic">Admin</span>
+                    </span>
+                  </div>
+
+                  <nav className="flex-1 px-4 py-8 space-y-2">
+                    {ADMIN_NAV.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+                      return (
+                        <Button
+                          key={item.href}
+                          variant="ghost"
+                          className={cn(
+                            'w-full justify-start h-12 rounded-xl px-4 transition-all group',
+                            isActive
+                              ? 'bg-slate-900 text-white hover:bg-slate-800'
+                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                          )}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          asChild
+                        >
+                          <Link href={item.href}>
+                            <Icon
+                              className={cn(
+                                'h-5 w-5 mr-3',
+                                isActive ? 'text-primary' : 'text-slate-400'
+                              )}
+                            />
+                            <span className="font-bold">{item.label}</span>
+                          </Link>
+                        </Button>
+                      );
+                    })}
+                  </nav>
+
+                  <div className="p-6 border-t border-slate-100">
+                    <div className="bg-slate-50 rounded-2xl p-4 flex items-center gap-3">
+                      <Avatar className="h-10 w-10 border-2 border-white">
+                        <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" />
+                        <AvatarFallback>AD</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-slate-900 truncate">Platform Admin</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          Super Admin
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-red-500"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] hidden sm:block">
+              Platform Control Center
+            </h2>
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] sm:hidden">
+              Admin
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-2 md:gap-4">
             <Button variant="ghost" size="icon" className="rounded-full relative">
               <Bell className="h-5 w-5 text-slate-400" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
             </Button>
-            <div className="h-8 w-[1px] bg-slate-100 mx-2" />
+            <div className="hidden xs:block h-8 w-[1px] bg-slate-100 mx-1 md:mx-2" />
             <Button
               variant="outline"
-              className="rounded-xl border-slate-200 text-slate-600 font-bold px-6"
+              className="hidden md:flex rounded-xl border-slate-200 text-slate-600 font-bold px-6"
               asChild
             >
               <Link href="/admin/docs">Documentation</Link>
             </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="md:hidden rounded-xl border-slate-200 text-slate-600"
+              asChild
+            >
+              <Link href="/admin/docs">
+                <BookOpen className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </header>
 
-        <div className="p-10 max-w-7xl mx-auto">{children}</div>
+        <div className="p-4 md:p-10 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
   );

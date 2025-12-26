@@ -91,7 +91,7 @@ export function PushToProfileButton({
                     <AlertDialogDescription>
                         This will update <strong>{clientName}'s</strong> global profile with your local
                         measurements. They will see these measurements in their Studio portal and can use them
-                        with any tailor.
+                        with any designer.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

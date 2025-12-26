@@ -33,7 +33,7 @@ export default function MeasurementsHelpPage() {
               The StitchCraft Global Sync
             </h2>
             <p className="text-zinc-400">
-              When you get measured at a StitchCraft workshop, you can ask your tailor to{' '}
+              When you get measured at a StitchCraft workshop, you can ask your designer to{' '}
               <strong>Sync to Profile</strong>. This saves your exact measurements to your private
               Studio vault.
             </p>
@@ -49,7 +49,7 @@ export default function MeasurementsHelpPage() {
                 <li className="flex gap-2">
                   <RefreshCcw className="w-5 h-5 text-ghana-red shrink-0" />
                   <span className="text-zinc-300">
-                    <strong>Portability:</strong> New tailors can sync your measurements instantly.
+                    <strong>Portability:</strong> New designers can sync your measurements instantly.
                   </span>
                 </li>
                 <li className="flex gap-2">

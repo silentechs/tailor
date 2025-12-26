@@ -32,7 +32,7 @@ export default function TermsPage() {
               </h2>
               <p>
                 Silentech Solution Enterprise grants you a non-transferable, non-exclusive license to
-                use the StitchCraft platform for your professional tailoring or fashion business
+                use the StitchCraft platform for your professional fashion design business
                 operations within the Republic of Ghana and beyond.
               </p>
 

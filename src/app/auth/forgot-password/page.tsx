@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { AuthHeader } from '@/components/auth-header';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -69,7 +70,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4 pt-16">
+      <AuthHeader />
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-5 pointer-events-none"

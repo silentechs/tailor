@@ -36,7 +36,7 @@ export function DashboardClientContent({
       <Sidebar className="hidden md:block w-64 fixed inset-y-0 z-50 shadow-sm" user={user} />
 
       {/* Main Content */}
-      <div className="flex-1 md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0 transition-all duration-300 ease-in-out overflow-x-hidden">
+      <div className="flex-1 md:pl-64 flex flex-col min-h-screen pb-36 md:pb-0 transition-all duration-300 ease-in-out overflow-x-hidden">
         <Topbar />
 
         <main className="flex-1 p-4 md:p-8 w-full max-w-[1600px] mx-auto overflow-x-hidden">
@@ -75,7 +75,7 @@ export function DashboardClientContent({
       <FeedbackButton
         user={{ id: user.id, name: user.name, email: user.email, role: user.role }}
         variant="floating"
-        className="bottom-24 md:bottom-6"
+        className="bottom-24 md:bottom-6 md:right-24"
       />
     </div>
   );

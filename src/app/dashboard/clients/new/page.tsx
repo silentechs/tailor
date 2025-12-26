@@ -518,8 +518,8 @@ export default function NewClientPage() {
                 type="button"
                 onClick={() => setInviteChannel('whatsapp')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${inviteChannel === 'whatsapp'
-                    ? 'bg-green-600 text-white'
-                    : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-green-600 text-white'
+                  : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
                 <MessageCircle className="h-4 w-4" />
@@ -530,8 +530,8 @@ export default function NewClientPage() {
                 onClick={() => setInviteChannel('sms')}
                 disabled={!createdClient?.phone}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${inviteChannel === 'sms'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                   }`}
               >
                 <Phone className="h-4 w-4" />
@@ -542,8 +542,8 @@ export default function NewClientPage() {
                 onClick={() => setInviteChannel('email')}
                 disabled={!createdClient?.email}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-colors ${inviteChannel === 'email'
-                    ? 'bg-purple-600 text-white'
-                    : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
+                  ? 'bg-purple-600 text-white'
+                  : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                   }`}
                 title={!createdClient?.email ? 'No email on file' : undefined}
               >
@@ -555,15 +555,15 @@ export default function NewClientPage() {
             {/* Send Button */}
             <Button
               className={`w-full ${inviteChannel === 'whatsapp' ? 'bg-green-600 hover:bg-green-700' :
-                  inviteChannel === 'sms' ? 'bg-blue-600 hover:bg-blue-700' :
-                    'bg-purple-600 hover:bg-purple-700'
+                inviteChannel === 'sms' ? 'bg-blue-600 hover:bg-blue-700' :
+                  'bg-purple-600 hover:bg-purple-700'
                 }`}
               onClick={() => {
                 const phone = createdClient?.phone.replace('+', '');
                 const isLinked = createdClient?.wasLinked;
                 const name = createdClient?.name;
 
-                const inviteMessage = `Akwaaba ${name}! You've been added as a valued client at our tailoring shop on StitchCraft Ghana. Download the app to track your orders: https://stitchcraft.live`;
+                const inviteMessage = `Akwaaba ${name}! You've been added as a valued client at our fashion design studio on StitchCraft Ghana. Download the app to track your orders: https://stitchcraft.live`;
                 const notifyMessage = `Hi ${name}! I've added you to my client list on StitchCraft. Check your dashboard: https://stitchcraft.live/studio`;
                 const message = isLinked ? notifyMessage : inviteMessage;
 

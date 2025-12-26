@@ -7,6 +7,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { AuthHeader } from '@/components/auth-header';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -79,7 +80,7 @@ function LoginContent() {
 
       // Validate callbackUrl - only use if it's a valid internal path
       const callbackUrl = searchParams.get('callbackUrl');
-      const validPaths = ['/dashboard', '/studio', '/admin', '/auth/accept-invitation'];
+      const validPaths = ['/dashboard', '/studio', '/admin', '/auth/accept-invitation', '/gallery', '/discover'];
       const isValidCallback = callbackUrl && validPaths.some(p => callbackUrl.startsWith(p));
 
       if (isValidCallback) {
@@ -99,7 +100,8 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4 pt-16">
+      <AuthHeader />
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-5 pointer-events-none"

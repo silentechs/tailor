@@ -9,7 +9,17 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    if (!user.linkedClientId) {
+    const clientProfiles = await prisma.client.findMany({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+
+    const clientIds = clientProfiles.map((cp) => cp.id);
+    if (user.linkedClientId && !clientIds.includes(user.linkedClientId)) {
+      clientIds.push(user.linkedClientId);
+    }
+
+    if (clientIds.length === 0) {
       return NextResponse.json({
         success: true,
         data: {
@@ -23,13 +33,16 @@ export async function GET() {
 
     const [orders, measurements, wishlistCount] = await Promise.all([
       prisma.order.findMany({
-        where: { clientId: user.linkedClientId },
+        where: { clientId: { in: clientIds } },
         orderBy: { updatedAt: 'desc' },
         take: 5,
-        include: { organization: { select: { name: true } } },
+        include: {
+          organization: { select: { name: true } },
+          tailor: { select: { name: true, businessName: true } }
+        },
       }),
       prisma.clientMeasurement.findFirst({
-        where: { clientId: user.linkedClientId },
+        where: { clientId: { in: clientIds } },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.wishlistItem.count({

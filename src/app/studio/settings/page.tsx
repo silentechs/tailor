@@ -90,7 +90,7 @@ export default function StudioSettingsPage() {
               Personal Details
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Your contact information shared with tailors.
+              Your contact information shared with designers.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

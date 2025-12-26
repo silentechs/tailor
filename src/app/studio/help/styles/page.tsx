@@ -30,7 +30,7 @@ export default function StylesHelpPage() {
             Finding Inspiration
           </h2>
           <p className="text-zinc-400">
-            Browse the latest collections from top tailors across the country. Filter by garment
+            Browse the latest collections from top designers across the country. Filter by garment
             type, fabric, or occasion to find exactly what you're looking for.
           </p>
         </motion.div>
@@ -42,7 +42,7 @@ export default function StylesHelpPage() {
           </h2>
           <p className="text-zinc-400">
             Click the heart icon on any design to save it to your personal favorites. You can easily
-            share these with your tailor when starting a new order.
+            share these with your designer when starting a new order.
           </p>
         </motion.div>
       </div>
@@ -88,7 +88,7 @@ export default function StylesHelpPage() {
           Style Tip
         </div>
         <p className="text-zinc-400 text-sm italic">
-          Use the **Style Hub** to communicate with your tailor. Showing them exactly what you like
+          Use the **Style Hub** to communicate with your designer. Showing them exactly what you like
           visually is the best way to ensure your final garment meets your expectations.
         </p>
       </motion.div>

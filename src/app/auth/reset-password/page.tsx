@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { AuthHeader } from '@/components/auth-header';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -126,7 +127,8 @@ function ResetPasswordContent() {
   // Loading state
   if (isValidating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background pt-16">
+        <AuthHeader />
         <Card className="w-full max-w-md shadow-2xl">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -140,7 +142,8 @@ function ResetPasswordContent() {
   // Invalid token state
   if (!isValid && !isValidating) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4 pt-16">
+        <AuthHeader />
         <div
           className="absolute inset-0 opacity-5 pointer-events-none"
           style={{ background: KENTE_PATTERNS.heroBackground }}
@@ -180,7 +183,8 @@ function ResetPasswordContent() {
   // Success state
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4 pt-16">
+        <AuthHeader />
         <div
           className="absolute inset-0 opacity-5 pointer-events-none"
           style={{ background: KENTE_PATTERNS.heroBackground }}
@@ -213,7 +217,8 @@ function ResetPasswordContent() {
 
   // Reset form
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4 pt-16">
+      <AuthHeader />
       <div
         className="absolute inset-0 opacity-5 pointer-events-none"
         style={{ background: KENTE_PATTERNS.heroBackground }}

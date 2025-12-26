@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Heart, MapPin, Scissors, Search, Sparkles, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KenteBackground } from '@/components/landing/kente-background';
 import { Navbar } from '@/components/landing/navbar';
 import { SaveButton } from '@/components/save-button';
@@ -35,19 +35,28 @@ interface GalleryItem {
 
 export default function GalleryPage() {
   const [filter, setFilter] = useState('ALL');
-  const [selectedArtisan, setSelectedArtisan] = useState('ALL');
+  const [selectedDesigner, setSelectedDesigner] = useState('ALL');
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   const { data: galleryItems = [] as GalleryItem[], isLoading } = useGlobalGallery();
 
+  // Check if user is logged in
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.ok)
+      .then(setIsLoggedIn)
+      .catch(() => setIsLoggedIn(false));
+  }, []);
+
   const garmentTypes = useMemo(() => ['ALL', ...Object.keys(GARMENT_TYPE_LABELS)], []);
 
-  const artisans = useMemo<string[]>(() => {
-    const uniqueArtisans = Array.from<string>(
+  const designers = useMemo<string[]>(() => {
+    const uniqueDesigners = Array.from<string>(
       new Set(galleryItems.map((item: GalleryItem) => item.tailor))
     );
-    return ['ALL', ...uniqueArtisans];
+    return ['ALL', ...uniqueDesigners];
   }, [galleryItems]);
 
   const regions = useMemo<string[]>(() => {
@@ -60,19 +69,19 @@ export default function GalleryPage() {
   const filteredItems = useMemo(() => {
     return galleryItems.filter((item: GalleryItem) => {
       const matchesCategory = filter === 'ALL' || item.category === filter;
-      const matchesArtisan = selectedArtisan === 'ALL' || item.tailor === selectedArtisan;
+      const matchesDesigner = selectedDesigner === 'ALL' || item.tailor === selectedDesigner;
       const matchesRegion = selectedRegion === 'ALL' || item.region === selectedRegion;
       const matchesSearch =
         item.title.toLowerCase().includes(search.toLowerCase()) ||
         item.tailor.toLowerCase().includes(search.toLowerCase());
 
-      return matchesCategory && matchesArtisan && matchesRegion && matchesSearch;
+      return matchesCategory && matchesDesigner && matchesRegion && matchesSearch;
     });
-  }, [galleryItems, filter, selectedArtisan, selectedRegion, search]);
+  }, [galleryItems, filter, selectedDesigner, selectedRegion, search]);
 
   const resetFilters = () => {
     setFilter('ALL');
-    setSelectedArtisan('ALL');
+    setSelectedDesigner('ALL');
     setSelectedRegion('ALL');
     setSearch('');
   };
@@ -100,28 +109,30 @@ export default function GalleryPage() {
             </h1>
 
             <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto font-medium">
-              Discover the future of high-fashion tailoring. From hand-woven Kente to precision-cut
-              architecture.
+              Discover the future of high-fashion design. From hand-woven Kente to precision-cut
+              design.
             </p>
 
             {/* Signup prompt for non-logged users */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-ghana-gold/10 border border-ghana-gold/20"
-            >
-              <Heart className="h-4 w-4 text-ghana-gold" />
-              <span className="text-sm font-medium text-foreground">
-                Save your favorite designs
-              </span>
-              <Link
-                href="/auth/register?role=client"
-                className="text-sm font-bold text-primary hover:underline"
+            {isLoggedIn === false && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-ghana-gold/10 border border-ghana-gold/20"
               >
-                Create Account →
-              </Link>
-            </motion.div>
+                <Heart className="h-4 w-4 text-ghana-gold" />
+                <span className="text-sm font-medium text-foreground">
+                  Save your favorite designs
+                </span>
+                <Link
+                  href="/auth/register?role=client"
+                  className="text-sm font-bold text-primary hover:underline"
+                >
+                  Create Account →
+                </Link>
+              </motion.div>
+            )}
           </div>
 
           {/* Filter Bar */}
@@ -130,7 +141,7 @@ export default function GalleryPage() {
               <div className="relative w-full md:w-1/3 group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
-                  placeholder="Search styles or artisans..."
+                  placeholder="Search styles or designers..."
                   className="pl-12 bg-muted/30 border-none focus-visible:ring-2 focus-visible:ring-primary/20 transition-all rounded-2xl h-12"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -138,15 +149,15 @@ export default function GalleryPage() {
               </div>
 
               <div className="flex flex-wrap md:flex-nowrap gap-3 items-center w-full md:w-auto">
-                <Select value={selectedArtisan} onValueChange={setSelectedArtisan}>
+                <Select value={selectedDesigner} onValueChange={setSelectedDesigner}>
                   <SelectTrigger className="h-12 w-full md:w-48 rounded-2xl bg-muted/30 border-none">
                     <User className="h-4 w-4 mr-2 text-primary" />
-                    <SelectValue placeholder="All Artisans" />
+                    <SelectValue placeholder="All Designers" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
-                    {artisans.map((artisan: string) => (
-                      <SelectItem key={artisan} value={artisan}>
-                        {artisan === 'ALL' ? 'All Artisans' : artisan}
+                    {designers.map((designer: string) => (
+                      <SelectItem key={designer} value={designer}>
+                        {designer === 'ALL' ? 'All Designers' : designer}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -167,7 +178,7 @@ export default function GalleryPage() {
                 </Select>
 
                 {(filter !== 'ALL' ||
-                  selectedArtisan !== 'ALL' ||
+                  selectedDesigner !== 'ALL' ||
                   selectedRegion !== 'ALL' ||
                   search) && (
                     <Button

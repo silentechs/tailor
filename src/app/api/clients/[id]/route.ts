@@ -140,8 +140,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
         },
         activeTrackingToken: client.trackingTokens[0] || null,
         latestConsent: client.socialConsents[0] || null,
-        measurements: client.clientMeasurements[0]?.values || {},
-        unit: client.clientMeasurements[0]?.unit || 'CM',
+        measurements:
+          client.clientMeasurements[0]?.values ||
+          (client.user?.measurements as any)?.values ||
+          (typeof client.user?.measurements === 'object' ? client.user?.measurements : null) ||
+          {},
+        unit:
+          client.clientMeasurements[0]?.unit || (client.user?.measurements as any)?.unit || 'CM',
         userDesigns: Array.from(
           new Map(
             [...(client.user?.clientDesigns || []), ...(client.clientDesigns || [])].map((d) => [

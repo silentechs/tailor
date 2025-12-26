@@ -32,7 +32,7 @@ export default function MessagesHelpPage() {
             Direct Chat
           </h2>
           <p className="text-zinc-400">
-            Message your tailors directly within the portal to ask questions about your fit, send
+            Message your designers directly within the portal to ask questions about your fit, send
             design changes, or coordinate fittings.
           </p>
         </motion.div>
@@ -44,7 +44,7 @@ export default function MessagesHelpPage() {
           </h2>
           <p className="text-zinc-400">
             Never miss an update. Enable browser or SMS notifications to be notified immediately
-            when your tailor sends a message or completes a stage of your order.
+            when your designer sends a message or completes a stage of your order.
           </p>
         </motion.div>
       </div>

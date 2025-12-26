@@ -282,7 +282,7 @@ export async function sendApprovalEmail(
   const content = `
     <p>Dear ${userName},</p>
     <p>Great news! Your StitchCraft Ghana account has been <strong style="color: ${BRAND_COLORS.primary};">approved</strong>!</p>
-    <p>You can now log in and ${userRole === 'CLIENT' ? 'start exploring the world of GH fashion' : 'start managing your tailoring business'}:</p>
+    <p>You can now log in and ${userRole === 'CLIENT' ? 'start exploring the world of GH fashion' : 'start managing your fashion design studio'}:</p>
     <ul>
       ${userRole === 'CLIENT'
       ? `

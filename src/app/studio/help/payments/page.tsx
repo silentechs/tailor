@@ -35,7 +35,7 @@ export default function PaymentsHelpPage() {
                 Secure Digital Payments
               </h2>
               <p className="text-zinc-400">
-                Pay your tailor securely via Paystack. Your payments are recorded instantly in the
+                Pay your designer securely via Paystack. Your payments are recorded instantly in the
                 portal, giving you a clear history of every transaction.
               </p>
             </section>
@@ -62,7 +62,7 @@ export default function PaymentsHelpPage() {
                   Verified
                 </div>
                 <p className="text-sm text-zinc-500 font-medium">
-                  Payments made through the portal are verified by StitchCraft, ensuring your tailor
+                  Payments made through the portal are verified by StitchCraft, ensuring your designer
                   receives the funds and your order status is updated automatically.
                 </p>
               </CardContent>

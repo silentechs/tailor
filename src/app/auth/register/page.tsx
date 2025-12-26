@@ -8,6 +8,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { AuthHeader } from '@/components/auth-header';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -154,7 +155,8 @@ function RegisterContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background p-4 pt-16">
+      <AuthHeader />
       <div
         className="absolute inset-0 opacity-5 pointer-events-none"
         style={{ background: KENTE_PATTERNS.heroBackground }}
